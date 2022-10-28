@@ -10,3 +10,7 @@ utils = { path = "../utils" }
 
 rand = "0.8.4"
 log = "0.4.14"
+pnet="0.30.0"
+pnet_macros_support = "*"
+pnet_macros = "*"
+pnet_packet = "*"
