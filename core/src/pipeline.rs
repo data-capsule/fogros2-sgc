@@ -1,6 +1,8 @@
 
 extern crate pnet;
-use super::packet;
+extern crate pnet_macros_support;
+
+use pnet::packet::{Packet, MutablePacket};
 
 use pnet::datalink::{self, NetworkInterface, DataLinkSender};
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
@@ -8,9 +10,7 @@ use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
 use pnet::packet::ipv4::Ipv4Packet;
 
 use pnet::packet::udp::UdpPacket;
-use pnet::packet::Packet;
 use pnet::util::MacAddr;
-use pnet_packet::MutablePacket;
 use pnet_packet::ipv4::{MutableIpv4Packet, checksum};
 use pnet_packet::udp::MutableUdpPacket;
 
@@ -19,7 +19,7 @@ use std::io::{self, Write};
 use std::net::{IpAddr, Ipv4Addr};
 use std::process;
 
-use packet::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
+use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
@@ -27,6 +27,8 @@ const LOCAL: Ipv4Addr = Ipv4Addr::new(128,32,37,82);
 
 fn handle_gdp_packet(interface_name: &str, source: IpAddr, destination: IpAddr, packet: &[u8], udp: &UdpPacket, tx: &Box<dyn DataLinkSender>) -> Option<Vec<u8>> {
     let gdp_protocol_packet = GdpProtocolPacket::new(packet);
+    
+    
     if let Some(gdp) = gdp_protocol_packet {
         // println!("{:?}\n", gdp);
 
@@ -116,6 +118,7 @@ fn handle_ipv4_packet(interface_name: &str, ethernet: &EthernetPacket, tx: &Box<
             res_ipv4.set_payload(&payload);
             
             // Simple forwarding based on configuration
+            use pnet_packet::MutablePacket;
             res_ipv4.clone_from(&header);
             if header.get_source() == LEFT {
                 res_ipv4.set_destination(RIGHT);
