@@ -23,6 +23,7 @@ pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
     pub database: Database,
+    pub net_interface: String, 
 }
 
 impl AppConfig {

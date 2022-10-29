@@ -10,10 +10,10 @@ use utils::types::LogLevel;
 
 #[derive(Parser, Debug)]
 #[clap(
-    name = "rust-starter",
+    name = "gdp-router",
     author,
     about,
-    long_about = "Rust Starter CLI",
+    long_about = "Rust GDP Router",
     version
 )]
 #[clap(setting = AppSettings::SubcommandRequired)]
@@ -31,6 +31,10 @@ pub struct Cli {
     #[clap(name="log_level", short, long="log-level", value_name = "LOG_LEVEL")]
     pub log_level: Option<LogLevel>,
 
+    /// Set Log Level 
+    #[clap(name="net_interface", short, long="net-interface", value_name = "eno1")]
+    pub net_interface: Option<String>,
+
     /// Subcommands
     #[clap(subcommand)]
     command: Commands,
@@ -39,11 +43,11 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     #[clap(
-        name = "hazard",
-        about = "Generate a hazardous occurance",
+        name = "router",
+        about = "Run Router",
         long_about = None, 
     )]
-    Hazard,
+    Router,
     #[clap(
         name = "error",
         about = "Simulate an error",
@@ -90,19 +94,19 @@ pub fn cli_match() -> Result<()> {
 
     // Execute the subcommand
     match &cli.command {
-        Commands::Hazard => commands::hazard()?,
+        Commands::Router => commands::router()?,
         Commands::Error => commands::simulate_error()?,
         Commands::Completion {subcommand} => {
             let mut app = Cli::into_app();
             match subcommand {
                 CompletionSubcommand::Bash => {
-                    generate(Bash, &mut app, "rust-starter", &mut std::io::stdout());
+                    generate(Bash, &mut app, "gdp-router", &mut std::io::stdout());
                 }
                 CompletionSubcommand::Zsh => {
-                    generate(Zsh, &mut app, "rust-starter", &mut std::io::stdout());
+                    generate(Zsh, &mut app, "gdp-router", &mut std::io::stdout());
                 }
                 CompletionSubcommand::Fish => {
-                    generate(Fish, &mut app, "rust-starter", &mut std::io::stdout());
+                    generate(Fish, &mut app, "gdp-router", &mut std::io::stdout());
                 }
             }
         }

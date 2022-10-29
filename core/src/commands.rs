@@ -1,20 +1,15 @@
-use super::error;
-use super::hazard;
+
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
+use super::pipeline;
 
 /// Show the configuration file
-pub fn hazard() -> Result<()> {
-    // Generate, randomly, True or False
-    let random_hazard: bool = hazard::generate_hazard()?;
+pub fn router() -> Result<()> {
+    warn!("router is started!");
 
-    if random_hazard {
-        println!("You got it right!");
-    } else {
-        println!("You got it wrong!");
-    }
-
+    pipeline::pipeline();
+    
     Ok(())
 }
 
@@ -30,9 +25,6 @@ pub fn config() -> Result<()> {
 pub fn simulate_error() -> Result<()> {
     // Log this Error simulation
     info!("We are simulating an error");
-
-    // Simulate an error
-    error::simulate_error()?;
 
     // We should never get here...
     Ok(())

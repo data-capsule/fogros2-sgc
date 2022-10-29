@@ -118,7 +118,6 @@ fn handle_ipv4_packet(interface_name: &str, ethernet: &EthernetPacket, tx: &Box<
             res_ipv4.set_payload(&payload);
             
             // Simple forwarding based on configuration
-            use pnet_packet::MutablePacket;
             res_ipv4.clone_from(&header);
             if header.get_source() == LEFT {
                 res_ipv4.set_destination(RIGHT);
@@ -168,16 +167,16 @@ fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket
     }
 }
 
-fn pipeline() {
+pub fn pipeline() {
     use pnet::datalink::Channel::Ethernet;
 
-    let iface_name = match env::args().nth(1) {
-        Some(n) => n,
-        None => {
-            writeln!(io::stderr(), "USAGE: packetdump <NETWORK INTERFACE>").unwrap();
-            process::exit(1);
-        }
-    };
+    use utils::app_config::AppConfig;
+    let config = AppConfig::fetch();
+    println!("Running with the following config: {:#?}", config);
+
+    let iface_config = config.expect("Cannot find the config"); 
+    let iface_name = iface_config.net_interface; 
+    println!("Running with interface: {}", iface_name);
     let interface_names_match = |iface: &NetworkInterface| iface.name == iface_name;
 
     // Find the network interface with the provided name
@@ -196,45 +195,8 @@ fn pipeline() {
     };
 
     loop {
-        // let mut buf: [u8; 1600] = [0u8; 1600];
-        // let mut fake_ethernet_frame = MutableEthernetPacket::new(&mut buf[..]).unwrap();
         match rx.next() {
             Ok(packet) => {
-                // let payload_offset;
-                // if cfg!(any(target_os = "macos", target_os = "ios"))
-                //     && interface.is_up()
-                //     && !interface.is_broadcast()
-                //     && ((!interface.is_loopback() && interface.is_point_to_point())
-                //         || interface.is_loopback())
-                // {
-                //     if interface.is_loopback() {
-                //         // The pnet code for BPF loopback adds a zero'd out Ethernet header
-                //         payload_offset = 14;
-                //     } else {
-                //         // Maybe is TUN interface
-                //         payload_offset = 0;
-                //     }
-                //     if packet.len() > payload_offset {
-                //         let version = Ipv4Packet::new(&packet[payload_offset..])
-                //             .unwrap()
-                //             .get_version();
-                //         if version == 4 {
-                //             fake_ethernet_frame.set_destination(MacAddr(0, 0, 0, 0, 0, 0));
-                //             fake_ethernet_frame.set_source(MacAddr(0, 0, 0, 0, 0, 0));
-                //             fake_ethernet_frame.set_ethertype(EtherTypes::Ipv4);
-                //             fake_ethernet_frame.set_payload(&packet[payload_offset..]);
-                //             handle_ethernet_frame(&interface, &fake_ethernet_frame.to_immutable());
-                //             continue;
-                //         } else if version == 6 {
-                //             fake_ethernet_frame.set_destination(MacAddr(0, 0, 0, 0, 0, 0));
-                //             fake_ethernet_frame.set_source(MacAddr(0, 0, 0, 0, 0, 0));
-                //             fake_ethernet_frame.set_ethertype(EtherTypes::Ipv6);
-                //             fake_ethernet_frame.set_payload(&packet[payload_offset..]);
-                //             handle_ethernet_frame(&interface, &fake_ethernet_frame.to_immutable());
-                //             continue;
-                //         }
-                //     }
-                // }
                 handle_ethernet_frame(&interface, &EthernetPacket::new(packet).unwrap(), &mut tx);
             }
             Err(e) => panic!("packetdump: unable to receive packet: {}", e),

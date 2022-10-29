@@ -1,5 +1,6 @@
 debug = false
 log_level = "info"
+net_interface = "eno1"
 
 [database]
 url = "custom database url"
