@@ -1,5 +1,5 @@
 [clog]
-repository = "https://github.com/omarabid/rust-starter"
+repository = "https://github.com/data-capsule/gdp-router"
 outfile = "CHANGELOG.md"
 from-latest-tag = true
 
