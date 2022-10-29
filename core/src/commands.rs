@@ -26,6 +26,5 @@ pub fn simulate_error() -> Result<()> {
     // Log this Error simulation
     info!("We are simulating an error");
 
-    // We should never get here...
     Ok(())
 }
