@@ -23,7 +23,6 @@ use utils::app_config::AppConfig;
 
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
-// const LOCAL: Ipv4Addr = Ipv4Addr::new(128,32,37,82);
 
 fn handle_gdp_packet(
         interface_name: &str, 
