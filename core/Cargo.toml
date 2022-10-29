@@ -10,8 +10,8 @@ utils = { path = "../utils" }
 
 rand = "0.8.4"
 log = "0.4.14"
-pnet="0.30.0"
-pnet_macros_support = "0.30.0"
-pnet_macros = "0.30.0"
-pnet_packet = "0.30.0"
+pnet= { version = "0.31.0", features = ["std"] }
+pnet_macros_support =  { version = "0.31.0" }
+pnet_macros ={ version = "0.31.0" }
+pnet_packet = { version = "0.31.0", features = ["std"] }
 local-ip-address = "0.4.9"
