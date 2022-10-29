@@ -3,6 +3,7 @@ use lazy_static::{__Deref, lazy_static};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::RwLock;
+use std::net::{IpAddr, Ipv4Addr};
 
 use super::error::Result;
 use crate::types::LogLevel;
@@ -24,6 +25,8 @@ pub struct AppConfig {
     pub log_level: LogLevel,
     pub database: Database,
     pub net_interface: String, 
+    pub ip_local: String, 
+    pub ip_gateway: String,
 }
 
 impl AppConfig {

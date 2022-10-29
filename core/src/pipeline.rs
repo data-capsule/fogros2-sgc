@@ -23,7 +23,7 @@ use utils::app_config::AppConfig;
 
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
-const LOCAL: Ipv4Addr = Ipv4Addr::new(128,32,37,82);
+// const LOCAL: Ipv4Addr = Ipv4Addr::new(128,32,37,82);
 
 fn handle_gdp_packet(
         interface_name: &str, 
@@ -115,7 +115,9 @@ fn handle_ipv4_packet(
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
         // Filter packet not meant to be received (broadcast)
-        if header.get_destination() != LOCAL {
+        let splitted_str:Vec<u8> = config.ip_local.split(".").map(|s| s.parse().unwrap()).collect();
+        let m_ip = Ipv4Addr::new(splitted_str[0],splitted_str[1], splitted_str[2], splitted_str[3]);
+        if header.get_destination() != m_ip {
             return None;
         }
 
@@ -144,7 +146,10 @@ fn handle_ipv4_packet(
             }
             // res_ipv4.set_destination(header.get_source());
             // res_ipv4.set_source(header.get_destination());
-            res_ipv4.set_source(LOCAL);
+            
+            let splitted_str:Vec<u8> = config.ip_local.split(".").map(|s| s.parse().unwrap()).collect();
+            let m_ip = Ipv4Addr::new(splitted_str[0],splitted_str[1], splitted_str[2], splitted_str[3]);
+            res_ipv4.set_source(m_ip);
             res_ipv4.set_checksum(checksum(&res_ipv4.to_immutable()));
             
             // println!("Constructed IP packet = {:?}", res_ipv4);

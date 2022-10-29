@@ -1,6 +1,7 @@
 debug = false
 log_level = "info"
 net_interface = "eno1"
-
+ip_local = "128.32.37.48"
+ip_gateway = ""
 [database]
 url = "custom database url"

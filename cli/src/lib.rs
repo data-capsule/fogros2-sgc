@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 use clap::{AppSettings, Parser, IntoApp, Subcommand};
 use clap_complete::{generate, shells::{Bash, Fish, Zsh}};
-
+use std::net::{IpAddr, Ipv4Addr};
 use core::commands;
 use utils::app_config::AppConfig;
 use utils::error::Result;
@@ -31,7 +31,7 @@ pub struct Cli {
     #[clap(name="log_level", short, long="log-level", value_name = "LOG_LEVEL")]
     pub log_level: Option<LogLevel>,
 
-    /// Set Log Level 
+    /// Set Net Interface
     #[clap(name="net_interface", short, long="net-interface", value_name = "eno1")]
     pub net_interface: Option<String>,
 
