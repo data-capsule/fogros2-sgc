@@ -34,7 +34,7 @@ fn handle_gdp_packet(
     
     
     if let Some(gdp) = gdp_protocol_packet {
-        // println!("{:?}\n", gdp);
+        println!("Received GDP Packet: {:?}\n", gdp);
 
         // create new gdp packet
         // let mut vec: Vec<u8> = vec![0; packet.len()];
@@ -75,7 +75,7 @@ fn handle_udp_packet(
                 let mut res_udp = MutableUdpPacket::new(&mut vec[..]).unwrap();
                 res_udp.clone_from(&udp);
                 res_udp.set_payload(&payload);
-                // println!("Constructed UDP packet = {:?}", res_udp);
+                println!("Constructed UDP packet = {:?}", res_udp);
                 Some(vec)
             } else {None}
         } else {None}
@@ -151,7 +151,7 @@ fn handle_ipv4_packet(
             res_ipv4.set_source(m_ip);
             res_ipv4.set_checksum(checksum(&res_ipv4.to_immutable()));
             
-            // println!("Constructed IP packet = {:?}", res_ipv4);
+            println!("Constructed IP packet = {:?}", res_ipv4);
             Some(vec)
 
         } else {None}
@@ -174,9 +174,8 @@ fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket
                 res_ether.set_payload(&payload);
                 res_ether.set_destination(MacAddr::broadcast());
                 res_ether.set_source(interface.mac.unwrap());
-                
-                
-                // println!("{:?}", res_ether);
+                println!("Constructed Ethernet packet = {:?}", res_ether);
+
                 let result = tx.send_to(res_ether.packet(), None);
                 match result {
                     Some(Ok(temp))=>println!("{:?}", temp),

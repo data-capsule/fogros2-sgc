@@ -8,9 +8,6 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # GDP Router 
-![tests](https://github.com/data-capsule/gdp-router/workflows/tests/badge.svg)
-![build](https://github.com/data-capsule/gdp-router/workflows/build/badge.svg)
-[![codecov](https://codecov.io/gh/data-capsule/gdp-router/branch/master/graph/badge.svg)](https://codecov.io/gh/data-capsule/gdp-router)
 
 ### How to run 
 ```
