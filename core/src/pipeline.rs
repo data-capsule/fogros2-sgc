@@ -163,23 +163,25 @@ pub fn pipeline() {
     loop {
         match rx.next() {
             Ok(packet) => {
-                //handle_ethernet_frame(&interface, &EthernetPacket::new(packet).unwrap(), &mut tx, &iface_config);
                 let ethernet = EthernetPacket::new(packet).unwrap(); 
-                if ethernet.get_ethertype() == EtherTypes::Ipv4 {
-                    let res = handle_ipv4_packet(&ethernet, &iface_config);
-                    if let Some(payload) = res {
-                        tx.build_and_send(1, 14 + payload.len(),
-                            &mut |mut res_ether| {
-                                let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
 
-                                // Switch the source and destination
-                                res_ether.clone_from(&ethernet);
-                                res_ether.set_payload(&payload);
-                                res_ether.set_destination(MacAddr::broadcast());
-                                res_ether.set_source(interface.mac.unwrap());
-                                println!("Constructed Ethernet packet = {:?}", res_ether);
-                        });
-                    }
+                // currently we only do ipv4 packets 
+                if ethernet.get_ethertype() != EtherTypes::Ipv4 {
+                    continue;
+                }
+
+                let res = handle_ipv4_packet(&ethernet, &iface_config);
+                if let Some(payload) = res {
+                    tx.build_and_send(1, 14 + payload.len(),
+                        &mut |mut res_ether| {
+                            let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+
+                            res_ether.clone_from(&ethernet);
+                            res_ether.set_payload(&payload);
+                            res_ether.set_destination(MacAddr::broadcast());
+                            res_ether.set_source(interface.mac.unwrap());
+                            println!("Constructed Ethernet packet = {:?}", res_ether);
+                    });
                 }
             }
             Err(e) => panic!("packetdump: unable to receive packet: {}", e),
