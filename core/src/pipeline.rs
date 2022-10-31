@@ -19,7 +19,9 @@ use utils::conversion::str_to_ipv4;
 use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use crate::rib::RoutingInformationBase;
 
-const MAX_ETH_FRAME_SIZE : usize = 1518; 
+// Ethernet frame is 1500 bytes payload + 14 bytes header 
+// cannot go beyond this size
+const MAX_ETH_FRAME_SIZE : usize = 1514;  
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
 
@@ -207,7 +209,7 @@ pub fn pipeline() {
                 
                 let res = handle_ipv4_packet(&ethernet, &iface_config);
                 if let Some(payload) = res {
-                    tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
+                    match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
                         &mut |mut res_ether| {
                             let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
 
@@ -216,7 +218,14 @@ pub fn pipeline() {
                             res_ether.set_destination(MacAddr::broadcast());
                             res_ether.set_source(interface.mac.unwrap());
                             println!("Constructed Ethernet packet = {:?}", res_ether);
-                    });
+                    }) 
+                    {
+                        Some(result) => match result {
+                            Ok(_) => {}, 
+                            Err(err_msg) => {println!("send error with {:?}", err_msg) }
+                        }, 
+                        None => {println!("Err: send function return none!!!"); }
+                    }
                 }
             }
             Err(e) => panic!("packetdump: unable to receive packet: {}", e),
