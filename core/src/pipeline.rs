@@ -19,17 +19,12 @@ use std::process;
 
 use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use utils::app_config::AppConfig;
-
+use utils::conversion::str_to_ipv4;
 
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
 
-fn handle_gdp_packet(
-        interface_name: &str, 
-        source: IpAddr, destination: IpAddr, 
-        packet: &[u8], udp: &UdpPacket, 
-        tx: &Box<dyn DataLinkSender>, 
-        config: &AppConfig) -> Option<Vec<u8>> {
+fn handle_gdp_packet(packet: &[u8] ) -> Option<Vec<u8>> {
     let gdp_protocol_packet = GdpProtocolPacket::new(packet);
     
     
@@ -40,7 +35,7 @@ fn handle_gdp_packet(
         // let mut vec: Vec<u8> = vec![0; packet.len()];
         // let mut new_packet = MutableUdpPacket::new(&mut vec[..]).unwrap();
         // new_packet.clone_from(udp);
-        let mut vec: Vec<u8> = vec![0; gdp.packet().len()+50];
+        let mut vec: Vec<u8> = vec![0; gdp.packet().len()+50]; // TODO: where is this 50 come from????
         let mut res_gdp = MutableGdpProtocolPacket::new(&mut vec[..]).unwrap();
         res_gdp.clone_from(&gdp);
         res_gdp.set_src_gdpname(&gdp.get_dst_gdpname());
@@ -57,11 +52,7 @@ fn handle_gdp_packet(
 }
 
 fn handle_udp_packet(
-    interface_name: &str, 
-    source: IpAddr, 
-    destination: IpAddr, 
     packet: &[u8], 
-    tx: &Box<dyn DataLinkSender>, 
     config: &AppConfig) -> Option<Vec<u8>>
     {
     let udp = UdpPacket::new(packet);
@@ -69,7 +60,7 @@ fn handle_udp_packet(
     if let Some(udp) = udp {
         if udp.get_destination() == 31415 {
             // Assume all packets on port 31415 are valid GDP packets
-            let res = handle_gdp_packet(interface_name, source, destination, udp.payload(), &udp, tx, config);
+            let res = handle_gdp_packet(udp.payload());
             if let Some(payload) = res {
                 let mut vec: Vec<u8> = vec![0; 20+payload.len()]; // 20 B is the size of a UDP header
                 let mut res_udp = MutableUdpPacket::new(&mut vec[..]).unwrap();
@@ -80,53 +71,41 @@ fn handle_udp_packet(
             } else {None}
         } else {None}
     } else {
-        println!("[{}]: Malformed UDP Packet", interface_name);
+        println!("Malformed UDP Packet");
         None
     }
 }
 
 
 fn handle_transport_protocol(
-    interface_name: &str,
-    source: IpAddr,
-    destination: IpAddr,
     protocol: IpNextHeaderProtocol,
     packet: &[u8],
-    tx: &Box<dyn DataLinkSender>,
     config: &AppConfig
 ) -> Option<Vec<u8>>
 {
     match protocol {
         IpNextHeaderProtocols::Udp => {
-            handle_udp_packet(interface_name, source, destination, packet, tx, config)
-
+            handle_udp_packet( packet, config)
         }
-        
         _ => {None}
     }
 }
 
-fn handle_ipv4_packet(
-    interface_name: &str, 
+fn handle_ipv4_packet( 
     ethernet: &EthernetPacket, 
     tx: &Box<dyn DataLinkSender>, 
     config: &AppConfig) -> Option<Vec<u8>>{
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
         // Filter packet not meant to be received (broadcast)
-        let splitted_str:Vec<u8> = config.ip_local.split(".").map(|s| s.parse().unwrap()).collect();
-        let m_ip = Ipv4Addr::new(splitted_str[0],splitted_str[1], splitted_str[2], splitted_str[3]);
+        let m_ip = str_to_ipv4(&config.ip_local); 
         if header.get_destination() != m_ip {
             return None;
         }
 
         let res = handle_transport_protocol(
-            interface_name,
-            IpAddr::V4(header.get_source()),
-            IpAddr::V4(header.get_destination()),
             header.get_next_level_protocol(),
             header.payload(),
-            tx,
             config,
         );
         if let Some(payload) = res {
@@ -145,9 +124,8 @@ fn handle_ipv4_packet(
             }
             // res_ipv4.set_destination(header.get_source());
             // res_ipv4.set_source(header.get_destination());
-            
-            let splitted_str:Vec<u8> = config.ip_local.split(".").map(|s| s.parse().unwrap()).collect();
-            let m_ip = Ipv4Addr::new(splitted_str[0],splitted_str[1], splitted_str[2], splitted_str[3]);
+
+            let m_ip = str_to_ipv4(&config.ip_local);
             res_ipv4.set_source(m_ip);
             res_ipv4.set_checksum(checksum(&res_ipv4.to_immutable()));
             
@@ -156,37 +134,10 @@ fn handle_ipv4_packet(
 
         } else {None}
     } else {
-        println!("[{}]: Malformed IPv4 Packet", interface_name);
+        println!(" Malformed IPv4 Packet");
         None
     }
 }
-
-
-// fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket, tx: &mut Box<dyn DataLinkSender>, config: &AppConfig) {
-//     let interface_name = &interface.name[..];
-//     match ethernet.get_ethertype() {
-//         EtherTypes::Ipv4 => {
-//             let res = handle_ipv4_packet(interface_name, ethernet, tx, config);
-//             if let Some(payload) = res {
-//                 let mut vec: Vec<u8> = vec![0; 14 + payload.len()]; // 14 B is the size of an Ethernet header
-//                 let mut res_ether = MutableEthernetPacket::new(&mut vec[..]).unwrap();
-//                 res_ether.clone_from(ethernet);
-//                 res_ether.set_payload(&payload);
-//                 res_ether.set_destination(MacAddr::broadcast());
-//                 res_ether.set_source(interface.mac.unwrap());
-//                 println!("Constructed Ethernet packet = {:?}", res_ether);
-
-//                 let result = tx.send_to(res_ether.packet(), None);
-//                 match result {
-//                     Some(Ok(temp))=>println!("{:?}", temp),
-//                     _ => println!("")
-//                 }
-//             }
-//         },
-        
-//         _ => {}
-//     }
-// }
 
 pub fn pipeline() {
     use pnet::datalink::Channel::Ethernet;
@@ -220,7 +171,7 @@ pub fn pipeline() {
                 //handle_ethernet_frame(&interface, &EthernetPacket::new(packet).unwrap(), &mut tx, &iface_config);
                 let ethernet = EthernetPacket::new(packet).unwrap(); 
                 if ethernet.get_ethertype() == EtherTypes::Ipv4 {
-                    let res = handle_ipv4_packet("", &ethernet, &tx, &iface_config);
+                    let res = handle_ipv4_packet(&ethernet, &tx, &iface_config);
                     if let Some(payload) = res {
                         tx.build_and_send(1, 14 + payload.len(),
                             &mut |mut res_ether| {
