@@ -11,5 +11,5 @@
 
 ### How to run 
 ```
-cargo build && sudo ./target/debug/rust-starter router
+cargo build && sudo ./target/debug/gdp-router router
 ```

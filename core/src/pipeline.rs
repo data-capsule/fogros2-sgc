@@ -3,7 +3,7 @@ extern crate pnet;
 extern crate pnet_macros_support;
 
 use pnet::packet::{Packet, MutablePacket};
-use pnet::datalink::{self, NetworkInterface, DataLinkSender};
+use pnet::datalink::{self, NetworkInterface};
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
 use pnet::packet::ipv4::Ipv4Packet;
@@ -11,11 +11,7 @@ use pnet::packet::udp::UdpPacket;
 use pnet::util::MacAddr;
 use pnet_packet::ipv4::{MutableIpv4Packet, checksum};
 use pnet_packet::udp::MutableUdpPacket;
-
-use std::env;
-use std::io::{self, Write};
-use std::net::{IpAddr, Ipv4Addr};
-use std::process;
+use std::net::Ipv4Addr;
 
 use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use utils::app_config::AppConfig;
@@ -93,7 +89,6 @@ fn handle_transport_protocol(
 
 fn handle_ipv4_packet( 
     ethernet: &EthernetPacket, 
-    tx: &Box<dyn DataLinkSender>, 
     config: &AppConfig) -> Option<Vec<u8>>{
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
@@ -171,7 +166,7 @@ pub fn pipeline() {
                 //handle_ethernet_frame(&interface, &EthernetPacket::new(packet).unwrap(), &mut tx, &iface_config);
                 let ethernet = EthernetPacket::new(packet).unwrap(); 
                 if ethernet.get_ethertype() == EtherTypes::Ipv4 {
-                    let res = handle_ipv4_packet(&ethernet, &tx, &iface_config);
+                    let res = handle_ipv4_packet(&ethernet, &iface_config);
                     if let Some(payload) = res {
                         tx.build_and_send(1, 14 + payload.len(),
                             &mut |mut res_ether| {

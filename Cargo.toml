@@ -1,14 +1,14 @@
 [package]
-name = "rust-starter"
-version = "2.0.0-beta"
-authors = ["Abid Omar <contact@omarabid.com>"]
+name = "gdp-router"
+version = "0.0.1-beta"
+authors = ["Eric Chen <kych@berkeley.edu>", "Jiachen Yuan <jcyuan_johnson@berkeley.edu>"]
 edition = "2021"
-repository = "https://github.com/omarabid/rust-starter"
+repository = "https://github.com/data-capsule/gdp-router"
 readme = "README.md"
-license = "MIT"
-keywords = ["cli", "starter"]
+license = "Apache 2.0"
+keywords = ["router", "security"]
 description = """
-Rust Starter aims to provide high quality components to bootstrap your Rust CLI Project. It includes a battery of most used libraries; and defines a set of Rust best practices.
+GDP Router
 """
 
 [workspace]

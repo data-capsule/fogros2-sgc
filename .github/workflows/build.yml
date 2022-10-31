@@ -33,7 +33,7 @@ jobs:
       
     - name: Zip release
       id: zip-release
-      run: zip -j build.zip target/release/rust-starter
+      run: zip -j build.zip target/release/gdp-router
       
     - name: Artifact Production
       id: create-artifact
