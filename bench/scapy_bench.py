@@ -49,7 +49,7 @@ def start_sniffing(for_each):
 
 def packet_recv_timestamp(packet):
 
-    if not packet.haslayer(GDP) or packet.load.decode()[0:4] != "echo":
+    if not packet.haslayer(GDP):
         return
     print("Received packet {} at {}".format(packet.load, time.time()))
 
