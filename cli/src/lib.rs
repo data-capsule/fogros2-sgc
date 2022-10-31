@@ -1,7 +1,6 @@
 use std::{path::PathBuf, str::FromStr};
 use clap::{AppSettings, Parser, IntoApp, Subcommand};
 use clap_complete::{generate, shells::{Bash, Fish, Zsh}};
-use std::net::{IpAddr, Ipv4Addr};
 use core::commands;
 use utils::app_config::AppConfig;
 use utils::error::Result;

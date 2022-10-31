@@ -4,6 +4,7 @@ extern crate pnet_macros_support;
 
 use pnet::packet::{Packet, MutablePacket};
 use pnet::datalink::{self, NetworkInterface};
+use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
 use pnet::packet::ipv4::Ipv4Packet;
@@ -12,11 +13,11 @@ use pnet::util::MacAddr;
 use pnet_packet::ipv4::{MutableIpv4Packet, checksum};
 use pnet_packet::udp::MutableUdpPacket;
 use std::net::Ipv4Addr;
-
 use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use utils::app_config::AppConfig;
 use utils::conversion::str_to_ipv4;
 
+const MAX_ETH_FRAME_SIZE : usize = 1518; 
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
 
@@ -54,17 +55,14 @@ fn handle_udp_packet(
     let udp = UdpPacket::new(packet);
 
     if let Some(udp) = udp {
-        if udp.get_destination() == 31415 {
-            // Assume all packets on port 31415 are valid GDP packets
-            let res = handle_gdp_packet(udp.payload());
-            if let Some(payload) = res {
-                let mut vec: Vec<u8> = vec![0; 20+payload.len()]; // 20 B is the size of a UDP header
-                let mut res_udp = MutableUdpPacket::new(&mut vec[..]).unwrap();
-                res_udp.clone_from(&udp);
-                res_udp.set_payload(&payload);
-                println!("Constructed UDP packet = {:?}", res_udp);
-                Some(vec)
-            } else {None}
+        let res = handle_gdp_packet(udp.payload());
+        if let Some(payload) = res {
+            let mut vec: Vec<u8> = vec![0; 20+payload.len()]; // 20 B is the size of a UDP header
+            let mut res_udp = MutableUdpPacket::new(&mut vec[..]).unwrap();
+            res_udp.clone_from(&udp);
+            res_udp.set_payload(&payload);
+            println!("Constructed UDP packet = {:?}", res_udp);
+            Some(vec)
         } else {None}
     } else {
         println!("Malformed UDP Packet");
@@ -92,11 +90,6 @@ fn handle_ipv4_packet(
     config: &AppConfig) -> Option<Vec<u8>>{
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
-        // Filter packet not meant to be received (broadcast)
-        let m_ip = str_to_ipv4(&config.ip_local); 
-        if header.get_destination() != m_ip {
-            return None;
-        }
 
         let res = handle_transport_protocol(
             header.get_next_level_protocol(),
@@ -135,13 +128,12 @@ fn handle_ipv4_packet(
 }
 
 pub fn pipeline() {
-    use pnet::datalink::Channel::Ethernet;
-
     let config = AppConfig::fetch();
     println!("Running with the following config: {:#?}", config);
 
     let iface_config = config.expect("Cannot find the config"); 
     let iface_name = iface_config.net_interface.clone(); 
+    let m_ip = str_to_ipv4(&iface_config.ip_local); 
     println!("Running with interface: {}", iface_name);
     let interface_names_match = |iface: &NetworkInterface| iface.name == iface_name;
 
@@ -165,14 +157,46 @@ pub fn pipeline() {
             Ok(packet) => {
                 let ethernet = EthernetPacket::new(packet).unwrap(); 
 
-                // currently we only do ipv4 packets 
+                // Packet filtering 
+                // reasoning having a monolithic body here: 
+                // this part is supposed to be a quick filter embedded anywhere our networking logic belongs to 
+                // for example, embeded in the kernel
+                // as such, it has to be standalone to other components of the code, e.g. routing logic 
+
+                // check ipv4 
                 if ethernet.get_ethertype() != EtherTypes::Ipv4 {
                     continue;
                 }
+                // check ipv4 has a payload
+                let ipv4_packet = match Ipv4Packet::new(ethernet.payload()) {
+                    Some (packet) => packet, 
+                    None => continue
+                }; 
 
+                //check ipv4 destination
+                if ipv4_packet.get_destination() != m_ip {
+                    continue
+                }
+
+                // check udp packet is included as payload 
+                let udp = match UdpPacket::new(ipv4_packet.payload()) {
+                    Some(packet) => packet, 
+                    None => continue
+                };
+
+                // check port goes to our predefined port 
+                if udp.get_destination() != 31415 {
+                    continue;
+                }
+
+                let gdp_protocol_packet = match GdpProtocolPacket::new(udp.payload()) {
+                    Some(packet) => packet, 
+                    None => continue
+                };
+                
                 let res = handle_ipv4_packet(&ethernet, &iface_config);
                 if let Some(payload) = res {
-                    tx.build_and_send(1, 14 + payload.len(),
+                    tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
                         &mut |mut res_ether| {
                             let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
 
