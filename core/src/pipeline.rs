@@ -162,31 +162,31 @@ fn handle_ipv4_packet(
 }
 
 
-fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket, tx: &mut Box<dyn DataLinkSender>, config: &AppConfig) {
-    let interface_name = &interface.name[..];
-    match ethernet.get_ethertype() {
-        EtherTypes::Ipv4 => {
-            let res = handle_ipv4_packet(interface_name, ethernet, tx, config);
-            if let Some(payload) = res {
-                let mut vec: Vec<u8> = vec![0; 14 + payload.len()]; // 14 B is the size of an Ethernet header
-                let mut res_ether = MutableEthernetPacket::new(&mut vec[..]).unwrap();
-                res_ether.clone_from(ethernet);
-                res_ether.set_payload(&payload);
-                res_ether.set_destination(MacAddr::broadcast());
-                res_ether.set_source(interface.mac.unwrap());
-                println!("Constructed Ethernet packet = {:?}", res_ether);
+// fn handle_ethernet_frame(interface: &NetworkInterface, ethernet: &EthernetPacket, tx: &mut Box<dyn DataLinkSender>, config: &AppConfig) {
+//     let interface_name = &interface.name[..];
+//     match ethernet.get_ethertype() {
+//         EtherTypes::Ipv4 => {
+//             let res = handle_ipv4_packet(interface_name, ethernet, tx, config);
+//             if let Some(payload) = res {
+//                 let mut vec: Vec<u8> = vec![0; 14 + payload.len()]; // 14 B is the size of an Ethernet header
+//                 let mut res_ether = MutableEthernetPacket::new(&mut vec[..]).unwrap();
+//                 res_ether.clone_from(ethernet);
+//                 res_ether.set_payload(&payload);
+//                 res_ether.set_destination(MacAddr::broadcast());
+//                 res_ether.set_source(interface.mac.unwrap());
+//                 println!("Constructed Ethernet packet = {:?}", res_ether);
 
-                let result = tx.send_to(res_ether.packet(), None);
-                match result {
-                    Some(Ok(temp))=>println!("{:?}", temp),
-                    _ => println!("")
-                }
-            }
-        },
+//                 let result = tx.send_to(res_ether.packet(), None);
+//                 match result {
+//                     Some(Ok(temp))=>println!("{:?}", temp),
+//                     _ => println!("")
+//                 }
+//             }
+//         },
         
-        _ => {}
-    }
-}
+//         _ => {}
+//     }
+// }
 
 pub fn pipeline() {
     use pnet::datalink::Channel::Ethernet;
@@ -217,7 +217,24 @@ pub fn pipeline() {
     loop {
         match rx.next() {
             Ok(packet) => {
-                handle_ethernet_frame(&interface, &EthernetPacket::new(packet).unwrap(), &mut tx, &iface_config);
+                //handle_ethernet_frame(&interface, &EthernetPacket::new(packet).unwrap(), &mut tx, &iface_config);
+                let ethernet = EthernetPacket::new(packet).unwrap(); 
+                if ethernet.get_ethertype() == EtherTypes::Ipv4 {
+                    let res = handle_ipv4_packet("", &ethernet, &tx, &iface_config);
+                    if let Some(payload) = res {
+                        tx.build_and_send(1, 14 + payload.len(),
+                            &mut |mut res_ether| {
+                                let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+
+                                // Switch the source and destination
+                                res_ether.clone_from(&ethernet);
+                                res_ether.set_payload(&payload);
+                                res_ether.set_destination(MacAddr::broadcast());
+                                res_ether.set_source(interface.mac.unwrap());
+                                println!("Constructed Ethernet packet = {:?}", res_ether);
+                        });
+                    }
+                }
             }
             Err(e) => panic!("packetdump: unable to receive packet: {}", e),
         }
