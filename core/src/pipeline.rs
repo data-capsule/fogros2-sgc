@@ -13,9 +13,11 @@ use pnet::util::MacAddr;
 use pnet_packet::ipv4::{MutableIpv4Packet, checksum};
 use pnet_packet::udp::MutableUdpPacket;
 use std::net::Ipv4Addr;
-use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
+
 use utils::app_config::AppConfig;
 use utils::conversion::str_to_ipv4;
+use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
+use crate::rib::RoutingInformationBase;
 
 const MAX_ETH_FRAME_SIZE : usize = 1518; 
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
@@ -152,6 +154,10 @@ pub fn pipeline() {
         Err(e) => panic!("packetdump: unable to create channel: {}", e),
     };
 
+    //TODO: is there any better way of putting the rib? How to make it thread safe?
+    let mut gdp_rib = RoutingInformationBase::new();
+
+
     loop {
         match rx.next() {
             Ok(packet) => {
@@ -189,10 +195,15 @@ pub fn pipeline() {
                     continue;
                 }
 
+                // check gdp pakcet is included as payload 
                 let gdp_protocol_packet = match GdpProtocolPacket::new(udp.payload()) {
                     Some(packet) => packet, 
                     None => continue
                 };
+                
+                
+                let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
+                gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
                 
                 let res = handle_ipv4_packet(&ethernet, &iface_config);
                 if let Some(payload) = res {
