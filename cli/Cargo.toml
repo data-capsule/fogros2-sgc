@@ -1,5 +1,5 @@
 [package]
-name = "gdp-router"
+name = "cli"
 version = "0.0.1-beta"
 authors = ["Eric Chen <kych@berkeley.edu>", "Jiachen Yuan <jcyuan_johnson@berkeley.edu>"]
 description = "CLI interface for gdp-router"
