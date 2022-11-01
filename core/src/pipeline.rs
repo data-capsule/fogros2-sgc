@@ -194,7 +194,7 @@ pub fn gdp_pipeline(
             // update local rib with the rib reply
             // below is simply an example
             let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
-            gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
+            gdp_rib.put(Vec::from([7, 1, 2, 3]), LEFT); //just an example
         }, 
         GdpAction::Forward => {
             // forward the data to the next hop
