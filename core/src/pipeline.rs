@@ -150,14 +150,16 @@ pub fn pipeline() {
         .unwrap_or_else(|| panic!("No such network interface: {}", iface_name));
 
     // Create a channel to receive on
-    let (mut tx, mut rx) = match datalink::channel(&interface, Default::default()) {
+    let (mut tx, 
+        mut rx) = 
+    match datalink::channel(&interface, Default::default()) {
         Ok(Ethernet(tx, rx)) => (tx, rx),
         Ok(_) => panic!("packetdump: unhandled channel type"),
         Err(e) => panic!("packetdump: unable to create channel: {}", e),
     };
 
     //TODO: is there any better way of putting the rib? How to make it thread safe?
-    let mut gdp_rib = RoutingInformationBase::new();
+    let mut gdp_rib = RoutingInformationBase::new(&iface_config.local_rib_path);
 
 
     loop {
@@ -170,6 +172,7 @@ pub fn pipeline() {
                 // this part is supposed to be a quick filter embedded anywhere our networking logic belongs to 
                 // for example, embeded in the kernel
                 // as such, it has to be standalone to other components of the code, e.g. routing logic 
+                // this also allows zero copy of the write buffer 
 
                 // check ipv4 
                 if ethernet.get_ethertype() != EtherTypes::Ipv4 {
@@ -186,6 +189,11 @@ pub fn pipeline() {
                     continue
                 }
 
+                // check udp header
+                if ipv4_packet.get_next_level_protocol() != IpNextHeaderProtocols::Udp{
+                    continue;
+                }
+
                 // check udp packet is included as payload 
                 let udp = match UdpPacket::new(ipv4_packet.payload()) {
                     Some(packet) => packet, 
@@ -193,11 +201,11 @@ pub fn pipeline() {
                 };
 
                 // check port goes to our predefined port 
-                if udp.get_destination() != 31415 {
+                if udp.get_destination() != iface_config.router_port {
                     continue;
                 }
 
-                // check gdp pakcet is included as payload 
+                // check gdp packet is included as payload 
                 let gdp_protocol_packet = match GdpProtocolPacket::new(udp.payload()) {
                     Some(packet) => packet, 
                     None => continue
@@ -205,13 +213,17 @@ pub fn pipeline() {
                 
                 
                 let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
+                
                 gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
                 
                 let res = handle_ipv4_packet(&ethernet, &iface_config);
                 if let Some(payload) = res {
+                    // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
+                    // we can use this to implement mcast and constantly rewrite the write buffer
                     match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
                         &mut |mut res_ether| {
                             let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+                            
 
                             res_ether.clone_from(&ethernet);
                             res_ether.set_payload(&payload);
