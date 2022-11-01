@@ -2,13 +2,13 @@
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
-use super::pipeline;
+use crate::network::libpnet;
 
 /// Show the configuration file
 pub fn router() -> Result<()> {
     warn!("router is started!");
 
-    pipeline::pipeline();
+    libpnet::pnet_proc_loop();
     
     Ok(())
 }
