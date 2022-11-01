@@ -55,19 +55,17 @@ fn handle_gdp_packet(packet: &[u8] ) -> Option<Vec<u8>> {
 
 fn handle_udp_packet(
     packet: &[u8], 
-    config: &AppConfig) -> Option<Vec<u8>>
+    res_udp:&mut MutableUdpPacket,
+    config: &AppConfig) -> Option<()>
     {
     let udp = UdpPacket::new(packet);
 
     if let Some(udp) = udp {
         let res = handle_gdp_packet(udp.payload());
         if let Some(payload) = res {
-            let mut vec: Vec<u8> = vec![0; 20+payload.len()]; // 20 B is the size of a UDP header
-            let mut res_udp = MutableUdpPacket::new(&mut vec[..]).unwrap();
             res_udp.clone_from(&udp);
-            res_udp.set_payload(&payload);
             println!("Constructed UDP packet = {:?}", res_udp);
-            Some(vec)
+            Some(())
         } else {None}
     } else {
         println!("Malformed UDP Packet");
@@ -76,20 +74,6 @@ fn handle_udp_packet(
 }
 
 
-fn handle_transport_protocol(
-    protocol: IpNextHeaderProtocol,
-    packet: &[u8],
-    config: &AppConfig
-) -> Option<Vec<u8>>
-{
-    match protocol {
-        IpNextHeaderProtocols::Udp => {
-            handle_udp_packet( packet, config)
-        }
-        _ => {None}
-    }
-}
-
 fn handle_ipv4_packet( 
     ethernet: &EthernetPacket, 
     res_ipv4: &mut MutableIpv4Packet,
@@ -97,14 +81,18 @@ fn handle_ipv4_packet(
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
 
-        let res = handle_transport_protocol(
-            header.get_next_level_protocol(),
+        let mut res_udp  = MutableUdpPacket::new(&mut res_ipv4.payload_mut()[..]).unwrap();
+
+        let res = handle_udp_packet(
             header.payload(),
+            &mut res_udp,
             config,
         );
         if let Some(payload) = res {
-            res_ipv4.set_total_length((payload.len()+(header.get_header_length() as usize)*4).try_into().unwrap());
-            res_ipv4.set_payload(&payload);
+            let udp_packet_size = res_udp.get_length() as u16;
+            let ipv4_header_size = header.get_header_length() as u16;
+            let packet_size = (( udp_packet_size + ipv4_header_size ) as usize)*4;
+            res_ipv4.set_total_length((packet_size.try_into().unwrap()));
             
             // Simple forwarding based on configuration
             res_ipv4.clone_from(&header);
@@ -210,9 +198,12 @@ pub fn gdp_pipeline(
             // we can use this to implement mcast and constantly rewrite the write buffer
             match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
                 &mut |mut res_ether| {
+
+                    // res_ether is the write buffer that finally goes to the network
                     let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
                     res_ether.clone_from(&ethernet);
 
+                    // res_ipv4 is the pointer of res_ether pointing to the ethernet payload (i.e. start of the ip address)
                     let mut res_ipv4 = MutableIpv4Packet::new(&mut res_ether.payload_mut()[..]).unwrap();
                     let res = handle_ipv4_packet(&ethernet, &mut res_ipv4, &config);
                     //res_ether.set_payload(&payload);
