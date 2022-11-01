@@ -192,33 +192,6 @@ pub fn gdp_pipeline(
     let gdp_action = GdpAction::try_from(gdp_protocol_packet.get_action()).unwrap();
 
     match gdp_action {
-        GdpAction::Forward => {
-            // forward the data to the next hop
-            // TODO: possible to have a seprate logic 
-            let res = handle_ipv4_packet(&ethernet, &config);
-            if let Some(payload) = res {
-                // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
-                // we can use this to implement mcast and constantly rewrite the write buffer
-                match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
-                    &mut |mut res_ether| {
-                        let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
-
-
-                        res_ether.clone_from(&ethernet);
-                        res_ether.set_payload(&payload);
-                        res_ether.set_destination(MacAddr::broadcast());
-                        res_ether.set_source(interface.mac.unwrap());
-                        println!("Constructed Ethernet packet = {:?}", res_ether);
-                }) 
-                {
-                    Some(result) => match result {
-                        Ok(_) => {}, 
-                        Err(err_msg) => {println!("send error with {:?}", err_msg) }
-                    }, 
-                    None => {println!("Err: send function return none!!!"); }
-                }
-            }
-        }, 
         GdpAction::RibGet => {
             // handle rib query by responding with the RIB item
             let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
@@ -229,6 +202,33 @@ pub fn gdp_pipeline(
             // below is simply an example
             let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
             gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
+        }, 
+        GdpAction::Forward => {
+            // forward the data to the next hop
+            // TODO: possible to have a seprate logic 
+            let res = handle_ipv4_packet(&ethernet, &config);
+            let payload = res.unwrap(); 
+
+            // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
+            // we can use this to implement mcast and constantly rewrite the write buffer
+            match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
+                &mut |mut res_ether| {
+                    let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+
+                    res_ether.clone_from(&ethernet);
+                    res_ether.set_payload(&payload);
+                    res_ether.set_destination(MacAddr::broadcast());
+                    res_ether.set_source(interface.mac.unwrap());
+                    println!("Constructed Ethernet packet = {:?}", res_ether);
+            }) 
+            {
+                Some(result) => match result {
+                    Ok(_) => {}, 
+                    Err(err_msg) => {println!("send error with {:?}", err_msg) }
+                }, 
+                None => {println!("Err: send function return none!!!"); }
+            }
+            
         }, 
         GdpAction::Noop => {
             // nothing to be done here
