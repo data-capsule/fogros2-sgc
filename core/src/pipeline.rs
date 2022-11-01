@@ -26,7 +26,10 @@ const MAX_ETH_FRAME_SIZE : usize = 1514;
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
 const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
 
-fn handle_gdp_packet(packet: &[u8] ) -> Option<Vec<u8>> {
+fn handle_gdp_packet(
+    packet: &[u8], 
+    res_gdp: &mut MutableGdpProtocolPacket,
+    ) -> Option<()> {
     let gdp_protocol_packet = GdpProtocolPacket::new(packet);
     
     
@@ -37,16 +40,18 @@ fn handle_gdp_packet(packet: &[u8] ) -> Option<Vec<u8>> {
         // let mut vec: Vec<u8> = vec![0; packet.len()];
         // let mut new_packet = MutableUdpPacket::new(&mut vec[..]).unwrap();
         // new_packet.clone_from(udp);
-        let mut vec: Vec<u8> = vec![0; gdp.packet().len()+50]; // TODO: where is this 50 come from????
-        let mut res_gdp = MutableGdpProtocolPacket::new(&mut vec[..]).unwrap();
         res_gdp.clone_from(&gdp);
         res_gdp.set_src_gdpname(&gdp.get_dst_gdpname());
         res_gdp.set_dst_gdpname(&gdp.get_src_gdpname());
-        res_gdp.set_payload(("echo".to_owned() +  &String::from_utf8(gdp.payload().to_vec()).unwrap()).as_bytes());
+        let payload:String = "t".to_string();
+        res_gdp.set_data_len(payload.len() as u16);
+        res_gdp.set_payload((payload.to_owned()).as_bytes());
+        //res_gdp.set_payload(Vec::from())
+        
         // println!("{:?}", String::from_utf8(res_gdp.payload().to_vec()));
-        // println!("The constructed gdp packet is = {:?}\n", res_gdp);
+        println!("The constructed gdp packet is = {:?}\n", res_gdp);
         // println!("The buffer for the above packet is = {:?}\n", vec);
-        Some(vec)
+        Some(())
     } else {
         println!("Malformed GDP Packet");
         None
@@ -61,7 +66,8 @@ fn handle_udp_packet(
     let udp = UdpPacket::new(packet);
 
     if let Some(udp) = udp {
-        let res = handle_gdp_packet(udp.payload());
+        let mut res_gdp  = MutableGdpProtocolPacket::new(&mut res_udp.payload_mut()[..]).unwrap();
+        let res = handle_gdp_packet(udp.payload(), &mut res_gdp);
         if let Some(payload) = res {
             res_udp.clone_from(&udp);
             println!("Constructed UDP packet = {:?}", res_udp);
