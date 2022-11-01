@@ -92,7 +92,8 @@ fn handle_transport_protocol(
 
 fn handle_ipv4_packet( 
     ethernet: &EthernetPacket, 
-    config: &AppConfig) -> Option<Vec<u8>>{
+    res_ipv4: &mut MutableIpv4Packet,
+    config: &AppConfig) -> Option<()>{
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
 
@@ -102,14 +103,12 @@ fn handle_ipv4_packet(
             config,
         );
         if let Some(payload) = res {
-            let mut vec: Vec<u8> = vec![0; payload.len()+(header.get_header_length() as usize)*4]; // Multiply by 4 because ip header_length counting unit is word (4B)
-            let mut res_ipv4 = MutableIpv4Packet::new(&mut vec[..]).unwrap();
-            
             res_ipv4.set_total_length((payload.len()+(header.get_header_length() as usize)*4).try_into().unwrap());
             res_ipv4.set_payload(&payload);
             
             // Simple forwarding based on configuration
             res_ipv4.clone_from(&header);
+            res_ipv4.set_destination(RIGHT);
             if header.get_source() == LEFT {
                 res_ipv4.set_destination(RIGHT);
             } else if header.get_source() == RIGHT{
@@ -123,7 +122,7 @@ fn handle_ipv4_packet(
             res_ipv4.set_checksum(checksum(&res_ipv4.to_immutable()));
             
             println!("Constructed IP packet = {:?}", res_ipv4);
-            Some(vec)
+            Some(())
 
         } else {None}
     } else {
@@ -206,17 +205,17 @@ pub fn gdp_pipeline(
         GdpAction::Forward => {
             // forward the data to the next hop
             // TODO: possible to have a seprate logic 
-            let res = handle_ipv4_packet(&ethernet, &config);
-            let payload = res.unwrap(); 
 
             // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
             // we can use this to implement mcast and constantly rewrite the write buffer
             match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
                 &mut |mut res_ether| {
                     let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
-
                     res_ether.clone_from(&ethernet);
-                    res_ether.set_payload(&payload);
+
+                    let mut res_ipv4 = MutableIpv4Packet::new(&mut res_ether.payload_mut()[..]).unwrap();
+                    let res = handle_ipv4_packet(&ethernet, &mut res_ipv4, &config);
+                    //res_ether.set_payload(&payload);
                     res_ether.set_destination(MacAddr::broadcast());
                     res_ether.set_source(interface.mac.unwrap());
                     println!("Constructed Ethernet packet = {:?}", res_ether);
