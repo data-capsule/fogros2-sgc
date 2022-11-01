@@ -3,7 +3,7 @@ extern crate pnet;
 extern crate pnet_macros_support;
 
 use pnet::packet::{Packet, MutablePacket};
-use pnet::datalink::{self, NetworkInterface};
+use pnet::datalink::{self, NetworkInterface, DataLinkSender};
 use pnet::datalink::Channel::Ethernet;
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
@@ -131,13 +131,96 @@ fn handle_ipv4_packet(
     }
 }
 
+pub fn gdp_pipeline(packet : &[u8], gdp_rib: &mut RoutingInformationBase, interface: &NetworkInterface , tx: &mut Box<dyn DataLinkSender>, config: &AppConfig)
+-> Option<()>
+{
+    let ethernet = EthernetPacket::new(packet).unwrap(); 
+
+    // Packet filtering 
+    // reasoning having a monolithic body here: 
+    // this part is supposed to be a quick filter embedded anywhere our networking logic belongs to 
+    // for example, embeded in the kernel
+    // as such, it has to be standalone to other components of the code, e.g. routing logic 
+    // this also allows zero copy of the write buffer 
+
+    // check ipv4 
+    if ethernet.get_ethertype() != EtherTypes::Ipv4 {
+       return None;
+    }
+    // check ipv4 has a payload
+    let ipv4_packet = match Ipv4Packet::new(ethernet.payload()) {
+        Some (packet) => packet, 
+        _ => return None
+    }; 
+
+    let m_ip = str_to_ipv4(&config.ip_local); 
+    //check ipv4 destination
+    if ipv4_packet.get_destination() != m_ip {
+        return None;
+    }
+
+    // check udp header
+    if ipv4_packet.get_next_level_protocol() != IpNextHeaderProtocols::Udp{
+        return None;
+    }
+
+    // check udp packet is included as payload 
+    let udp = match UdpPacket::new(ipv4_packet.payload()) {
+        Some(packet) => packet, 
+        _ => return None
+    };
+
+    // check port goes to our predefined port 
+    if udp.get_destination() != config.router_port {
+        return None;
+    }
+
+    // check gdp packet is included as payload 
+    let gdp_protocol_packet = match GdpProtocolPacket::new(udp.payload()) {
+        Some(packet) => packet, 
+        _ => return None
+    };
+    
+    
+    let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
+    
+    gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
+    
+    let res = handle_ipv4_packet(&ethernet, &config);
+    if let Some(payload) = res {
+        // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
+        // we can use this to implement mcast and constantly rewrite the write buffer
+        match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
+            &mut |mut res_ether| {
+                let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+
+
+                res_ether.clone_from(&ethernet);
+                res_ether.set_payload(&payload);
+                res_ether.set_destination(MacAddr::broadcast());
+                res_ether.set_source(interface.mac.unwrap());
+                println!("Constructed Ethernet packet = {:?}", res_ether);
+        }) 
+        {
+            Some(result) => match result {
+                Ok(_) => {}, 
+                Err(err_msg) => {println!("send error with {:?}", err_msg) }
+            }, 
+            None => {println!("Err: send function return none!!!"); }
+        }
+    }
+
+    Some(())
+}
+
+
 pub fn pipeline() {
     let config = AppConfig::fetch();
     println!("Running with the following config: {:#?}", config);
 
     let iface_config = config.expect("Cannot find the config"); 
     let iface_name = iface_config.net_interface.clone(); 
-    let m_ip = str_to_ipv4(&iface_config.ip_local); 
+
     println!("Running with interface: {}", iface_name);
     let interface_names_match = |iface: &NetworkInterface| iface.name == iface_name;
 
@@ -165,79 +248,9 @@ pub fn pipeline() {
     loop {
         match rx.next() {
             Ok(packet) => {
-                let ethernet = EthernetPacket::new(packet).unwrap(); 
-
-                // Packet filtering 
-                // reasoning having a monolithic body here: 
-                // this part is supposed to be a quick filter embedded anywhere our networking logic belongs to 
-                // for example, embeded in the kernel
-                // as such, it has to be standalone to other components of the code, e.g. routing logic 
-                // this also allows zero copy of the write buffer 
-
-                // check ipv4 
-                if ethernet.get_ethertype() != EtherTypes::Ipv4 {
-                    continue;
-                }
-                // check ipv4 has a payload
-                let ipv4_packet = match Ipv4Packet::new(ethernet.payload()) {
-                    Some (packet) => packet, 
+                match gdp_pipeline(packet, &mut gdp_rib, &interface, &mut tx, &iface_config) {
+                    Some(_) => {},
                     None => continue
-                }; 
-
-                //check ipv4 destination
-                if ipv4_packet.get_destination() != m_ip {
-                    continue
-                }
-
-                // check udp header
-                if ipv4_packet.get_next_level_protocol() != IpNextHeaderProtocols::Udp{
-                    continue;
-                }
-
-                // check udp packet is included as payload 
-                let udp = match UdpPacket::new(ipv4_packet.payload()) {
-                    Some(packet) => packet, 
-                    None => continue
-                };
-
-                // check port goes to our predefined port 
-                if udp.get_destination() != iface_config.router_port {
-                    continue;
-                }
-
-                // check gdp packet is included as payload 
-                let gdp_protocol_packet = match GdpProtocolPacket::new(udp.payload()) {
-                    Some(packet) => packet, 
-                    None => continue
-                };
-                
-                
-                let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
-                
-                gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
-                
-                let res = handle_ipv4_packet(&ethernet, &iface_config);
-                if let Some(payload) = res {
-                    // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
-                    // we can use this to implement mcast and constantly rewrite the write buffer
-                    match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
-                        &mut |mut res_ether| {
-                            let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
-                            
-
-                            res_ether.clone_from(&ethernet);
-                            res_ether.set_payload(&payload);
-                            res_ether.set_destination(MacAddr::broadcast());
-                            res_ether.set_source(interface.mac.unwrap());
-                            println!("Constructed Ethernet packet = {:?}", res_ether);
-                    }) 
-                    {
-                        Some(result) => match result {
-                            Ok(_) => {}, 
-                            Err(err_msg) => {println!("send error with {:?}", err_msg) }
-                        }, 
-                        None => {println!("Err: send function return none!!!"); }
-                    }
                 }
             }
             Err(e) => panic!("packetdump: unable to receive packet: {}", e),
