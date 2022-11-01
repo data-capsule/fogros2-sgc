@@ -1,7 +1,6 @@
 
 
 extern crate kv;
-use std::net::Ipv4Addr;
 
 use kv::*;
 
@@ -11,8 +10,8 @@ pub struct RoutingInformationBase {
 
 
 impl RoutingInformationBase {
-    pub fn new() -> RoutingInformationBase {
-        let mut cfg = Config::new("/tmp/example1");
+    pub fn new(path: &String) -> RoutingInformationBase {
+        let mut cfg = Config::new(path);
 
         // Open the key/value store
         let store = Store::new(cfg).unwrap();

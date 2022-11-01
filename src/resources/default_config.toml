@@ -4,5 +4,6 @@ net_interface = "eno1"
 ip_local = "128.32.37.48"
 ip_gateway = ""
 router_port=31415
+local_rib_path="/tmp/rib"
 [database]
 url = "custom database url"

@@ -27,6 +27,8 @@ pub struct AppConfig {
     pub net_interface: String, 
     pub ip_local: String, 
     pub ip_gateway: String,
+    pub local_rib_path: String, 
+    pub router_port: u16,
 }
 
 impl AppConfig {
