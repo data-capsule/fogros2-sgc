@@ -18,6 +18,7 @@ use utils::app_config::AppConfig;
 use utils::conversion::str_to_ipv4;
 use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use crate::rib::RoutingInformationBase;
+use crate::structs::GdpAction;
 
 // Ethernet frame is 1500 bytes payload + 14 bytes header 
 // cannot go beyond this size
@@ -131,11 +132,16 @@ fn handle_ipv4_packet(
     }
 }
 
-pub fn gdp_pipeline(packet : &[u8], gdp_rib: &mut RoutingInformationBase, interface: &NetworkInterface , tx: &mut Box<dyn DataLinkSender>, config: &AppConfig)
--> Option<()>
+pub fn gdp_pipeline(
+    packet : &[u8], 
+    gdp_rib: &mut RoutingInformationBase, 
+    interface: &NetworkInterface , 
+    tx: &mut Box<dyn DataLinkSender>, 
+    config: &AppConfig
+) -> Option<()>
 {
     //TODO: later we are going to separate the send logic as well 
-    
+
     let ethernet = EthernetPacket::new(packet).unwrap(); 
 
     // Packet filtering 
@@ -183,34 +189,56 @@ pub fn gdp_pipeline(packet : &[u8], gdp_rib: &mut RoutingInformationBase, interf
         _ => return None
     };
     
-    
-    let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
-    
-    gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
-    
-    let res = handle_ipv4_packet(&ethernet, &config);
-    if let Some(payload) = res {
-        // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
-        // we can use this to implement mcast and constantly rewrite the write buffer
-        match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
-            &mut |mut res_ether| {
-                let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+    let gdp_action = GdpAction::try_from(gdp_protocol_packet.get_action()).unwrap();
+
+    match gdp_action {
+        GdpAction::Forward => {
+            // forward the data to the next hop
+            // TODO: possible to have a seprate logic 
+            let res = handle_ipv4_packet(&ethernet, &config);
+            if let Some(payload) = res {
+                // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
+                // we can use this to implement mcast and constantly rewrite the write buffer
+                match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
+                    &mut |mut res_ether| {
+                        let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
 
 
-                res_ether.clone_from(&ethernet);
-                res_ether.set_payload(&payload);
-                res_ether.set_destination(MacAddr::broadcast());
-                res_ether.set_source(interface.mac.unwrap());
-                println!("Constructed Ethernet packet = {:?}", res_ether);
-        }) 
-        {
-            Some(result) => match result {
-                Ok(_) => {}, 
-                Err(err_msg) => {println!("send error with {:?}", err_msg) }
-            }, 
-            None => {println!("Err: send function return none!!!"); }
+                        res_ether.clone_from(&ethernet);
+                        res_ether.set_payload(&payload);
+                        res_ether.set_destination(MacAddr::broadcast());
+                        res_ether.set_source(interface.mac.unwrap());
+                        println!("Constructed Ethernet packet = {:?}", res_ether);
+                }) 
+                {
+                    Some(result) => match result {
+                        Ok(_) => {}, 
+                        Err(err_msg) => {println!("send error with {:?}", err_msg) }
+                    }, 
+                    None => {println!("Err: send function return none!!!"); }
+                }
+            }
+        }, 
+        GdpAction::RibGet => {
+            // handle rib query by responding with the RIB item
+            let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
+            gdp_rib.get(Vec::from([7, 1, 2, 3]));
+        }, 
+        GdpAction::RibReply => {
+            // update local rib with the rib reply
+            // below is simply an example
+            let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
+            gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
+        }, 
+        GdpAction::Noop => {
+            // nothing to be done here
+            println!("GDP Action Noop Detected, Make sure to update to 5 for forwarding");
+        }, 
+        _ =>{
+            // control, put, get 
+            println!("{:?} is not implemented yet", gdp_action)
         }
     }
-
+    
     Some(())
 }
