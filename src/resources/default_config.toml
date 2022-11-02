@@ -2,7 +2,7 @@ debug = false
 log_level = "info"
 net_interface = "eno1"
 ip_local = "128.32.37.48"
-ip_gateway = ""
+ip_gateway = "128.32.37.48"
 router_port=31415
 local_rib_path="/tmp/rib"
 [database]
