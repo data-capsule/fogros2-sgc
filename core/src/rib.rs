@@ -1,41 +1,43 @@
 
 
-extern crate kv;
-
-use kv::*;
+extern crate multimap; 
+use multimap::MultiMap;
+use std::net::Ipv4Addr;
+use utils::app_config::AppConfig;
+use utils::conversion::str_to_ipv4;
 
 pub struct RoutingInformationBase {
-    pub routing_table : Store,   // for now, we assume all routing table maps to IP addr
+    pub routing_table: MultiMap<Vec<u8>, Ipv4Addr>,  
+    pub default_route: Vec<Ipv4Addr>,
 } 
 
 
 impl RoutingInformationBase {
-    pub fn new(path: &String) -> RoutingInformationBase {
-        let mut cfg = Config::new(path);
-
-        // Open the key/value store
-        let store = Store::new(cfg).unwrap();
-    
-        // A Bucket provides typed access to a section of the key/value store
+    pub fn new(config: &AppConfig) -> RoutingInformationBase {
+        // TODO: config can populate the RIB somehow 
+        let m_gateway_addr = str_to_ipv4(&config.ip_gateway);
 
         RoutingInformationBase{
-            routing_table: store
+            routing_table: MultiMap::new(),
+            default_route: Vec::from([m_gateway_addr])
         }
     }
 
-    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<(), Error> {
-        let test = self.routing_table.bucket::<Vec<u8>, Vec<u8>>(Some("test")).unwrap();
-        test.set(&key, &value)?;
-        Ok(())
+    pub fn put(&mut self, key: Vec<u8>, value: Ipv4Addr) -> Option<()> {
+        self.routing_table.insert(key, value);
+        Some(())
     }
 
-    pub fn get(&mut self, key: Vec<u8>) -> Option<Vec<u8>> {
-        let test = self.routing_table.bucket::<Vec<u8>, Vec<u8>>(Some("test")).unwrap();
-        match test.get(&key) {
-            Ok(value) => value,
-            _ => None,
+    // rust doesn't support default param.
+    pub fn get_no_default(& self, key: Vec<u8>) -> Option<&Vec<Ipv4Addr>> {
+        self.routing_table.get_vec(&key)
+    }
+
+    pub fn get(&self, key: Vec<u8>)-> &Vec<Ipv4Addr> {
+        match self.get_no_default(key) {
+            Some(v) => v, 
+            None => &self.default_route
         }
     }
-
-
+    
 }

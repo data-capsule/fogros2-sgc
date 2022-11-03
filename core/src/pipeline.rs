@@ -83,6 +83,7 @@ fn handle_udp_packet(
 fn handle_ipv4_packet( 
     ethernet: &EthernetPacket, 
     res_ipv4: &mut MutableIpv4Packet,
+    destination_ip: Ipv4Addr,
     config: &AppConfig) -> Option<()>{
     let header = Ipv4Packet::new(ethernet.payload());
     if let Some(header) = header {
@@ -102,12 +103,7 @@ fn handle_ipv4_packet(
             
             // Simple forwarding based on configuration
             res_ipv4.clone_from(&header);
-            res_ipv4.set_destination(RIGHT);
-            if header.get_source() == LEFT {
-                res_ipv4.set_destination(RIGHT);
-            } else if header.get_source() == RIGHT{
-                res_ipv4.set_destination(LEFT);
-            }
+            res_ipv4.set_destination(destination_ip);
             // res_ipv4.set_destination(header.get_source());
             // res_ipv4.set_source(header.get_destination());
 
@@ -194,16 +190,19 @@ pub fn gdp_pipeline(
             // update local rib with the rib reply
             // below is simply an example
             let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone(); 
-            gdp_rib.put(Vec::from([7, 1, 2, 3]), dst_gdp_name);
+            gdp_rib.put(Vec::from([7, 1, 2, 3]), LEFT); //just an example
         }, 
         GdpAction::Forward => {
             // forward the data to the next hop
-            // TODO: possible to have a seprate logic 
+            let destination_gdp_name = gdp_protocol_packet.get_dst_gdpname();
+            let destination_ips = gdp_rib.get(destination_gdp_name);
+            let mut mcast_counter = 0;
 
             // Note: num_packets in build_and_send allows to rewrite the same buffer num_packets times (first param)
             // we can use this to implement mcast and constantly rewrite the write buffer
-            match tx.build_and_send(1, MAX_ETH_FRAME_SIZE,
+            match tx.build_and_send(destination_ips.len(), MAX_ETH_FRAME_SIZE,
                 &mut |mut res_ether| {
+                    println!("Now sending to Address = {:}", destination_ips[mcast_counter]);
 
                     // res_ether is the write buffer that finally goes to the network
                     let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
@@ -211,11 +210,13 @@ pub fn gdp_pipeline(
 
                     // res_ipv4 is the pointer of res_ether pointing to the ethernet payload (i.e. start of the ip address)
                     let mut res_ipv4 = MutableIpv4Packet::new(&mut res_ether.payload_mut()[..]).unwrap();
-                    let res = handle_ipv4_packet(&ethernet, &mut res_ipv4, &config);
+                    let res = handle_ipv4_packet(&ethernet, &mut res_ipv4, destination_ips[mcast_counter], &config);
+                    
                     //res_ether.set_payload(&payload);
                     res_ether.set_destination(MacAddr::broadcast());
                     res_ether.set_source(interface.mac.unwrap());
                     println!("Constructed Ethernet packet = {:?}", res_ether);
+                    mcast_counter+= 1;
             }) 
             {
                 Some(result) => match result {
