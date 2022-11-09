@@ -3,6 +3,7 @@
 use utils::app_config::AppConfig;
 use utils::error::Result;
 use crate::network::libpnet;
+use crate::crypto::cert::*;
 
 /// Show the configuration file
 pub fn router() -> Result<()> {
@@ -25,6 +26,7 @@ pub fn config() -> Result<()> {
 pub fn simulate_error() -> Result<()> {
     // Log this Error simulation
     info!("We are simulating an error");
+    test_cert();
 
     Ok(())
 }
