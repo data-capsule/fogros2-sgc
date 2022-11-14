@@ -13,6 +13,24 @@ use tokio::{
     time,
 }; // 1.16.1
 
+use tokio::net::{TcpListener, TcpStream};
+use std::io;
+async fn process(socket: TcpStream, foo_tx: &UnboundedSender<String>) {
+    // ...
+    println!("got packets!!");
+    let message = format!("hello");
+    foo_tx.send(message).unwrap();
+}
+
+async fn tcp_listener(msg: &'static str, foo_tx: UnboundedSender<String>)  {
+    let listener = TcpListener::bind("127.0.0.1:9999").await.unwrap();
+    loop {
+        let (socket, _) = listener.accept().await.unwrap();
+        // Process each socket concurrently.
+        process(socket, &foo_tx).await
+    }
+}
+
 async fn message_sender(msg: &'static str, foo_tx: UnboundedSender<String>) {
     for count in 0.. {
         let message = format!("{msg}{count}");
@@ -32,7 +50,8 @@ async fn router_async_loop() {
     let (bar_tx, mut bar_rx) = mpsc::unbounded_channel();
 
     let foo_sender_handle = tokio::spawn(message_sender("foo", foo_tx));
-    let bar_sender_handle = tokio::spawn(message_sender("bar", bar_tx));
+    //let bar_sender_handle = tokio::spawn(message_sender("bar", bar_tx));
+    let bar_sender_handle = tokio::spawn(tcp_listener("bar", bar_tx));
 
     let receive_handle = tokio::spawn(async move {
         let mut foo = None;
@@ -47,6 +66,7 @@ async fn router_async_loop() {
             if let (Some(foo), Some(bar)) = (&foo, &bar) {
                 println!("{foo}{bar}");
             }
+            // TODO: flush foo & bar to be none, only one can survive
         }
     });
 
