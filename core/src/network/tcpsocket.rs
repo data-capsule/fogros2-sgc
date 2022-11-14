@@ -27,11 +27,11 @@ async fn process(socket: TcpStream, foo_tx: &Sender<String>) {
     // ...
     println!("got packets!!");
     let message = format!("hello");
-    foo_tx.send(message);
+    foo_tx.send(message).await;
 }
 
 pub async fn tcp_listener(msg: &'static str, foo_tx: Sender<String>)  {
-    let listener = TcpListener::bind("127.0.0.1:9999").await.unwrap();
+    let listener = TcpListener::bind(msg).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let foo_tx = foo_tx.clone();
