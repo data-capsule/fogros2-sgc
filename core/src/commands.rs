@@ -3,9 +3,7 @@ extern crate tokio;
 extern crate tokio_core;
 use utils::app_config::AppConfig;
 use utils::error::Result;
-use crate::network::tcpsocket::{
-    message_sender, tcp_listener
-};
+use crate::network::tcpsocket::{ tcp_listener};
 use crate::crypto::cert::*;
 
 use futures::future; 
@@ -38,7 +36,7 @@ async fn router_async_loop() {
             if let Some(bar) = &bar {
                 println!("9998: {bar}");
             }
-            
+
             foo = None;
             bar = None;
         }

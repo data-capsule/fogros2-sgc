@@ -9,25 +9,35 @@ use tokio::{
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
 
-pub async fn message_sender(msg: &'static str, foo_tx: Sender<String>) {
-    for count in 0.. {
-        let message = format!("{msg}{count}");
-        foo_tx.send(message);
 
-        if msg == "foo" {
-            time::sleep(Duration::from_millis(100)).await;
-        } else {
-            time::sleep(Duration::from_millis(300)).await;
-        }
-    }
-}
-
-
-async fn process(socket: TcpStream, foo_tx: &Sender<String>) {
+async fn process(stream: TcpStream, foo_tx: &Sender<String>) {
     // ...
     println!("got packets!!");
     let message = format!("hello");
-    foo_tx.send(message).await;
+    loop {
+        // Wait for the socket to be readable
+        stream.readable().await;
+
+        // Creating the buffer **after** the `await` prevents it from
+        // being stored in the async task.
+        let mut buf = [0; 4096];
+
+        // Try to read data, this may still fail with `WouldBlock`
+        // if the readiness event is a false positive.
+        match stream.try_read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                println!("read {} bytes", n);
+                foo_tx.send(std::str::from_utf8(&buf).unwrap().to_owned()).await;
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                continue;
+            }
+            Err(e) => {
+                continue;
+            }   
+        }
+    }
 }
 
 pub async fn tcp_listener(msg: &'static str, foo_tx: Sender<String>)  {
