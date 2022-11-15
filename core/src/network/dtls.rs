@@ -35,11 +35,11 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
 
 pub async fn dtls_listener(
     addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
-)  -> std::io::Result<()> {
-    let listener = UdpListener::bind(SocketAddr::from_str("127.0.0.1:8989").unwrap()).await?;
+)  {
+    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap()).await.unwrap();
     let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
     loop {
-        let (socket, _) = listener.accept().await?;
+        let (socket, _) = listener.accept().await.unwrap();
         let acceptor = acceptor.clone();
         tokio::spawn(async move {
             let ssl = Ssl::new(&acceptor).unwrap();
@@ -49,7 +49,7 @@ pub async fn dtls_listener(
             loop {
                 let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
                     .await
-                    .unwrap()
+                    .unwrap() // shouldn't unwrap here after timed out
                 {
                     Ok(len) => len,
                     Err(_) => {
@@ -63,9 +63,11 @@ pub async fn dtls_listener(
 }
 
 
-
-async fn dtls_test_client() -> std::io::Result<SslContext>{
-    let stream = UdpStream::connect(SocketAddr::from_str("127.0.0.1:8080").unwrap()).await?;
+#[tokio::main]
+pub async fn dtls_test_client(
+    addr: &'static str,
+) -> std::io::Result<SslContext>{
+    let stream = UdpStream::connect(SocketAddr::from_str(addr).unwrap()).await?;
 
     let mut connector_builder = SslConnector::builder(SslMethod::dtls())?;
     connector_builder.set_verify(SslVerifyMode::NONE);

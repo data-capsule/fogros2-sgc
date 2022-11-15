@@ -8,6 +8,11 @@ use utils::app_config::AppConfig;
 use utils::error::Result;
 
 use crate::connection_rib::connection_router;
+use crate::network::dtls::{
+    dtls_listener, dtls_test_client
+};
+
+const dtls_addr: &'static str = "127.0.0.1:9232";
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -18,11 +23,12 @@ async fn router_async_loop() {
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
     let (channel_tx, channel_rx) = mpsc::channel(32);
 
-    let foo_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9997", rib_tx, channel_tx));
-    //let bar_sender_handle = tokio::spawn(message_sender("bar", bar_tx));
+    let tcp_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9997", rib_tx.clone(), channel_tx.clone()));
+    let dtls_sender_handle = tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
+
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
-    future::join_all([foo_sender_handle, rib_handle]).await;
+    future::join_all([tcp_sender_handle, rib_handle, dtls_sender_handle]).await;
     //join!(foo_sender_handle, bar_sender_handle, receive_handle);
 }
 
@@ -49,7 +55,7 @@ pub fn config() -> Result<()> {
 pub fn simulate_error() -> Result<()> {
     // Log this Error simulation
     info!("We are simulating an error");
-    test_cert();
-
+    // test_cert();
+    dtls_test_client(dtls_addr);
     Ok(())
 }
