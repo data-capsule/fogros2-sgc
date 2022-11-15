@@ -5,15 +5,15 @@ use tokio::{
     sync::mpsc::{self, channel, Sender},
     time,
 }; // 1.16.1
-use crate::structs::{GdpAction, GDPPacket};
+use crate::structs::{GdpAction, GDPPacket, GDPChannel};
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
-
 
 async fn process(stream: TcpStream, foo_tx: &Sender<GDPPacket>) {
     // ...
     println!("got packets!!");
-    let message = format!("hello");
+    //let (m_tx, mut m_rx) = mpsc::channel(32);
+
     loop {
         // Wait for the socket to be readable
         stream.readable().await;
@@ -43,15 +43,18 @@ async fn process(stream: TcpStream, foo_tx: &Sender<GDPPacket>) {
     }
 }
 
-pub async fn tcp_listener(msg: &'static str, foo_tx: Sender<GDPPacket>)  {
+
+/// listen at @param address and process on tcp accept()
+///     rib_tx: channel that send GDPPacket to rib
+pub async fn tcp_listener(msg: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>)  {
     let listener = TcpListener::bind(msg).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
-        let foo_tx = foo_tx.clone();
+        let rib_tx = rib_tx.clone();
         // Process each socket concurrently.
         // TODO: currently, it can only handle one concurrent session
         tokio::spawn(async move {
-            process(socket, &foo_tx).await
+            process(socket, &rib_tx).await
         });
     }
 }

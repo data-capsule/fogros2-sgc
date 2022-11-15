@@ -15,11 +15,16 @@ use crate::connection_rib::connection_router;
 /// TODO: later put to another file 
 #[tokio::main]
 async fn router_async_loop() {
-    let (tcp_tx, mut tcp_rx) = mpsc::channel(32);
 
-    let foo_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9997", tcp_tx));
+    // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib 
+    let (rib_tx, mut rib_rx) = mpsc::channel(32);
+    // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
+    let (channel_tx, mut channel_rx) = mpsc::channel(32);
+
+
+    let foo_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9997", rib_tx, channel_tx));
     //let bar_sender_handle = tokio::spawn(message_sender("bar", bar_tx));
-    let rib_handle = tokio::spawn(connection_router(tcp_rx));
+    let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
     future::join_all([foo_sender_handle, rib_handle]).await;
     //join!(foo_sender_handle, bar_sender_handle, receive_handle);

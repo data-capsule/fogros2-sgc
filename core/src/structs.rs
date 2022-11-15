@@ -77,3 +77,10 @@ impl fmt::Display for GDPPacket {
         write!(f, "{:?}", std::str::from_utf8(&self.packet).expect("parsing failure").trim_matches(char::from(0)))
     }
 }
+
+use tokio::sync::mpsc::Sender;
+pub struct GDPChannel {
+    pub name : String, 
+    pub channel : Sender<GDPPacket>,
+}
+
