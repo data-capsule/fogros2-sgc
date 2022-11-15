@@ -4,10 +4,8 @@ use tokio::sync::mpsc::{self, Sender};
 /// construct a gdp packet struct
 /// we may want to use protobuf later
 
-fn populate_gdp_struct(buffer: Vec<u8>)
--> GDPPacket
-{                
-    let mut pkt = GDPPacket{
+fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
+    let mut pkt = GDPPacket {
         action: GdpAction::Noop,
         gdpname: GDPName([0; 4]),
         payload: buffer,
@@ -24,24 +22,18 @@ fn populate_gdp_struct(buffer: Vec<u8>)
 ///               channel_tx.clone(), // used to send GDPChannel to rib
 ///               m_tx.clone() //the sending handle of this connection
 ///  );
-/// 
+///
 pub async fn proc_gdp_packet(
-    packet: Vec<u8>, 
-    rib_tx: &Sender<GDPPacket>, //used to send packet to rib
+    packet: Vec<u8>,
+    rib_tx: &Sender<GDPPacket>,      //used to send packet to rib
     channel_tx: &Sender<GDPChannel>, // used to send GDPChannel to rib
-    m_tx: &Sender<GDPPacket>, //the sending handle of this connection
+    m_tx: &Sender<GDPPacket>,        //the sending handle of this connection
 ) {
-
-    // Vec<u8> to GDP Packet 
+    // Vec<u8> to GDP Packet
     let gdp_packet = populate_gdp_struct(packet);
-
-    // let mut advertised_to_rib = false;
-
-    // // TODO: we need a pipeline here
-
-
     let action = gdp_packet.action;
-    match action{
+
+    match action {
         GdpAction::Advertise => {
             //construct and send channel to RIB
             let channel = GDPChannel {
@@ -70,7 +62,4 @@ pub async fn proc_gdp_packet(
             println!("{:?} is not implemented yet", action)
         }
     }
-
-
-
 }

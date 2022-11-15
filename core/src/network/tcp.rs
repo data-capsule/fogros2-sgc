@@ -1,10 +1,8 @@
-use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
 use crate::pipeline::proc_gdp_packet;
+use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
-
-
 
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb TODO: make it formal
 
@@ -50,7 +48,7 @@ async fn handle_tcp_stream(
                     rib_tx,  //used to send packet to rib
                     channel_tx, // used to send GDPChannel to rib
                     &m_tx //the sending handle of this connection
-                );
+                ).await;
 
             },
 
