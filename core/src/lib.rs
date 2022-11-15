@@ -8,6 +8,7 @@ pub mod pipeline;
 pub mod rib;
 pub mod structs;
 pub mod crypto;
+pub mod connection_rib;
 
 use utils::error::Result;
 

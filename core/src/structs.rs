@@ -63,6 +63,7 @@ impl From<u16be> for u16 {
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct GDPPacket {
+    pub action: GdpAction, 
     pub packet: [u8; 2048],
 }
 

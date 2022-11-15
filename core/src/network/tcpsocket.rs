@@ -5,7 +5,7 @@ use tokio::{
     sync::mpsc::{self, channel, Sender},
     time,
 }; // 1.16.1
-use crate::structs::GDPPacket;
+use crate::structs::{GdpAction, GDPPacket};
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
 
@@ -21,6 +21,7 @@ async fn process(stream: TcpStream, foo_tx: &Sender<GDPPacket>) {
         // Creating the buffer **after** the `await` prevents it from
         // being stored in the async task.
         let mut pkt = GDPPacket{
+            action: GdpAction::Noop,
             packet: [0; 2048],
         };
 
