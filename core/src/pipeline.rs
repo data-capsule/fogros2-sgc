@@ -3,11 +3,25 @@ use tokio::sync::mpsc::{self, Sender};
 
 /// construct a gdp packet struct
 /// we may want to use protobuf later
+/// this part is facilitate testing only 
 
 fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
+    let received_str:Vec<&str> = std::str::from_utf8(&buffer).unwrap().split(",").collect();
+    let m_gdp_action = match received_str[0] {
+        "ADV" => GdpAction::Advertise, 
+        "FWD" => GdpAction::Forward, 
+        _ => GdpAction::Noop
+    };
+
+    let m_gdp_name = match received_str[1] {
+        "1" => GDPName([1,1,1,1]), 
+        "2" => GDPName([2,2,2,2]), 
+        _ => GDPName([0,0,0,0])
+    };
+
     let mut pkt = GDPPacket {
-        action: GdpAction::Noop,
-        gdpname: GDPName([0; 4]),
+        action: m_gdp_action,
+        gdpname: m_gdp_name,
         payload: buffer,
     };
 
@@ -32,12 +46,13 @@ pub async fn proc_gdp_packet(
     // Vec<u8> to GDP Packet
     let gdp_packet = populate_gdp_struct(packet);
     let action = gdp_packet.action;
+    let gdp_name = gdp_packet.gdpname;
 
     match action {
         GdpAction::Advertise => {
             //construct and send channel to RIB
             let channel = GDPChannel {
-                gdpname: GDPName([0; 4]),
+                gdpname: gdp_name,
                 channel: m_tx.clone(),
             };
             channel_tx.send(channel).await;

@@ -16,7 +16,7 @@ use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
 use tokio::sync::mpsc::{self, Sender};
 
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
-const UDP_TIMEOUT: u64 = 10 * 1000; // 10sec
+const UDP_TIMEOUT: u64 = 10000 * 1000; // 10000 sec
 
 static SERVER_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
 static SERVER_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
