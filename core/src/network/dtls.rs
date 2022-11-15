@@ -3,7 +3,7 @@ use udp_stream::{UdpListener, UdpStream};
 
 use openssl::{
     pkey::PKey,
-    ssl::{Ssl, SslAcceptor, SslContext, SslMethod, SslVerifyMode, SslConnector},
+    ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
     x509::X509,
 };
 
@@ -13,9 +13,7 @@ use tokio::{
 };
 
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use tokio::{
-    sync::mpsc::{self, Sender},
-}; 
+use tokio::sync::mpsc::{self, Sender};
 
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 const UDP_TIMEOUT: u64 = 10 * 1000; // 10sec
@@ -35,8 +33,10 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
 
 pub async fn dtls_listener(
     addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
-)  {
-    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap()).await.unwrap();
+) {
+    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap())
+        .await
+        .unwrap();
     let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
@@ -62,11 +62,8 @@ pub async fn dtls_listener(
     }
 }
 
-
 #[tokio::main]
-pub async fn dtls_test_client(
-    addr: &'static str,
-) -> std::io::Result<SslContext>{
+pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext> {
     let stream = UdpStream::connect(SocketAddr::from_str(addr).unwrap()).await?;
 
     let mut connector_builder = SslConnector::builder(SslMethod::dtls())?;
