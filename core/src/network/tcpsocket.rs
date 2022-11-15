@@ -5,12 +5,12 @@ use tokio::{
     sync::mpsc::{self, channel, Sender},
     time,
 }; // 1.16.1
-
+use crate::structs::GDPPacket;
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
 
 
-async fn process(stream: TcpStream, foo_tx: &Sender<String>) {
+async fn process(stream: TcpStream, foo_tx: &Sender<GDPPacket>) {
     // ...
     println!("got packets!!");
     let message = format!("hello");
@@ -20,15 +20,17 @@ async fn process(stream: TcpStream, foo_tx: &Sender<String>) {
 
         // Creating the buffer **after** the `await` prevents it from
         // being stored in the async task.
-        let mut buf = [0; 4096];
+        let mut pkt = GDPPacket{
+            packet: [0; 2048],
+        };
 
         // Try to read data, this may still fail with `WouldBlock`
         // if the readiness event is a false positive.
-        match stream.try_read(&mut buf) {
+        match stream.try_read(&mut pkt.packet) {
             Ok(0) => break,
             Ok(n) => {
                 println!("read {} bytes", n);
-                foo_tx.send(std::str::from_utf8(&buf).unwrap().to_owned()).await;
+                foo_tx.send(pkt).await;
             }
             Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                 continue;
@@ -40,7 +42,7 @@ async fn process(stream: TcpStream, foo_tx: &Sender<String>) {
     }
 }
 
-pub async fn tcp_listener(msg: &'static str, foo_tx: Sender<String>)  {
+pub async fn tcp_listener(msg: &'static str, foo_tx: Sender<GDPPacket>)  {
     let listener = TcpListener::bind(msg).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();

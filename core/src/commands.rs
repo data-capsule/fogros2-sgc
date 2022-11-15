@@ -8,7 +8,7 @@ use crate::crypto::cert::*;
 
 use futures::future; 
 use tokio::{sync::mpsc::{self, channel, Sender}};
-
+use crate::structs::GDPPacket;
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 #[tokio::main]
@@ -21,8 +21,8 @@ async fn router_async_loop() {
     let bar_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9998", bar_tx));
 
     let receive_handle = tokio::spawn(async move {
-        let mut foo:Option<String> = None;
-        let mut bar:Option<String> = None;
+        let mut foo:Option<GDPPacket> = None;
+        let mut bar:Option<GDPPacket> = None;
 
         loop {
             tokio::select! {
