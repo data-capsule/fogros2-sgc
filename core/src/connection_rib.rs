@@ -43,7 +43,7 @@ pub async fn connection_router(
 
                 // rib advertisement received
                 Some(channel) = channel_rx.recv() => {
-                    println!("channel registry received: {pkt}");
+                    println!("channel registry received {:}", channel.gdpname);
                     coonection_rib_table.insert(
                         channel.gdpname, 
                         channel.channel

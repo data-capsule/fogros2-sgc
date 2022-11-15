@@ -65,7 +65,7 @@ impl From<u16be> for u16 {
 pub struct GDPName (pub [u8; 4]); //256 bit destination
 impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:#?}", self)
+        write!(f, "{:?}", self)
     }
 }
 
