@@ -9,7 +9,12 @@ use crate::structs::{GdpAction, GDPName, GDPPacket, GDPChannel};
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
 
-async fn process(stream: TcpStream, 
+/// handle one single session of tcpstream
+/// 1. init and advertise the mpsc channel to connection rib
+/// 2. select between 
+///         incoming tcp packets -> receive and send to rib
+///         incomine packets from rib -> send to the tcp session
+async fn handle_tcp_stream(stream: TcpStream, 
     rib_tx: &Sender<GDPPacket>, 
     channel_tx: &Sender<GDPChannel>) {
     // ...
@@ -19,7 +24,7 @@ async fn process(stream: TcpStream,
         = mpsc::channel(32);
     // TODO: placeholder, later replace with packet parsing 
     let mut advertised_to_rib = false;
-    
+
     // TODO: we need a pipeline here
     if ! advertised_to_rib{
         let mut channel = GDPChannel{
@@ -90,6 +95,7 @@ async fn process(stream: TcpStream,
 
 /// listen at @param address and process on tcp accept()
 ///     rib_tx: channel that send GDPPacket to rib
+///     channel_tx: channel that advertise GDPChannel to rib
 pub async fn tcp_listener(msg: &'static str, 
             rib_tx: Sender<GDPPacket>, 
             channel_tx: Sender<GDPChannel>)  {
@@ -98,10 +104,10 @@ pub async fn tcp_listener(msg: &'static str,
         let (socket, _) = listener.accept().await.unwrap();
         let rib_tx = rib_tx.clone();
         let channel_tx = channel_tx.clone();
+
         // Process each socket concurrently.
-        // TODO: currently, it can only handle one concurrent session
         tokio::spawn(async move {
-            process(socket, &rib_tx, &channel_tx).await
+            handle_tcp_stream(socket, &rib_tx, &channel_tx).await
         });
     }
 }
