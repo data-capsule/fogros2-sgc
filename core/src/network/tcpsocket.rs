@@ -1,33 +1,30 @@
-
+use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
 use futures::future; // 0.3.19
+use std::io;
 use std::time::Duration;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::{
     sync::mpsc::{self, channel, Sender},
     time,
 }; // 1.16.1
-use crate::structs::{GdpAction, GDPName, GDPPacket, GDPChannel};
-use tokio::net::{TcpListener, TcpStream};
-use std::io;
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
-/// 2. select between 
+/// 2. select between
 ///         incoming tcp packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
-async fn handle_tcp_stream(stream: TcpStream, 
-    rib_tx: &Sender<GDPPacket>, 
-    channel_tx: &Sender<GDPChannel>) {
+async fn handle_tcp_stream(
+    stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
+) {
     // ...
     println!("got packets!!");
-    let (m_tx, 
-        mut m_rx) 
-        = mpsc::channel(32);
-    // TODO: placeholder, later replace with packet parsing 
+    let (m_tx, mut m_rx) = mpsc::channel(32);
+    // TODO: placeholder, later replace with packet parsing
     let mut advertised_to_rib = false;
 
     // TODO: we need a pipeline here
-    if ! advertised_to_rib{
-        let mut channel = GDPChannel{
+    if !advertised_to_rib {
+        let mut channel = GDPChannel {
             gdpname: GDPName([0; 4]),
             channel: m_tx.clone(),
         };
@@ -35,10 +32,10 @@ async fn handle_tcp_stream(stream: TcpStream,
         channel_tx.send(channel).await;
     }
 
-    loop{
+    loop {
         // Wait for the TCP socket to be readable
         // or new data to be sent
-        tokio::select! {        
+        tokio::select! {
 
             // new stuff from TCP!
             f = stream.readable() => {
@@ -61,16 +58,16 @@ async fn handle_tcp_stream(stream: TcpStream,
                     }
                     Err(e) => {
                         continue;
-                    }   
+                    }
                 }
 
-                //send the packet 
+                //send the packet
                 rib_tx.send(pkt).await;
             },
 
             // new data to send to TCP!
             Some(pkt_to_forward) = m_rx.recv() => {
-                stream.writable().await; // okay this may have deadlock 
+                stream.writable().await; // okay this may have deadlock
 
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
@@ -89,16 +86,14 @@ async fn handle_tcp_stream(stream: TcpStream,
             },
         }
     }
-
 }
-
 
 /// listen at @param address and process on tcp accept()
 ///     rib_tx: channel that send GDPPacket to rib
 ///     channel_tx: channel that advertise GDPChannel to rib
-pub async fn tcp_listener(msg: &'static str, 
-            rib_tx: Sender<GDPPacket>, 
-            channel_tx: Sender<GDPChannel>)  {
+pub async fn tcp_listener(
+    msg: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
+) {
     let listener = TcpListener::bind(msg).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
@@ -106,8 +101,6 @@ pub async fn tcp_listener(msg: &'static str,
         let channel_tx = channel_tx.clone();
 
         // Process each socket concurrently.
-        tokio::spawn(async move {
-            handle_tcp_stream(socket, &rib_tx, &channel_tx).await
-        });
+        tokio::spawn(async move { handle_tcp_stream(socket, &rib_tx, &channel_tx).await });
     }
 }

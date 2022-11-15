@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use derivative::Derivative;
+use std::fmt;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use std::fmt;
 
 pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
 
@@ -62,18 +62,17 @@ impl From<u16be> for u16 {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
-pub struct GDPName (pub [u8; 4]); //256 bit destination
+pub struct GDPName(pub [u8; 4]); //256 bit destination
 impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct GDPPacket {
-    pub action: GdpAction, 
-    pub gdpname: GDPName, 
+    pub action: GdpAction,
+    pub gdpname: GDPName,
     pub payload: [u8; 2048],
 }
 
@@ -84,16 +83,19 @@ impl fmt::Display for GDPPacket {
         // stream: `f`. Returns `fmt::Result` which indicates whether the
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
-        write!(f, "{:?}: {:?}", 
-                self.gdpname, 
-                std::str::from_utf8(&self.payload)
-                .expect("parsing failure").trim_matches(char::from(0)))
+        write!(
+            f,
+            "{:?}: {:?}",
+            self.gdpname,
+            std::str::from_utf8(&self.payload)
+                .expect("parsing failure")
+                .trim_matches(char::from(0))
+        )
     }
 }
 
 use tokio::sync::mpsc::Sender;
 pub struct GDPChannel {
-    pub gdpname : GDPName, 
-    pub channel : Sender<GDPPacket>,
+    pub gdpname: GDPName,
+    pub channel: Sender<GDPPacket>,
 }
-

@@ -1,7 +1,6 @@
 use pnet_macros::packet;
 use pnet_macros_support::types::*;
 
-
 /// Documentation for MyProtocol
 #[packet]
 pub struct GdpProtocol {
@@ -17,5 +16,5 @@ pub struct GdpProtocol {
     action: u8,
     ttl: u8,
     #[payload]
-    payload: Vec<u8>
+    payload: Vec<u8>,
 }

@@ -2,13 +2,13 @@
 extern crate log;
 
 pub mod commands;
-pub mod protocol;
+pub mod connection_rib;
+pub mod crypto;
 pub mod network;
 pub mod pipeline;
+pub mod protocol;
 pub mod rib;
 pub mod structs;
-pub mod crypto;
-pub mod connection_rib;
 
 use utils::error::Result;
 

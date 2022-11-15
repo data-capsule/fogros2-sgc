@@ -1,45 +1,37 @@
-
-
 extern crate openssl;
-use openssl::x509::{X509Name, X509Req, X509StoreContext, X509VerifyResult, X509};
+use openssl::stack::Stack;
 use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName,
     SubjectKeyIdentifier,
 };
 use openssl::x509::store::X509StoreBuilder;
-use openssl::stack::Stack;
+use openssl::x509::{X509Name, X509Req, X509StoreContext, X509VerifyResult, X509};
 use regex::Regex;
 
-
-pub fn debug_cert(
-        cert: X509)
-{
-    // print out the certificate 
+pub fn debug_cert(cert: X509) {
+    // print out the certificate
     let debugged = format!("{:#?}", cert);
-    print!("{}",debugged);
+    print!("{}", debugged);
     print!("{:#?}", cert.subject_name());
 }
 
-pub fn extract_gdp_name_from_subject(
-    subject: &str) 
-    -> Option<&str>
-{
-    // Currently assume only gdp name is the only field 
+pub fn extract_gdp_name_from_subject(subject: &str) -> Option<&str> {
+    // Currently assume only gdp name is the only field
     let reg = Regex::new(r#""(\w+)""#).unwrap();
-    if (reg.is_match(&subject)){
+    if (reg.is_match(&subject)) {
         let mat = reg.find(&subject).unwrap();
         Some(&subject[mat.start()..mat.end()])
-    }else{
+    } else {
         None
     }
 }
 
-pub fn test_cert(){
+pub fn test_cert() {
     let cert_str = include_bytes!("../../resources/router.pem");
     let cert = X509::from_pem(cert_str).unwrap();
 
     let subject = format!("{:?}", cert.subject_name());
-    
+
     print!("{:?}", extract_gdp_name_from_subject(&subject));
     let cert = include_bytes!("../../resources/router.pem");
     let cert = X509::from_pem(cert).unwrap();
@@ -58,5 +50,4 @@ pub fn test_cert(){
     assert!(context
         .init(&store, &cert, &chain, |c| c.verify_cert())
         .unwrap());
-
 }

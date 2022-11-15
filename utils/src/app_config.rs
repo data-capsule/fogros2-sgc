@@ -1,9 +1,9 @@
 use config::{Config, Environment};
 use lazy_static::{__Deref, lazy_static};
 use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::Path;
 use std::sync::RwLock;
-use std::net::{IpAddr, Ipv4Addr};
 
 use super::error::Result;
 use crate::types::LogLevel;
@@ -24,10 +24,10 @@ pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
     pub database: Database,
-    pub net_interface: String, 
-    pub ip_local: String, 
+    pub net_interface: String,
+    pub ip_local: String,
     pub ip_gateway: String,
-    pub local_rib_path: String, 
+    pub local_rib_path: String,
     pub router_port: u16,
 }
 
