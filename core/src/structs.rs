@@ -61,10 +61,19 @@ impl From<u16be> for u16 {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+pub struct GDPName (pub [u8; 4]); //256 bit destination
+impl fmt::Display for GDPName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#?}", self)
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct GDPPacket {
     pub action: GdpAction, 
-    pub gdpname: [u8; 4], //256 bit destination
+    pub gdpname: GDPName, 
     pub payload: [u8; 2048],
 }
 
@@ -84,7 +93,7 @@ impl fmt::Display for GDPPacket {
 
 use tokio::sync::mpsc::Sender;
 pub struct GDPChannel {
-    pub name : String, 
+    pub gdpname : GDPName, 
     pub channel : Sender<GDPPacket>,
 }
 

@@ -5,7 +5,7 @@ use tokio::{
     sync::mpsc::{self, channel, Sender},
     time,
 }; // 1.16.1
-use crate::structs::{GdpAction, GDPPacket, GDPChannel};
+use crate::structs::{GdpAction, GDPName, GDPPacket, GDPChannel};
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
 
@@ -18,51 +18,73 @@ async fn process(stream: TcpStream,
         mut m_rx) 
         = mpsc::channel(32);
     // TODO: placeholder, later replace with packet parsing 
-    let mut placeholder_sent = false;
-
-    loop {
-        // Wait for the socket to be readable
-        stream.readable().await;
-
-        // Creating the buffer **after** the `await` prevents it from
-        // being stored in the async task.
-        let mut pkt = GDPPacket{
-            action: GdpAction::Noop,
-            gdpname: [0; 4],
-            payload: [0; 2048],
-        };
-
-        // Try to read data, this may still fail with `WouldBlock`
-        // if the readiness event is a false positive.
-        match stream.try_read(&mut pkt.payload) {
-            Ok(0) => break,
-            Ok(n) => {
-                println!("read {} bytes", n);
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                continue;
-            }
-            Err(e) => {
-                continue;
-            }   
-        }
-
-        //parse the packet 
-        
-        // TODO: suppose it's an advertisement
-        if !placeholder_sent{
-            let mut channel = GDPChannel{
-                name: "bla".to_owned(),
-                channel: m_tx.clone(),
-            };
+    let mut advertised_to_rib = false;
     
-            placeholder_sent = true;
-            channel_tx.send(channel).await;
-        }
-
-        //send the packet 
-        rib_tx.send(pkt).await;
+    // TODO: we need a pipeline here
+    if ! advertised_to_rib{
+        let mut channel = GDPChannel{
+            gdpname: GDPName([0; 4]),
+            channel: m_tx.clone(),
+        };
+        advertised_to_rib = true;
+        channel_tx.send(channel).await;
     }
+
+    loop{
+        // Wait for the TCP socket to be readable
+        // or new data to be sent
+        tokio::select! {        
+
+            // new stuff from TCP!
+            f = stream.readable() => {
+                // Creating the buffer **after** the `await` prevents it from
+                // being stored in the async task.
+                let mut pkt = GDPPacket{
+                    action: GdpAction::Noop,
+                    gdpname: GDPName([0; 4]),
+                    payload: [0; 2048],
+                };
+                // Try to read data, this may still fail with `WouldBlock`
+                // if the readiness event is a false positive.
+                match stream.try_read(&mut pkt.payload) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        println!("read {} bytes", n);
+                    }
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        continue;
+                    }
+                    Err(e) => {
+                        continue;
+                    }   
+                }
+
+                //send the packet 
+                rib_tx.send(pkt).await;
+            },
+
+            // new data to send to TCP!
+            Some(pkt_to_forward) = m_rx.recv() => {
+                stream.writable().await; // okay this may have deadlock 
+
+                // Try to write data, this may still fail with `WouldBlock`
+                // if the readiness event is a false positive.
+                match stream.try_write(&pkt_to_forward.payload) {
+                    Ok(n) => {
+                        println!("write {} bytes", n);
+                    }
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        continue
+                    }
+                    Err(e) => {
+                        println!("Err of other kind");
+                        continue
+                    }
+                }
+            },
+        }
+    }
+
 }
 
 
