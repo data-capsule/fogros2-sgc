@@ -24,8 +24,11 @@ pub async fn connection_router(mut rib_rx: Receiver<GDPPacket>, mut channel_rx: 
             if let Some(pkt) = &pkt {
                 println!("9999: {pkt}");
             }
-
+            if let Some(channel) = &channel {
+                println!("channel received {}", channel.name);
+            }
             pkt = None;
+            channel = None;
         }
     });
 }
