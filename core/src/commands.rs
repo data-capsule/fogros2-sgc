@@ -4,9 +4,8 @@ use crate::crypto::cert::*;
 use crate::network::tcpsocket::tcp_listener;
 use utils::app_config::AppConfig;
 use utils::error::Result;
-
 use futures::future;
-use tokio::sync::mpsc::{self, channel, Sender};
+use tokio::sync::mpsc::{self};
 
 use crate::connection_rib::connection_router;
 
@@ -15,9 +14,9 @@ use crate::connection_rib::connection_router;
 #[tokio::main]
 async fn router_async_loop() {
     // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib
-    let (rib_tx, mut rib_rx) = mpsc::channel(32);
+    let (rib_tx, rib_rx) = mpsc::channel(32);
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
-    let (channel_tx, mut channel_rx) = mpsc::channel(32);
+    let (channel_tx, channel_rx) = mpsc::channel(32);
 
     let foo_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9997", rib_tx, channel_tx));
     //let bar_sender_handle = tokio::spawn(message_sender("bar", bar_tx));

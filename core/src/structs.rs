@@ -1,9 +1,6 @@
 use anyhow::{anyhow, Result};
-use derivative::Derivative;
 use std::fmt;
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-
 pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
 
 pub type GdpName = [u8; 32];

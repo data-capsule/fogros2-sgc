@@ -1,11 +1,8 @@
 extern crate openssl;
 use openssl::stack::Stack;
-use openssl::x509::extension::{
-    AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName,
-    SubjectKeyIdentifier,
-};
+
 use openssl::x509::store::X509StoreBuilder;
-use openssl::x509::{X509Name, X509Req, X509StoreContext, X509VerifyResult, X509};
+use openssl::x509::{X509StoreContext, X509};
 use regex::Regex;
 
 pub fn debug_cert(cert: X509) {
@@ -18,8 +15,8 @@ pub fn debug_cert(cert: X509) {
 pub fn extract_gdp_name_from_subject(subject: &str) -> Option<&str> {
     // Currently assume only gdp name is the only field
     let reg = Regex::new(r#""(\w+)""#).unwrap();
-    if (reg.is_match(&subject)) {
-        let mat = reg.find(&subject).unwrap();
+    if reg.is_match(subject) {
+        let mat = reg.find(subject).unwrap();
         Some(&subject[mat.start()..mat.end()])
     } else {
         None

@@ -1,12 +1,9 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use futures::future; // 0.3.19
 use std::io;
-use std::time::Duration;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::{
-    sync::mpsc::{self, channel, Sender},
-    time,
-}; // 1.16.1
+    sync::mpsc::{self, Sender},
+}; 
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
@@ -24,7 +21,7 @@ async fn handle_tcp_stream(
 
     // TODO: we need a pipeline here
     if !advertised_to_rib {
-        let mut channel = GDPChannel {
+        let channel = GDPChannel {
             gdpname: GDPName([0; 4]),
             channel: m_tx.clone(),
         };
@@ -38,7 +35,7 @@ async fn handle_tcp_stream(
         tokio::select! {
 
             // new stuff from TCP!
-            f = stream.readable() => {
+            _f = stream.readable() => {
                 // Creating the buffer **after** the `await` prevents it from
                 // being stored in the async task.
                 let mut pkt = GDPPacket{
@@ -56,7 +53,7 @@ async fn handle_tcp_stream(
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         continue;
                     }
                 }
@@ -78,7 +75,7 @@ async fn handle_tcp_stream(
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         println!("Err of other kind");
                         continue
                     }

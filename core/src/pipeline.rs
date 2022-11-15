@@ -1,10 +1,8 @@
 extern crate pnet;
 extern crate pnet_macros_support;
-
-use pnet::datalink::Channel::Ethernet;
-use pnet::datalink::{self, DataLinkSender, NetworkInterface};
+use pnet::datalink::{DataLinkSender, NetworkInterface};
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
-use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
+use pnet::packet::ip::{IpNextHeaderProtocols};
 use pnet::packet::ipv4::Ipv4Packet;
 use pnet::packet::udp::UdpPacket;
 use pnet::packet::{MutablePacket, Packet};
@@ -54,14 +52,14 @@ fn handle_gdp_packet(packet: &[u8], res_gdp: &mut MutableGdpProtocolPacket) -> O
 }
 
 fn handle_udp_packet(
-    packet: &[u8], res_udp: &mut MutableUdpPacket, config: &AppConfig,
+    packet: &[u8], res_udp: &mut MutableUdpPacket, _config: &AppConfig,
 ) -> Option<()> {
     let udp = UdpPacket::new(packet);
 
     if let Some(udp) = udp {
         let mut res_gdp = MutableGdpProtocolPacket::new(&mut res_udp.payload_mut()[..]).unwrap();
         let res = handle_gdp_packet(udp.payload(), &mut res_gdp);
-        if let Some(payload) = res {
+        if let Some(_payload) = res {
             res_udp.clone_from(&udp);
             println!("Constructed UDP packet = {:?}", res_udp);
             Some(())
@@ -83,11 +81,11 @@ fn handle_ipv4_packet(
         let mut res_udp = MutableUdpPacket::new(&mut res_ipv4.payload_mut()[..]).unwrap();
 
         let res = handle_udp_packet(header.payload(), &mut res_udp, config);
-        if let Some(payload) = res {
+        if let Some(_payload) = res {
             let udp_packet_size = res_udp.get_length() as u16;
             let ipv4_header_size = header.get_header_length() as u16;
             let packet_size = ((udp_packet_size + ipv4_header_size) as usize) * 4;
-            res_ipv4.set_total_length((packet_size.try_into().unwrap()));
+            res_ipv4.set_total_length(packet_size.try_into().unwrap());
 
             // Simple forwarding based on configuration
             res_ipv4.clone_from(&header);
@@ -168,13 +166,13 @@ pub fn gdp_pipeline(
     match gdp_action {
         GdpAction::RibGet => {
             // handle rib query by responding with the RIB item
-            let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone();
+            let _dst_gdp_name = gdp_protocol_packet.get_dst_gdpname();
             gdp_rib.get(Vec::from([7, 1, 2, 3]));
         }
         GdpAction::RibReply => {
             // update local rib with the rib reply
             // below is simply an example
-            let dst_gdp_name = gdp_protocol_packet.get_dst_gdpname().clone();
+            let _dst_gdp_name = gdp_protocol_packet.get_dst_gdpname();
             gdp_rib.put(Vec::from([7, 1, 2, 3]), LEFT); //just an example
         }
         GdpAction::Forward => {
@@ -188,24 +186,24 @@ pub fn gdp_pipeline(
             match tx.build_and_send(
                 destination_ips.len(),
                 MAX_ETH_FRAME_SIZE,
-                &mut |mut res_ether| {
+                &mut |res_ether| {
                     println!(
                         "Now sending to Address = {:}",
                         destination_ips[mcast_counter]
                     );
 
                     // res_ether is the write buffer that finally goes to the network
-                    let mut res_ether = MutableEthernetPacket::new(&mut res_ether).unwrap();
+                    let mut res_ether = MutableEthernetPacket::new(res_ether).unwrap();
                     res_ether.clone_from(&ethernet);
 
                     // res_ipv4 is the pointer of res_ether pointing to the ethernet payload (i.e. start of the ip address)
                     let mut res_ipv4 =
                         MutableIpv4Packet::new(&mut res_ether.payload_mut()[..]).unwrap();
-                    let res = handle_ipv4_packet(
+                    let _res = handle_ipv4_packet(
                         &ethernet,
                         &mut res_ipv4,
                         destination_ips[mcast_counter],
-                        &config,
+                        config,
                     );
 
                     //res_ether.set_payload(&payload);

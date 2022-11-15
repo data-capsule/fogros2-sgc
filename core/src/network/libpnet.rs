@@ -2,22 +2,11 @@ extern crate pnet;
 extern crate pnet_macros_support;
 
 use pnet::datalink::Channel::Ethernet;
-use pnet::datalink::{self, DataLinkSender, NetworkInterface};
-use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
-use pnet::packet::ip::{IpNextHeaderProtocol, IpNextHeaderProtocols};
-use pnet::packet::ipv4::Ipv4Packet;
-use pnet::packet::udp::UdpPacket;
-use pnet::packet::{MutablePacket, Packet};
-use pnet::util::MacAddr;
-use pnet_packet::ipv4::{checksum, MutableIpv4Packet};
-use pnet_packet::udp::MutableUdpPacket;
-use std::net::Ipv4Addr;
-
+use pnet::datalink::{self, NetworkInterface};
 use crate::pipeline::gdp_pipeline;
-use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use crate::rib::RoutingInformationBase;
 use utils::app_config::AppConfig;
-use utils::conversion::str_to_ipv4;
+
 
 pub fn pnet_proc_loop() {
     let config = AppConfig::fetch();
@@ -32,9 +21,7 @@ pub fn pnet_proc_loop() {
     // Find the network interface with the provided name
     let interfaces = datalink::interfaces();
     let interface = interfaces
-        .into_iter()
-        .filter(interface_names_match)
-        .next()
+        .into_iter().find(interface_names_match)
         .unwrap_or_else(|| panic!("No such network interface: {}", iface_name));
 
     // Create a channel to receive on

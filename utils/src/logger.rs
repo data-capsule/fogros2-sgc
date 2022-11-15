@@ -8,7 +8,7 @@ use super::error::Result;
 pub fn setup_logging() -> Result<slog_scope::GlobalLoggerGuard> {
     // Setup Logging
     let guard = slog_scope::set_global_logger(default_root_logger()?);
-    let _log_guard = slog_stdlog::init()?;
+    slog_stdlog::init()?;
 
     Ok(guard)
 }

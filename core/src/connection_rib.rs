@@ -1,6 +1,6 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{Receiver, Sender};
 
 /// receive, check, and route GDP messages
 ///
@@ -14,7 +14,7 @@ pub async fn connection_router(
 ) {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
-    let receive_handle = tokio::spawn(async move {
+    let _receive_handle = tokio::spawn(async move {
         let mut coonection_rib_table: HashMap<GDPName, Sender<GDPPacket>> = HashMap::new();
 
         // loop polling from

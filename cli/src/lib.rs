@@ -4,7 +4,7 @@ use clap_complete::{
     shells::{Bash, Fish, Zsh},
 };
 use core::commands;
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf};
 use utils::app_config::AppConfig;
 use utils::error::Result;
 use utils::types::LogLevel;
