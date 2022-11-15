@@ -1,7 +1,7 @@
 extern crate pnet;
 extern crate pnet_macros_support;
 
-use crate::pipeline::gdp_pipeline;
+use crate::pipeline_pnet::gdp_pipeline;
 use crate::rib::RoutingInformationBase;
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};

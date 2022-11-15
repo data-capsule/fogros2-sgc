@@ -5,7 +5,7 @@ pub mod commands;
 pub mod connection_rib;
 pub mod crypto;
 pub mod network;
-pub mod pipeline;
+pub mod pipeline_pnet;
 pub mod protocol;
 pub mod rib;
 pub mod structs;
