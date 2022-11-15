@@ -89,9 +89,9 @@ async fn handle_tcp_stream(
 ///     rib_tx: channel that send GDPPacket to rib
 ///     channel_tx: channel that advertise GDPChannel to rib
 pub async fn tcp_listener(
-    msg: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
+    addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
 ) {
-    let listener = TcpListener::bind(msg).await.unwrap();
+    let listener = TcpListener::bind(addr).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let rib_tx = rib_tx.clone();
