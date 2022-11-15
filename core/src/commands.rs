@@ -8,9 +8,7 @@ use utils::app_config::AppConfig;
 use utils::error::Result;
 
 use crate::connection_rib::connection_router;
-use crate::network::dtls::{
-    dtls_listener, dtls_test_client
-};
+use crate::network::dtls::{dtls_listener, dtls_test_client};
 
 const dtls_addr: &'static str = "127.0.0.1:9232";
 
@@ -23,8 +21,13 @@ async fn router_async_loop() {
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
     let (channel_tx, channel_rx) = mpsc::channel(32);
 
-    let tcp_sender_handle = tokio::spawn(tcp_listener("127.0.0.1:9997", rib_tx.clone(), channel_tx.clone()));
-    let dtls_sender_handle = tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
+    let tcp_sender_handle = tokio::spawn(tcp_listener(
+        "127.0.0.1:9997",
+        rib_tx.clone(),
+        channel_tx.clone(),
+    ));
+    let dtls_sender_handle =
+        tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
 
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
