@@ -1,9 +1,7 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::{
-    sync::mpsc::{self, Sender},
-}; 
+use tokio::sync::mpsc::{self, Sender};
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib

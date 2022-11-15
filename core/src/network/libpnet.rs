@@ -1,12 +1,11 @@
 extern crate pnet;
 extern crate pnet_macros_support;
 
-use pnet::datalink::Channel::Ethernet;
-use pnet::datalink::{self, NetworkInterface};
 use crate::pipeline::gdp_pipeline;
 use crate::rib::RoutingInformationBase;
+use pnet::datalink::Channel::Ethernet;
+use pnet::datalink::{self, NetworkInterface};
 use utils::app_config::AppConfig;
-
 
 pub fn pnet_proc_loop() {
     let config = AppConfig::fetch();
@@ -21,7 +20,8 @@ pub fn pnet_proc_loop() {
     // Find the network interface with the provided name
     let interfaces = datalink::interfaces();
     let interface = interfaces
-        .into_iter().find(interface_names_match)
+        .into_iter()
+        .find(interface_names_match)
         .unwrap_or_else(|| panic!("No such network interface: {}", iface_name));
 
     // Create a channel to receive on
