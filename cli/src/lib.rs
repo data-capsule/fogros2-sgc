@@ -1,11 +1,13 @@
-use std::{path::PathBuf, str::FromStr};
-use clap::{AppSettings, Parser, IntoApp, Subcommand};
-use clap_complete::{generate, shells::{Bash, Fish, Zsh}};
+use clap::{AppSettings, IntoApp, Parser, Subcommand};
+use clap_complete::{
+    generate,
+    shells::{Bash, Fish, Zsh},
+};
 use core::commands;
+use std::{path::PathBuf, str::FromStr};
 use utils::app_config::AppConfig;
 use utils::error::Result;
 use utils::types::LogLevel;
-
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -19,19 +21,29 @@ use utils::types::LogLevel;
 #[clap(global_setting(AppSettings::DeriveDisplayOrder))]
 pub struct Cli {
     /// Set a custom config file
-    #[clap(short, long,parse(from_os_str), value_name = "FILE")]
+    #[clap(short, long, parse(from_os_str), value_name = "FILE")]
     pub config: Option<PathBuf>,
 
     /// Set a custom config file
-    #[clap(name="debug", short, long="debug", value_name = "DEBUG")]
+    #[clap(name = "debug", short, long = "debug", value_name = "DEBUG")]
     pub debug: Option<bool>,
 
-    /// Set Log Level 
-    #[clap(name="log_level", short, long="log-level", value_name = "LOG_LEVEL")]
+    /// Set Log Level
+    #[clap(
+        name = "log_level",
+        short,
+        long = "log-level",
+        value_name = "LOG_LEVEL"
+    )]
     pub log_level: Option<LogLevel>,
 
     /// Set Net Interface
-    #[clap(name="net_interface", short, long="net-interface", value_name = "eno1")]
+    #[clap(
+        name = "net_interface",
+        short,
+        long = "net-interface",
+        value_name = "eno1"
+    )]
     pub net_interface: Option<String>,
 
     /// Subcommands
@@ -44,13 +56,13 @@ enum Commands {
     #[clap(
         name = "router",
         about = "Run Router",
-        long_about = None, 
+        long_about = None,
     )]
     Router,
     #[clap(
         name = "error",
         about = "Simulate an error",
-        long_about = None, 
+        long_about = None,
     )]
     Error,
     #[clap(
@@ -58,10 +70,10 @@ enum Commands {
         about = "Generate completion scripts",
         long_about = None,
         )]
-        Completion {
-            #[clap(subcommand)]
-            subcommand: CompletionSubcommand,
-        },
+    Completion {
+        #[clap(subcommand)]
+        subcommand: CompletionSubcommand,
+    },
     #[clap(
         name = "config",
         about = "Show Configuration",
@@ -88,14 +100,14 @@ pub fn cli_match() -> Result<()> {
     AppConfig::merge_config(cli.config.as_deref())?;
 
     let app = Cli::into_app();
-    
+
     AppConfig::merge_args(app)?;
 
     // Execute the subcommand
     match &cli.command {
         Commands::Router => commands::router()?,
         Commands::Error => commands::simulate_error()?,
-        Commands::Completion {subcommand} => {
+        Commands::Completion { subcommand } => {
             let mut app = Cli::into_app();
             match subcommand {
                 CompletionSubcommand::Bash => {

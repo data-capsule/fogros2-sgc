@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use derivative::Derivative;
+use std::fmt;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -58,4 +59,43 @@ impl From<u16be> for u16 {
     fn from(item: u16be) -> Self {
         u16::from_be(item.0)
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+pub struct GDPName(pub [u8; 4]); //256 bit destination
+impl fmt::Display for GDPName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+pub struct GDPPacket {
+    pub action: GdpAction,
+    pub gdpname: GDPName,
+    pub payload: [u8; 2048],
+}
+
+impl fmt::Display for GDPPacket {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
+        write!(
+            f,
+            "{:?}: {:?}",
+            self.gdpname,
+            std::str::from_utf8(&self.payload)
+                .expect("parsing failure")
+                .trim_matches(char::from(0))
+        )
+    }
+}
+
+use tokio::sync::mpsc::Sender;
+pub struct GDPChannel {
+    pub gdpname: GDPName,
+    pub channel: Sender<GDPPacket>,
 }
