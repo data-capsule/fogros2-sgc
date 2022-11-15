@@ -60,8 +60,8 @@ enum Commands {
     )]
     Router,
     #[clap(
-        name = "error",
-        about = "Simulate an error",
+        name = "client",
+        about = "Run test dtls client",
         long_about = None,
     )]
     Error,

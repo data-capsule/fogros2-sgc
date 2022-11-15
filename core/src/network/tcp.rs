@@ -1,7 +1,12 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
+use crate::pipeline::proc_gdp_packet;
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
+
+
+
+const UDP_BUFFER_SIZE: usize = 17480; // 17kb TODO: make it formal
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
@@ -15,35 +20,20 @@ async fn handle_tcp_stream(
     println!("got packets!!");
     let (m_tx, mut m_rx) = mpsc::channel(32);
     // TODO: placeholder, later replace with packet parsing
-    let mut advertised_to_rib = false;
-
-    // TODO: we need a pipeline here
-    if !advertised_to_rib {
-        let channel = GDPChannel {
-            gdpname: GDPName([0; 4]),
-            channel: m_tx.clone(),
-        };
-        advertised_to_rib = true;
-        channel_tx.send(channel).await;
-    }
 
     loop {
         // Wait for the TCP socket to be readable
         // or new data to be sent
         tokio::select! {
-
             // new stuff from TCP!
             _f = stream.readable() => {
                 // Creating the buffer **after** the `await` prevents it from
                 // being stored in the async task.
-                let mut pkt = GDPPacket{
-                    action: GdpAction::Noop,
-                    gdpname: GDPName([0; 4]),
-                    payload: [0; 2048],
-                };
+
+                let mut buf = vec![0u8; UDP_BUFFER_SIZE];
                 // Try to read data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
-                match stream.try_read(&mut pkt.payload) {
+                match stream.try_read(&mut buf) {
                     Ok(0) => break,
                     Ok(n) => {
                         println!("read {} bytes", n);
@@ -56,8 +46,12 @@ async fn handle_tcp_stream(
                     }
                 }
 
-                //send the packet
-                rib_tx.send(pkt).await;
+                proc_gdp_packet(buf,  // packet
+                    rib_tx,  //used to send packet to rib
+                    channel_tx, // used to send GDPChannel to rib
+                    &m_tx //the sending handle of this connection
+                );
+
             },
 
             // new data to send to TCP!
