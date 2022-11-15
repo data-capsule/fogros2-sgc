@@ -9,10 +9,14 @@ use crate::structs::{GdpAction, GDPPacket, GDPChannel};
 use tokio::net::{TcpListener, TcpStream};
 use std::io;
 
-async fn process(stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>) {
+async fn process(stream: TcpStream, 
+    rib_tx: &Sender<GDPPacket>, 
+    channel_tx: &Sender<GDPChannel>) {
     // ...
     println!("got packets!!");
-    let (m_tx, mut m_rx) = mpsc::channel(32);
+    let (m_tx, 
+        mut m_rx) 
+        = mpsc::channel(32);
     // TODO: placeholder, later replace with packet parsing 
     let mut placeholder_sent = false;
 
@@ -24,12 +28,13 @@ async fn process(stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sen
         // being stored in the async task.
         let mut pkt = GDPPacket{
             action: GdpAction::Noop,
-            packet: [0; 2048],
+            gdpname: [0; 4],
+            payload: [0; 2048],
         };
 
         // Try to read data, this may still fail with `WouldBlock`
         // if the readiness event is a false positive.
-        match stream.try_read(&mut pkt.packet) {
+        match stream.try_read(&mut pkt.payload) {
             Ok(0) => break,
             Ok(n) => {
                 println!("read {} bytes", n);
@@ -63,7 +68,9 @@ async fn process(stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sen
 
 /// listen at @param address and process on tcp accept()
 ///     rib_tx: channel that send GDPPacket to rib
-pub async fn tcp_listener(msg: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>)  {
+pub async fn tcp_listener(msg: &'static str, 
+            rib_tx: Sender<GDPPacket>, 
+            channel_tx: Sender<GDPChannel>)  {
     let listener = TcpListener::bind(msg).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();

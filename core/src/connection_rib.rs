@@ -10,7 +10,9 @@ use std::collections::HashMap;
 ///     hash table <gdp_name, send_tx>
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
-pub async fn connection_router(mut rib_rx: Receiver<GDPPacket>, mut channel_rx: Receiver<GDPChannel>)  {
+pub async fn connection_router(
+    mut rib_rx: Receiver<GDPPacket>, 
+    mut channel_rx: Receiver<GDPChannel>)  {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let receive_handle = tokio::spawn(async move {

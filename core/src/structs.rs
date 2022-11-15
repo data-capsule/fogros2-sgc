@@ -64,7 +64,8 @@ impl From<u16be> for u16 {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct GDPPacket {
     pub action: GdpAction, 
-    pub packet: [u8; 2048],
+    pub gdpname: [u8; 4], //256 bit destination
+    pub payload: [u8; 2048],
 }
 
 impl fmt::Display for GDPPacket {
@@ -74,7 +75,10 @@ impl fmt::Display for GDPPacket {
         // stream: `f`. Returns `fmt::Result` which indicates whether the
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
-        write!(f, "{:?}", std::str::from_utf8(&self.packet).expect("parsing failure").trim_matches(char::from(0)))
+        write!(f, "{:?}: {:?}", 
+                self.gdpname, 
+                std::str::from_utf8(&self.payload)
+                .expect("parsing failure").trim_matches(char::from(0)))
     }
 }
 
