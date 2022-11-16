@@ -87,8 +87,6 @@ pub async fn tcp_listener(
         let channel_tx = channel_tx.clone();
 
         // Process each socket concurrently.
-        tokio::spawn(async move { 
-            handle_tcp_stream(socket, &rib_tx, &channel_tx).await 
-        });
+        tokio::spawn(async move { handle_tcp_stream(socket, &rib_tx, &channel_tx).await });
     }
 }

@@ -28,9 +28,9 @@ async fn router_async_loop() {
     ));
 
     let dtls_sender_handle =
-         tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
+        tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
     //let dtls_sender_handle = tokio::spawn(dtls_test_server(dtls_addr));
-    
+
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
     future::join_all([tcp_sender_handle, rib_handle, dtls_sender_handle]).await;

@@ -1,9 +1,8 @@
-
-/// The code is vendored and adapted from 
+/// The code is vendored and adapted from
 /// https://github.com/SajjadPourali/udp-stream
 /// udp-stream == 0.3.0
-/// 
-/// 
+///
+///
 use std::{
     collections::HashMap,
     io::{self},
@@ -241,9 +240,7 @@ impl UdpStream {
 
 impl AsyncRead for UdpStream {
     fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut Context,
-        buf: &mut ReadBuf,
+        self: Pin<&mut Self>, cx: &mut Context, buf: &mut ReadBuf,
     ) -> Poll<io::Result<()>> {
         let mut socket = match (&self.receiver).lock() {
             Ok(socket) => socket,

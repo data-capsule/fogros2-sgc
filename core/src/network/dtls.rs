@@ -1,6 +1,6 @@
+use crate::network::udpstream::{UdpListener, UdpStream};
 use crate::pipeline::proc_gdp_packet;
 use std::{net::SocketAddr, pin::Pin, str::FromStr, time::Duration};
-use crate::network::udpstream::{UdpListener, UdpStream};
 
 use openssl::{
     pkey::PKey,
@@ -39,29 +39,28 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
 ///         incoming dtls packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
 async fn handle_dtls_stream(
-    socket: UdpStream, acceptor: SslContext, 
-    rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
-)
-{
+    socket: UdpStream, acceptor: SslContext, rib_tx: &Sender<GDPPacket>,
+    channel_tx: &Sender<GDPChannel>,
+) {
     let (m_tx, mut m_rx) = mpsc::channel(32);
     let ssl = Ssl::new(&acceptor).unwrap();
     let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
     Pin::new(&mut stream).accept().await.unwrap();
-    
+
     loop {
-        let mut buf = [0u8; UDP_BUFFER_SIZE]; //vec![0u8; UDP_BUFFER_SIZE]; 
-        // TODO: 
-        // Wait for the UDP socket to be readable
-        // or new data to be sent
+        let mut buf = [0u8; UDP_BUFFER_SIZE]; //vec![0u8; UDP_BUFFER_SIZE];
+                                              // TODO:
+                                              // Wait for the UDP socket to be readable
+                                              // or new data to be sent
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
                 let packet:&GDPPacket = &pkt_to_forward;
                 stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
             }
-            // _ = do_stuff_async() 
-            // async read is cancellation safe 
+            // _ = do_stuff_async()
+            // async read is cancellation safe
             n = stream.read(&mut buf[..]) => {
-                // NOTE: if we want real time system bound 
+                // NOTE: if we want real time system bound
                 // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
                 proc_gdp_packet(buf.to_vec(),  // packet
                     rib_tx,  //used to send packet to rib
@@ -70,10 +69,8 @@ async fn handle_dtls_stream(
                 ).await;
             },
         }
-        
     }
 }
-
 
 pub async fn dtls_listener(
     addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
@@ -87,15 +84,16 @@ pub async fn dtls_listener(
         let rib_tx = rib_tx.clone();
         let channel_tx = channel_tx.clone();
         let acceptor = acceptor.clone();
-        tokio::spawn(async move {
-            handle_dtls_stream(socket, acceptor, &rib_tx, &channel_tx).await 
-        });
+        tokio::spawn(
+            async move { handle_dtls_stream(socket, acceptor, &rib_tx, &channel_tx).await },
+        );
     }
 }
 
-
-pub async fn dtls_test_server( addr: &'static str){
-    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap()).await.unwrap();
+pub async fn dtls_test_server(addr: &'static str) {
+    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap())
+        .await
+        .unwrap();
     let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
@@ -127,14 +125,12 @@ pub async fn dtls_test_server( addr: &'static str){
                 //         stream.write_all(&buf[0..n]).await.unwrap();
                 //     }
                 // }
-                
+
                 stream.write_all(&buf[0..n]).await.unwrap();
             }
         });
     }
 }
-
-
 
 #[tokio::main]
 pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext> {
@@ -152,17 +148,14 @@ pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext>
     let (mut rd, mut wr) = tokio::io::split(stream);
 
     // read: separate thread
-    let dtls_sender_handle =
-            tokio::spawn(async move {
-                loop{
-                    let mut buf = vec![0u8; 1024];
-                    let n = rd.read(&mut buf).await.unwrap();
-                    print!("-> {}", String::from_utf8_lossy(&buf[..n]));
-                }
-            }
-    );
+    let dtls_sender_handle = tokio::spawn(async move {
+        loop {
+            let mut buf = vec![0u8; 1024];
+            let n = rd.read(&mut buf).await.unwrap();
+            print!("-> {}", String::from_utf8_lossy(&buf[..n]));
+        }
+    });
 
-    
     loop {
         let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer)?;
