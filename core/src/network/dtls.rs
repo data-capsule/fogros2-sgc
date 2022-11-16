@@ -50,22 +50,17 @@ async fn handle_dtls_stream(
     
     loop {
         let mut buf = [0u8; UDP_BUFFER_SIZE]; //vec![0u8; UDP_BUFFER_SIZE]; 
-        println!("1 {:?}", buf);
         // TODO: 
         // Wait for the UDP socket to be readable
         // or new data to be sent
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
-                println!("2");
                 let packet:&GDPPacket = &pkt_to_forward;
-                println!("{} {:?}",packet.payload.len(), packet.payload);
                 stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
-                println!("3");
             }
             // _ = do_stuff_async() 
             // async read is cancellation safe 
             n = stream.read(&mut buf[..]) => {
-                println!("4 {:?} {:?}", n, buf);
                 // NOTE: if we want real time system bound 
                 // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
                 proc_gdp_packet(buf.to_vec(),  // packet
@@ -73,7 +68,6 @@ async fn handle_dtls_stream(
                     channel_tx, // used to send GDPChannel to rib
                     &m_tx //the sending handle of this connection
                 ).await;
-                println!("5");
             },
         }
         
@@ -121,6 +115,19 @@ pub async fn dtls_test_server( addr: &'static str){
                         return;
                     }
                 };
+                // tokio::select! {
+                //     n = stream.read(&mut buf[..]) => {
+                //         let n = match n
+                //         {
+                //             Ok(len) => len,
+                //             Err(_) => {
+                //                 return;
+                //             }
+                //         };
+                //         stream.write_all(&buf[0..n]).await.unwrap();
+                //     }
+                // }
+                
                 stream.write_all(&buf[0..n]).await.unwrap();
             }
         });
@@ -155,8 +162,9 @@ pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext>
             }
     );
 
-    let mut buffer = String::new();
+    
     loop {
+        let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer)?;
         wr.write_all(buffer.as_bytes()).await?;
     }

@@ -26,9 +26,10 @@ async fn router_async_loop() {
         rib_tx.clone(),
         channel_tx.clone(),
     ));
-    // let dtls_sender_handle =
-    //     tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
-    let dtls_sender_handle = tokio::spawn(dtls_test_server(dtls_addr));
+
+    let dtls_sender_handle =
+         tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
+    //let dtls_sender_handle = tokio::spawn(dtls_test_server(dtls_addr));
     
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 

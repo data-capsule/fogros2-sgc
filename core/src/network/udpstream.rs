@@ -1,8 +1,9 @@
 
-/// The code is vendored from 
+/// The code is vendored and adapted from 
 /// https://github.com/SajjadPourali/udp-stream
 /// udp-stream == 0.3.0
-
+/// 
+/// 
 use std::{
     collections::HashMap,
     io::{self},
@@ -30,7 +31,7 @@ macro_rules! pin_mut {
     )* }
 }
 
-const UDP_BUFFER_SIZE: usize = 1748; // 17kb
+const UDP_BUFFER_SIZE: usize = 17480; // 17kb
                                       // const UDP_TIMEOUT: u64 = 10 * 1000; // 10sec
 const CHANNEL_LEN: usize = 100;
 
@@ -83,10 +84,7 @@ impl UdpListener {
             let socket = Arc::new(udp_socket);
             loop {
                 let mut buf = vec![0u8; UDP_BUFFER_SIZE];
-                println!("buf: {:?}", buf);
                 if let Ok((len, addr)) = socket.recv_from(&mut buf).await {
-                    println!("1size: {}", len);
-                    println!("buf: {:?}", buf);
                     for (k, (_, drop)) in streams.clone().into_iter() {
                         if let Ok(drop) = drop.try_lock() {
                             if *drop == true {
@@ -98,7 +96,6 @@ impl UdpListener {
                     match streams.get_mut(&addr) {
                         Some((child_tx, _)) => {
                             if let Err(_) = child_tx.send((buf, len)).await {
-                                println!("2size: {}", len);
                                 child_tx.closed().await;
                                 streams.remove(&addr);
                                 continue;
@@ -262,7 +259,6 @@ impl AsyncRead for UdpStream {
         pin_mut!(future);
         future.poll(cx).map(|res| match res {
             Some((inner_buf, len)) => {
-                println!("3size: {}", len);
                 buf.put_slice(&inner_buf[..len]);
                 Ok(())
             }
