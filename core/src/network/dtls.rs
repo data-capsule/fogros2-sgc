@@ -22,6 +22,7 @@ static SERVER_CERT: &'static [u8] = include_bytes!("../../resources/router.pem")
 static SERVER_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
 const SERVER_DOMAIN: &'static str = "pourali.com";
 
+/// helper function of SSL
 fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslContext> {
     let mut acceptor_builder = SslAcceptor::mozilla_intermediate(SslMethod::dtls())?;
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
@@ -30,6 +31,35 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
     let acceptor = acceptor_builder.build();
     Ok(acceptor.into_context())
 }
+
+/// handle one single session of dtls
+/// 1. init and advertise the mpsc channel to connection rib
+/// 2. select between
+///         incoming dtls packets -> receive and send to rib
+///         incomine packets from rib -> send to the tcp session
+async fn handle_dtls_stream(
+    socket: UdpStream, acceptor: SslContext, 
+    rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
+)
+{
+    let ssl = Ssl::new(&acceptor).unwrap();
+    let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
+    Pin::new(&mut stream).accept().await.unwrap();
+    let mut buf = vec![0u8; UDP_BUFFER_SIZE];
+    loop {
+        let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
+            .await
+            .unwrap() // shouldn't unwrap here after timed out
+        {
+            Ok(len) => len,
+            Err(_) => {
+                return;
+            }
+        };
+        stream.write_all(&buf[0..n]).await.unwrap();
+    }
+}
+
 
 pub async fn dtls_listener(
     addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
@@ -40,24 +70,11 @@ pub async fn dtls_listener(
     let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
+        let rib_tx = rib_tx.clone();
+        let channel_tx = channel_tx.clone();
         let acceptor = acceptor.clone();
         tokio::spawn(async move {
-            let ssl = Ssl::new(&acceptor).unwrap();
-            let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
-            Pin::new(&mut stream).accept().await.unwrap();
-            let mut buf = vec![0u8; UDP_BUFFER_SIZE];
-            loop {
-                let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
-                    .await
-                    .unwrap() // shouldn't unwrap here after timed out
-                {
-                    Ok(len) => len,
-                    Err(_) => {
-                        return;
-                    }
-                };
-                stream.write_all(&buf[0..n]).await.unwrap();
-            }
+            handle_dtls_stream(socket, acceptor, &rib_tx, &channel_tx).await 
         });
     }
 }

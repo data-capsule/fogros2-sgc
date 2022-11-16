@@ -15,7 +15,6 @@ async fn handle_tcp_stream(
     stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
 ) {
     // ...
-    println!("got packets!!");
     let (m_tx, mut m_rx) = mpsc::channel(32);
     // TODO: placeholder, later replace with packet parsing
 
@@ -88,6 +87,8 @@ pub async fn tcp_listener(
         let channel_tx = channel_tx.clone();
 
         // Process each socket concurrently.
-        tokio::spawn(async move { handle_tcp_stream(socket, &rib_tx, &channel_tx).await });
+        tokio::spawn(async move { 
+            handle_tcp_stream(socket, &rib_tx, &channel_tx).await 
+        });
     }
 }
