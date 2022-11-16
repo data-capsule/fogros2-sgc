@@ -39,26 +39,25 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
 ///         incoming dtls packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
 async fn handle_dtls_stream(
-    socket: UdpStream, acceptor: SslContext, 
-    rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
-)
-{
+    socket: UdpStream, acceptor: SslContext, rib_tx: &Sender<GDPPacket>,
+    channel_tx: &Sender<GDPChannel>,
+) {
     let (m_tx, mut m_rx) = mpsc::channel(32);
     let ssl = Ssl::new(&acceptor).unwrap();
     let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
     Pin::new(&mut stream).accept().await.unwrap();
-    
+
     loop {
-        // TODO: 
+        // TODO:
         // Question: what's the bahavior here, will it keep allocating memory?
-        let mut buf = vec![0u8; UDP_BUFFER_SIZE]; 
+        let mut buf = vec![0u8; UDP_BUFFER_SIZE];
         // Wait for the UDP socket to be readable
         // or new data to be sent
         tokio::select! {
-            // _ = do_stuff_async() 
-            // async read is cancellation safe 
+            // _ = do_stuff_async()
+            // async read is cancellation safe
             _ = stream.read(&mut buf) => {
-                // NOTE: if we want real time system bound 
+                // NOTE: if we want real time system bound
                 // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
                 proc_gdp_packet(buf,  // packet
                     rib_tx,  //used to send packet to rib
@@ -70,10 +69,8 @@ async fn handle_dtls_stream(
                 stream.write_all(&pkt_to_forward.payload).await.unwrap();
             }
         }
-        
     }
 }
-
 
 pub async fn dtls_listener(
     addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
@@ -87,9 +84,9 @@ pub async fn dtls_listener(
         let rib_tx = rib_tx.clone();
         let channel_tx = channel_tx.clone();
         let acceptor = acceptor.clone();
-        tokio::spawn(async move {
-            handle_dtls_stream(socket, acceptor, &rib_tx, &channel_tx).await 
-        });
+        tokio::spawn(
+            async move { handle_dtls_stream(socket, acceptor, &rib_tx, &channel_tx).await },
+        );
     }
 }
 
