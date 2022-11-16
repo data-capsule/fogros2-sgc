@@ -1,9 +1,6 @@
 use anyhow::{anyhow, Result};
-use derivative::Derivative;
 use std::fmt;
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-
 pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
 
 pub type GdpName = [u8; 32];
@@ -11,13 +8,12 @@ pub type GdpName = [u8; 32];
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, EnumIter)]
 pub enum GdpAction {
     Noop = 0,
-    Put = 1,
-    Get = 2,
+    Forward = 1,
+    Advertise = 2,
     RibGet = 3,
     RibReply = 4,
-    Forward = 5,
-    Nack = 6,
-    Control = 7,
+    Nack = 5,
+    Control = 6,
 }
 
 impl Default for GdpAction {
@@ -32,8 +28,6 @@ impl TryFrom<u8> for GdpAction {
     fn try_from(v: u8) -> Result<Self> {
         match v {
             x if x == GdpAction::Noop as u8 => Ok(GdpAction::Noop),
-            x if x == GdpAction::Get as u8 => Ok(GdpAction::Get),
-            x if x == GdpAction::Put as u8 => Ok(GdpAction::Put),
             x if x == GdpAction::RibGet as u8 => Ok(GdpAction::RibGet),
             x if x == GdpAction::RibReply as u8 => Ok(GdpAction::RibReply),
             x if x == GdpAction::Forward as u8 => Ok(GdpAction::Forward),
@@ -69,11 +63,11 @@ impl fmt::Display for GDPName {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct GDPPacket {
     pub action: GdpAction,
     pub gdpname: GDPName,
-    pub payload: [u8; 2048],
+    pub payload: Vec<u8>,
 }
 
 impl fmt::Display for GDPPacket {

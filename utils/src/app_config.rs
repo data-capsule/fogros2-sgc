@@ -1,7 +1,7 @@
 use config::{Config, Environment};
 use lazy_static::{__Deref, lazy_static};
 use serde::{Deserialize, Serialize};
-use std::net::{IpAddr, Ipv4Addr};
+
 use std::path::Path;
 use std::sync::RwLock;
 

@@ -1,14 +1,19 @@
 #[macro_use]
 extern crate log;
 
-pub mod commands;
-pub mod connection_rib;
+// sub crates and primitives
 pub mod crypto;
 pub mod network;
-pub mod pipeline;
 pub mod protocol;
-pub mod rib;
 pub mod structs;
+// helper processing lines
+pub mod rib;
+// network processing
+pub mod connection_rib;
+pub mod pipeline;
+pub mod pipeline_pnet;
+// util
+pub mod commands;
 
 use utils::error::Result;
 

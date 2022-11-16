@@ -1,6 +1,6 @@
 ## Report a security issue
 
-The Rust-Starter project welcomes security reports and is committed to providing prompt attention to security issues. Security issues should be reported privately via [rust@omarabid.com](mailto:rust@omarabid.com). Security issues should not be reported via the public Github Issue tracker.
+The Rust-Starter project welcomes security reports and is committed to providing prompt attention to security issues. Security issues should be reported privately. Security issues should not be reported via the public Github Issue tracker.
 
 ## Vulnerability coordination
 
@@ -8,4 +8,4 @@ Remediation of security vulnerabilities is prioritized by the project team. The 
 
 ## Security advisories
 
-The project team is committed to transparency in the security issue disclosure process. We announce security issues via [project Github Release notes](https://github.com/omarabid/rust-starter/releases).
+The project team is committed to transparency in the security issue disclosure process. 
