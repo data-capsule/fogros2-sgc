@@ -4,7 +4,7 @@ use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
 
-const UDP_BUFFER_SIZE: usize = 17480; // 17kb TODO: make it formal
+const UDP_BUFFER_SIZE: usize = 174; // 17480 17kb TODO: make it formal
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib

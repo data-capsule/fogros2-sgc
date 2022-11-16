@@ -13,3 +13,13 @@
 ```
 cargo build && sudo ./target/debug/gdp-router router
 ```
+
+
+### testcases 
+ADV,1,999
+FWD,1,000
+
+FWD,1,111
+FWD,1,222
+FWD,1,333
+FWD,1,444
