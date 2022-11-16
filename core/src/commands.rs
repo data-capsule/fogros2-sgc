@@ -8,7 +8,7 @@ use utils::app_config::AppConfig;
 use utils::error::Result;
 
 use crate::connection_rib::connection_router;
-use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_test_server};
+use crate::network::dtls::{dtls_listener, dtls_test_client};
 
 const dtls_addr: &'static str = "127.0.0.1:9232";
 
@@ -29,8 +29,6 @@ async fn router_async_loop() {
 
     let dtls_sender_handle =
         tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
-    //let dtls_sender_handle = tokio::spawn(dtls_test_server(dtls_addr));
-
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
     future::join_all([tcp_sender_handle, rib_handle, dtls_sender_handle]).await;
