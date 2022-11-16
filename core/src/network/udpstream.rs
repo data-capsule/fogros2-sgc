@@ -83,8 +83,9 @@ impl UdpListener {
             let socket = Arc::new(udp_socket);
             loop {
                 let mut buf = vec![0u8; UDP_BUFFER_SIZE];
+                println!("buf: {:?}", buf);
                 if let Ok((len, addr)) = socket.recv_from(&mut buf).await {
-                    println!("size: {}", len);
+                    println!("1size: {}", len);
                     println!("buf: {:?}", buf);
                     for (k, (_, drop)) in streams.clone().into_iter() {
                         if let Ok(drop) = drop.try_lock() {
@@ -97,6 +98,7 @@ impl UdpListener {
                     match streams.get_mut(&addr) {
                         Some((child_tx, _)) => {
                             if let Err(_) = child_tx.send((buf, len)).await {
+                                println!("2size: {}", len);
                                 child_tx.closed().await;
                                 streams.remove(&addr);
                                 continue;
@@ -260,7 +262,7 @@ impl AsyncRead for UdpStream {
         pin_mut!(future);
         future.poll(cx).map(|res| match res {
             Some((inner_buf, len)) => {
-                println!("size: {}", len);
+                println!("3size: {}", len);
                 buf.put_slice(&inner_buf[..len]);
                 Ok(())
             }

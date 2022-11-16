@@ -99,6 +99,36 @@ pub async fn dtls_listener(
     }
 }
 
+
+pub async fn dtls_test_server( addr: &'static str){
+    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap()).await.unwrap();
+    let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
+    loop {
+        let (socket, _) = listener.accept().await.unwrap();
+        let acceptor = acceptor.clone();
+        tokio::spawn(async move {
+            let ssl = Ssl::new(&acceptor).unwrap();
+            let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
+            Pin::new(&mut stream).accept().await.unwrap();
+            let mut buf = vec![0u8; UDP_BUFFER_SIZE];
+            loop {
+                let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
+                    .await
+                    .unwrap()
+                {
+                    Ok(len) => len,
+                    Err(_) => {
+                        return;
+                    }
+                };
+                stream.write_all(&buf[0..n]).await.unwrap();
+            }
+        });
+    }
+}
+
+
+
 #[tokio::main]
 pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext> {
     let stream = UdpStream::connect(SocketAddr::from_str(addr).unwrap()).await?;
