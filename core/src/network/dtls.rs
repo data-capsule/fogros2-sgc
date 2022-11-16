@@ -1,3 +1,4 @@
+use crate::pipeline::proc_gdp_packet;
 use std::{net::SocketAddr, pin::Pin, str::FromStr, time::Duration};
 use udp_stream::{UdpListener, UdpStream};
 
@@ -42,21 +43,34 @@ async fn handle_dtls_stream(
     rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
 )
 {
+    let (m_tx, mut m_rx) = mpsc::channel(32);
     let ssl = Ssl::new(&acceptor).unwrap();
     let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
     Pin::new(&mut stream).accept().await.unwrap();
-    let mut buf = vec![0u8; UDP_BUFFER_SIZE];
+    
     loop {
-        let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
-            .await
-            .unwrap() // shouldn't unwrap here after timed out
-        {
-            Ok(len) => len,
-            Err(_) => {
-                return;
+        // TODO: 
+        // Question: what's the bahavior here, will it keep allocating memory?
+        let mut buf = vec![0u8; UDP_BUFFER_SIZE]; 
+        // Wait for the UDP socket to be readable
+        // or new data to be sent
+        tokio::select! {
+            // _ = do_stuff_async() 
+            // async read is cancellation safe 
+            _ = stream.read(&mut buf) => {
+                // NOTE: if we want real time system bound 
+                // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
+                proc_gdp_packet(buf,  // packet
+                    rib_tx,  //used to send packet to rib
+                    channel_tx, // used to send GDPChannel to rib
+                    &m_tx //the sending handle of this connection
+                ).await;
+            },
+            Some(pkt_to_forward) = m_rx.recv() => {
+                stream.write_all(&pkt_to_forward.payload).await.unwrap();
             }
-        };
-        stream.write_all(&buf[0..n]).await.unwrap();
+        }
+        
     }
 }
 
