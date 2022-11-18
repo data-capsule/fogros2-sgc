@@ -60,3 +60,4 @@ We should expect messages appearing in dtls client's terminal.
 
 minor 
 [ ] use app_config to config the ports and addresses 
+[ ] enhance error handling (e.g. connection is closed, packet wrong format)
