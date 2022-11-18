@@ -4,9 +4,9 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [GDP Router](#gdp-router)
-    - [How to run](#how-to-build)
-    - [testcases](#testcases)
+- [How to build](#how-to-build)
+- [Testcases](#testcases)
+- [TODOs](#todos)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
