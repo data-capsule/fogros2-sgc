@@ -6,14 +6,18 @@ use tokio::sync::mpsc::{self, Sender};
 /// this part is facilitate testing only
 
 fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
-    let received_str: Vec<&str> = std::str::from_utf8(&buffer).unwrap().split(",").collect();
+    let received_str: Vec<&str> = std::str::from_utf8(&buffer)
+        .unwrap()
+        .trim()
+        .split(",")
+        .collect();
     let m_gdp_action = match received_str[0] {
         "ADV" => GdpAction::Advertise,
         "FWD" => GdpAction::Forward,
         _ => GdpAction::Noop,
     };
 
-    let m_gdp_name = match received_str[1] {
+    let m_gdp_name = match &received_str[1][0..1] {
         "1" => GDPName([1, 1, 1, 1]),
         "2" => GDPName([2, 2, 2, 2]),
         _ => GDPName([0, 0, 0, 0]),

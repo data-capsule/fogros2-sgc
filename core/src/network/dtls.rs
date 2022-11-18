@@ -54,6 +54,10 @@ async fn handle_dtls_stream(
         // Wait for the UDP socket to be readable
         // or new data to be sent
         tokio::select! {
+            Some(pkt_to_forward) = m_rx.recv() => {
+                let packet: &GDPPacket = &pkt_to_forward;
+                stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
+            }
             // _ = do_stuff_async()
             // async read is cancellation safe
             _ = stream.read(&mut buf) => {

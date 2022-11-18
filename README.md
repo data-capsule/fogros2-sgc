@@ -29,14 +29,14 @@ $ cargo run router
 $ cargo run client
 
 # (terminal C) run tcp client
-$ nc localhost 9232
+$ nc localhost 9997
 ```
 
 Then we can use the following sample test cases
 ```
 # (dtls client) advertise itself with name 1
 ADV,1
-FWD,1,000
+FWD,1,000 // this sends itself a message
 
 # (tcp client) send message to name 1
 FWD,1,111
