@@ -49,15 +49,15 @@ We should expect messages appearing in dtls client's terminal.
 
 
 ### TODOs
-[x] tcp test interface
-[x] dlts 
-[x] connection RIB 
-[ ] an actual future based RIB 
-[ ] zero copy multicast (can we adopt the design from pnet version?)
-[ ] grpc stream
-[ ] use gdp protocol (protobuf or just bytes?) 
-[ ] use name certificates instead of pseudo names  
+- [x] tcp test interface
+- [x] dlts 
+- [x] connection RIB 
+- [ ] an actual future based RIB 
+- [ ] zero copy multicast (can we adopt the design from pnet version?)
+- [ ] grpc stream
+- [ ] use gdp protocol (protobuf or just bytes?) 
+- [ ] use name certificates instead of pseudo names  
 
 minor 
-[ ] use app_config to config the ports and addresses 
-[ ] enhance error handling (e.g. connection is closed, packet wrong format)
+- [ ] use app_config to config the ports and addresses 
+- [ ] enhance error handling (e.g. connection is closed, packet wrong format)
