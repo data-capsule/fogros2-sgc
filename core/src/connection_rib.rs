@@ -29,7 +29,7 @@ pub async fn connection_router(
                     match coonection_rib_table.get(&pkt.gdpname) {
                         Some(routing_dst) => {
                             println!("fwd!");
-                            routing_dst.send(pkt).await;
+                            routing_dst.send(pkt).await.expect("RIB: remote connection closed");
                         }
                         None => {
                             println!("{:} is not there.", pkt.gdpname);

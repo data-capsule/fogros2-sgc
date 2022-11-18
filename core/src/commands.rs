@@ -1,6 +1,5 @@
 extern crate tokio;
 extern crate tokio_core;
-use crate::crypto::cert::*;
 use crate::network::tcp::tcp_listener;
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -10,7 +9,7 @@ use utils::error::Result;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
 
-const dtls_addr: &'static str = "127.0.0.1:9232";
+const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -28,7 +27,7 @@ async fn router_async_loop() {
     ));
 
     let dtls_sender_handle =
-        tokio::spawn(dtls_listener(dtls_addr, rib_tx.clone(), channel_tx.clone()));
+        tokio::spawn(dtls_listener(DTLS_ADDR, rib_tx.clone(), channel_tx.clone()));
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
     future::join_all([tcp_sender_handle, rib_handle, dtls_sender_handle]).await;
@@ -59,6 +58,6 @@ pub fn simulate_error() -> Result<()> {
     // Log this Error simulation
     info!("We are simulating an error");
     // test_cert();
-    dtls_test_client(dtls_addr);
+    dtls_test_client(DTLS_ADDR).expect("DLTS Client error");
     Ok(())
 }

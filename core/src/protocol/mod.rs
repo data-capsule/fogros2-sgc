@@ -1,2 +1,2 @@
-pub mod GDP_protocol;
+pub mod gdp_protocol;
 pub mod my_protocol;

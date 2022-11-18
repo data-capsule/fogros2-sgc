@@ -1,6 +1,6 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
 use crate::pipeline::proc_gdp_packet;
-use std::{net::SocketAddr, pin::Pin, str::FromStr, time::Duration};
+use std::{net::SocketAddr, pin::Pin, str::FromStr};
 
 use openssl::{
     pkey::PKey,
@@ -8,16 +8,11 @@ use openssl::{
     x509::X509,
 };
 
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    time::timeout,
-};
-
-use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use crate::structs::{GDPChannel, GDPPacket};
 use tokio::sync::mpsc::{self, Sender};
 
-const UDP_BUFFER_SIZE: usize = 174; // 17kb
-const UDP_TIMEOUT: u64 = 10000 * 1000; // 10000 sec
+const UDP_BUFFER_SIZE: usize = 4096; // 17kb
 
 static SERVER_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
 static SERVER_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
@@ -107,7 +102,7 @@ pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext>
     let (mut rd, mut wr) = tokio::io::split(stream);
 
     // read: separate thread
-    let dtls_sender_handle = tokio::spawn(async move {
+    let _dtls_sender_handle = tokio::spawn(async move {
         loop {
             let mut buf = vec![0u8; 1024];
             let n = rd.read(&mut buf).await.unwrap();

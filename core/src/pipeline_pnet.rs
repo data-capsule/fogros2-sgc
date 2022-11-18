@@ -11,7 +11,7 @@ use pnet_packet::ipv4::{checksum, MutableIpv4Packet};
 use pnet_packet::udp::MutableUdpPacket;
 use std::net::Ipv4Addr;
 
-use crate::protocol::GDP_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
+use crate::protocol::gdp_protocol::{GdpProtocolPacket, MutableGdpProtocolPacket};
 use crate::rib::RoutingInformationBase;
 use crate::structs::GdpAction;
 use utils::app_config::AppConfig;
@@ -21,7 +21,6 @@ use utils::conversion::str_to_ipv4;
 // cannot go beyond this size
 const MAX_ETH_FRAME_SIZE: usize = 1514;
 const LEFT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 69);
-const RIGHT: Ipv4Addr = Ipv4Addr::new(128, 32, 37, 41);
 
 fn handle_gdp_packet(packet: &[u8], res_gdp: &mut MutableGdpProtocolPacket) -> Option<()> {
     let gdp_protocol_packet = GdpProtocolPacket::new(packet);

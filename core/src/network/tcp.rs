@@ -1,10 +1,10 @@
 use crate::pipeline::proc_gdp_packet;
-use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
+use crate::structs::{GDPChannel, GDPPacket};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
 
-const UDP_BUFFER_SIZE: usize = 174; // 17480 17kb TODO: make it formal
+const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
@@ -53,7 +53,8 @@ async fn handle_tcp_stream(
 
             // new data to send to TCP!
             Some(pkt_to_forward) = m_rx.recv() => {
-                stream.writable().await; // okay this may have deadlock
+                stream.writable().await.expect("TCP stream is closed");
+                // okay this may have deadlock
 
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.

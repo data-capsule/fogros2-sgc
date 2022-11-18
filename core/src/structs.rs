@@ -89,6 +89,7 @@ impl fmt::Display for GDPPacket {
 }
 
 use tokio::sync::mpsc::Sender;
+#[derive(Debug, Clone)]
 pub struct GDPChannel {
     pub gdpname: GDPName,
     pub channel: Sender<GDPPacket>,

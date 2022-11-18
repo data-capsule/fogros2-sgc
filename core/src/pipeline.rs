@@ -1,5 +1,5 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use tokio::sync::mpsc::{self, Sender};
+use tokio::sync::mpsc::Sender;
 
 /// construct a gdp packet struct
 /// we may want to use protobuf later
@@ -23,7 +23,7 @@ fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
         _ => GDPName([0, 0, 0, 0]),
     };
 
-    let mut pkt = GDPPacket {
+    let pkt = GDPPacket {
         action: m_gdp_action,
         gdpname: m_gdp_name,
         payload: buffer,
@@ -59,11 +59,17 @@ pub async fn proc_gdp_packet(
                 gdpname: gdp_name,
                 channel: m_tx.clone(),
             };
-            channel_tx.send(channel).await;
+            channel_tx
+                .send(channel)
+                .await
+                .expect("channel_tx channel closed!");
         }
         GdpAction::Forward => {
             //send the packet to RIB
-            rib_tx.send(gdp_packet).await;
+            rib_tx
+                .send(gdp_packet)
+                .await
+                .expect("rib_tx channel closed!");
         }
         GdpAction::RibGet => {
             // handle rib query by responding with the RIB item
