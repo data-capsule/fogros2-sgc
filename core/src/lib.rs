@@ -17,6 +17,11 @@ pub mod commands;
 
 use utils::error::Result;
 
+pub mod gdp_proto {
+    tonic::include_proto!("gdp"); // The string specified here must match the proto package name
+}
+
+
 pub fn start() -> Result<()> {
     // does nothing
 
