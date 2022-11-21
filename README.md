@@ -56,6 +56,12 @@ FWD,1,444
 We should expect messages appearing in dtls client's terminal.
 
 
+#### grpc 
+```
+grpcurl -plaintext -import-path proto -proto gdp.proto -d '{"sender": "sender", "receiver": "receiver", "action": 1, "payload":"RldELDEsMDAw"}' '[::]:50001' gdp.Globaldataplane/gdp_forward
+```
+ceveat: convert payload to byte64 encoding (e.g. `RldELDEsMDAw` is `FWD,1,000`. A useful tool can be found [here](https://www.base64encode.org/))
+
 ### TODOs
 - [x] tcp test interface
 - [x] dlts 

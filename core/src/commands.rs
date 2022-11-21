@@ -17,7 +17,7 @@ use crate::network::grpc::GDPService;
 
 const TCP_ADDR: &'static str =  "127.0.0.1:9997";
 const DTLS_ADDR: &'static str = "127.0.0.1:9232";
-const GRPC_ADDR: &'static str = "127.0.0.1:9232";
+const GRPC_ADDR: &'static str = "0.0.0.0:50001";
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -58,7 +58,12 @@ async fn router_async_loop() {
     let grpc_server_handle = manager_handle;
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
-    future::join_all([tcp_sender_handle, rib_handle, dtls_sender_handle]).await;
+    future::join_all([
+        tcp_sender_handle, 
+        rib_handle, 
+        dtls_sender_handle,
+        grpc_server_handle
+        ]).await;
     //join!(foo_sender_handle, bar_sender_handle, receive_handle);
 }
 
