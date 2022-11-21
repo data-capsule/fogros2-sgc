@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package psl;
+// This file is copied from PSL project for test and compatibility reason 
+
+service Paranoidlambda {
+    // execution rpc accepts ExecuteRequest and returns ExecuteReply
+    rpc psl_execute (ExecuteRequest) returns (ExecuteReply);
+    // status update rpc 
+    // TODO: contains a lot of placeholders 
+    rpc psl_update (StatusUpdate) returns (ExecuteReply);
+}
+
+
+message ExecuteRequest {
+    // Request message contains the name to be greeted
+    string name = 1;
+    // The type of loader (e.g. iwasm) 
+    string loader = 2;       
+    // The run option of the program, i.e. argv
+    string run_option = 3; 
+    // The program (in datacapsule key)
+    string function = 4; 
+    // The data (in datacapsule key)
+    string data = 5; 
+    // Executed asyn-ly or wait until function finish
+    //  sync: result returns with grpc response 
+    //  async: grpc returns a key where the result is stored?
+    bool sync_exec = 6; 
+}
+
+message ExecuteReply {
+    // Reply contains the greeting message
+    string message = 1;
+}
+
+
+message StatusUpdate {
+    // placeholder, some sender ID? 
+    string sender = 1;
+    // placebolder, some updates?
+    string status = 2; 
+}
