@@ -17,6 +17,14 @@
 cargo build
 ```
 
+
+#### (Optional) Install grpcurl
+`grpcurl` helps with testing the grpc interface. Run 
+```
+curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.8.7/grpcurl_1.8.7_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
+```
+to install. 
+
 ### Testcases 
 
 We can come up with the following test case: 

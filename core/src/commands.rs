@@ -8,8 +8,16 @@ use utils::error::Result;
 
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
+use tonic::{transport::Server, Request, Response, Status};
 
+use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
+use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
+use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
+use crate::network::grpc::GDPService;
+
+const TCP_ADDR: &'static str =  "127.0.0.1:9997";
 const DTLS_ADDR: &'static str = "127.0.0.1:9232";
+const GRPC_ADDR: &'static str = "127.0.0.1:9232";
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -19,15 +27,35 @@ async fn router_async_loop() {
     let (rib_tx, rib_rx) = mpsc::channel(32);
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
     let (channel_tx, channel_rx) = mpsc::channel(32);
+    // stat_tx <GdpUpdate proto>: any status update from other routers
+    let (stat_tx, stat_rx) = mpsc::channel(32);
 
     let tcp_sender_handle = tokio::spawn(tcp_listener(
-        "127.0.0.1:9997",
+        TCP_ADDR,
         rib_tx.clone(),
         channel_tx.clone(),
     ));
 
-    let dtls_sender_handle =
-        tokio::spawn(dtls_listener(DTLS_ADDR, rib_tx.clone(), channel_tx.clone()));
+    let dtls_sender_handle = tokio::spawn(dtls_listener(
+        DTLS_ADDR, 
+        rib_tx.clone(), 
+        channel_tx.clone()));
+    
+    let psl_service = GDPService {
+        rib_tx: rib_tx,
+        status_tx: stat_tx,
+    };
+    
+    // grpc 
+    let serve = Server::builder()
+    .add_service(GlobaldataplaneServer::new(psl_service))
+    .serve(GRPC_ADDR.parse().unwrap());
+    let manager_handle = tokio::spawn(async move {
+        if let Err(e) = serve.await {
+            eprintln!("Error = {:?}", e);
+        }
+    });
+    let grpc_server_handle = manager_handle;
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
     future::join_all([tcp_sender_handle, rib_handle, dtls_sender_handle]).await;
