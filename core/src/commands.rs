@@ -51,7 +51,11 @@ async fn router_async_loop() {
         }
     });
     let grpc_server_handle = manager_handle;
-    let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
+    let rib_handle = tokio::spawn(connection_router(
+        rib_rx, // receive packets to forward 
+        stat_rx, // recevie control place info, e.g. routing 
+        channel_rx // receive channel information for connection rib
+    ));
 
     future::join_all([
         tcp_sender_handle,

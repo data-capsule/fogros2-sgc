@@ -1,6 +1,7 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
 use tokio::sync::mpsc::{Receiver, Sender};
+use crate::gdp_proto::GdpUpdate;
 
 /// receive, check, and route GDP messages
 ///
@@ -10,7 +11,9 @@ use tokio::sync::mpsc::{Receiver, Sender};
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_router(
-    mut rib_rx: Receiver<GDPPacket>, mut channel_rx: Receiver<GDPChannel>,
+    mut rib_rx: Receiver<GDPPacket>, 
+    mut stat_rs: Receiver<GdpUpdate>, 
+    mut channel_rx: Receiver<GDPChannel>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
@@ -37,7 +40,7 @@ pub async fn connection_router(
                     }
                 }
 
-                // rib advertisement received
+                // connection rib advertisement received
                 Some(channel) = channel_rx.recv() => {
                     println!("channel registry received {:}", channel.gdpname);
                     coonection_rib_table.insert(
@@ -45,6 +48,10 @@ pub async fn connection_router(
                         channel.channel
                     );
                 },
+
+                Some(update) = stat_rs.recv() => {
+                    
+                }
             }
         }
     });

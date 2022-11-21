@@ -85,7 +85,10 @@ pub struct GDPPacket {
 
 impl Packet for GDPPacket {
     fn get_proto(&self) -> Option<&GdpPacket> {
-        None
+        match &self.proto {
+            Some(p) => Some(p),
+            None => None, //TODO
+        }
     }
     fn get_byte_payload(&self) -> Option<&Vec<u8>> {
         match &self.payload {
