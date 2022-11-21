@@ -1,8 +1,5 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::{
-    proc_gdp_packet,
-    populate_gdp_struct_from_bytes
-};
+use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
 
 use openssl::{
@@ -11,8 +8,8 @@ use openssl::{
     x509::X509,
 };
 
+use crate::structs::{GDPChannel, GDPPacket, Packet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use crate::structs::{GDPChannel, Packet, GDPPacket};
 use tokio::sync::mpsc::{self, Sender};
 
 const UDP_BUFFER_SIZE: usize = 4096; // 17kb
@@ -55,7 +52,7 @@ async fn handle_dtls_stream(
             Some(pkt_to_forward) = m_rx.recv() => {
                 let pkt_to_forward: GDPPacket = pkt_to_forward;
                 // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
-                let payload = pkt_to_forward.get_byte_payload().unwrap(); 
+                let payload = pkt_to_forward.get_byte_payload().unwrap();
                 stream.write_all(&payload[..payload.len()]).await.unwrap();
             }
             // _ = do_stuff_async()

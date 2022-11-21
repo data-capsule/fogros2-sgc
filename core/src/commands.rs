@@ -15,7 +15,7 @@ use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneS
 use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
 use crate::network::grpc::GDPService;
 
-const TCP_ADDR: &'static str =  "127.0.0.1:9997";
+const TCP_ADDR: &'static str = "127.0.0.1:9997";
 const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 const GRPC_ADDR: &'static str = "0.0.0.0:50001";
 
@@ -30,26 +30,21 @@ async fn router_async_loop() {
     // stat_tx <GdpUpdate proto>: any status update from other routers
     let (stat_tx, stat_rx) = mpsc::channel(32);
 
-    let tcp_sender_handle = tokio::spawn(tcp_listener(
-        TCP_ADDR,
-        rib_tx.clone(),
-        channel_tx.clone(),
-    ));
+    let tcp_sender_handle =
+        tokio::spawn(tcp_listener(TCP_ADDR, rib_tx.clone(), channel_tx.clone()));
 
-    let dtls_sender_handle = tokio::spawn(dtls_listener(
-        DTLS_ADDR, 
-        rib_tx.clone(), 
-        channel_tx.clone()));
-    
+    let dtls_sender_handle =
+        tokio::spawn(dtls_listener(DTLS_ADDR, rib_tx.clone(), channel_tx.clone()));
+
     let psl_service = GDPService {
         rib_tx: rib_tx,
         status_tx: stat_tx,
     };
-    
-    // grpc 
+
+    // grpc
     let serve = Server::builder()
-    .add_service(GlobaldataplaneServer::new(psl_service))
-    .serve(GRPC_ADDR.parse().unwrap());
+        .add_service(GlobaldataplaneServer::new(psl_service))
+        .serve(GRPC_ADDR.parse().unwrap());
     let manager_handle = tokio::spawn(async move {
         if let Err(e) = serve.await {
             eprintln!("Error = {:?}", e);
@@ -59,11 +54,12 @@ async fn router_async_loop() {
     let rib_handle = tokio::spawn(connection_router(rib_rx, channel_rx));
 
     future::join_all([
-        tcp_sender_handle, 
-        rib_handle, 
+        tcp_sender_handle,
+        rib_handle,
         dtls_sender_handle,
-        grpc_server_handle
-        ]).await;
+        grpc_server_handle,
+    ])
+    .await;
     //join!(foo_sender_handle, bar_sender_handle, receive_handle);
 }
 

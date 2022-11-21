@@ -27,24 +27,22 @@ pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
         action: m_gdp_action,
         gdpname: m_gdp_name,
         payload: Some(buffer),
-        proto: None, 
+        proto: None,
     }
 }
 
 use crate::gdp_proto::GdpPacket;
 
-pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket{
+pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
     // GDPPacket {
     //     action: GdpAction::try_from(proto.action as u8).unwrap(),
     //     gdpname: proto.receiver,
     //     payload: Some(buffer),
-    //     proto: None, 
+    //     proto: None,
     // }
 
     // TODO: currently, populate directly from payload as placeholder
-    populate_gdp_struct_from_bytes(
-        proto.payload
-    )
+    populate_gdp_struct_from_bytes(proto.payload)
 }
 
 /// parses the processsing received GDP packets

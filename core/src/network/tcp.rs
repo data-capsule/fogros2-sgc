@@ -1,5 +1,5 @@
-use crate::pipeline::{proc_gdp_packet, populate_gdp_struct_from_bytes};
-use crate::structs::{GDPChannel, Packet, GDPPacket};
+use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
+use crate::structs::{GDPChannel, GDPPacket, Packet};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
@@ -55,9 +55,9 @@ async fn handle_tcp_stream(
             Some(pkt_to_forward) = m_rx.recv() => {
                 // okay this may have deadlock
                 stream.writable().await.expect("TCP stream is closed");
-                
 
-                let payload = pkt_to_forward.get_byte_payload().unwrap(); 
+
+                let payload = pkt_to_forward.get_byte_payload().unwrap();
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
                 match stream.try_write(&payload) {

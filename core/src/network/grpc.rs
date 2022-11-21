@@ -4,21 +4,21 @@ use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
 use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
 use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
 use crate::pipeline::populate_gdp_struct_from_proto;
+use crate::structs::GDPPacket;
 use futures::future;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::task::JoinHandle;
 use tonic::transport::Error;
 use tonic::{transport::Server, Request, Response, Status};
-use crate::structs::GDPPacket;
 
 #[derive(Debug)]
 pub struct GDPService {
     // send GDP packet to connection RIB
-    // NOTE: this is not the gdp packet in protobuf 
-    // it is the gdp packet in struct  
+    // NOTE: this is not the gdp packet in protobuf
+    // it is the gdp packet in struct
     // (shall we rename it?)
     pub rib_tx: Sender<GDPPacket>,
-    // the control data 
+    // the control data
     pub status_tx: Sender<GdpUpdate>,
 }
 
@@ -34,7 +34,7 @@ impl Globaldataplane for GDPService {
 
         self.rib_tx.send(packet).await;
 
-        // TODO: a more meaningful ack? 
+        // TODO: a more meaningful ack?
         let forward_response = "ACK";
         println!("{}", forward_response);
 
@@ -67,7 +67,6 @@ impl Globaldataplane for GDPService {
     }
 }
 
-
 pub async fn forward_execute_request(msg: GdpPacket, addr: String) {
     // dispatch the task async-ly
     tokio::spawn(async move {
@@ -92,8 +91,7 @@ pub async fn forward_status(msg: GdpUpdate, addr: String) {
     });
 }
 
-
-/// synchronously send update to an address 
+/// synchronously send update to an address
 /// typically used when the switch is initialized
 #[tokio::main]
 pub async fn forward_status_sync(msg: GdpUpdate, addr: String) {
