@@ -15,9 +15,11 @@ message GdpPacket {
     string sender = 1;
     // 256 bit name of the receiver
     string receiver = 2;
+    // gdp action
+    uint32 action = 3; 
     // payload
     // TODO: later payload should be bytes 
-    string payload = 3; 
+    bytes payload = 4; 
 }
 
 message GdpResponse {

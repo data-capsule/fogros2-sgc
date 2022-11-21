@@ -38,6 +38,7 @@ impl TryFrom<u8> for GdpAction {
     }
 }
 
+
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(C, packed)]
@@ -63,12 +64,39 @@ impl fmt::Display for GDPName {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+use crate::gdp_proto::{GdpPacket};
+pub(crate) trait Packet {
+    /// get protobuf object of the packet
+    fn get_proto(&self) -> Option<&GdpPacket>;
+    /// get serialized byte array of the packet
+    fn get_byte_payload(&self) -> Option<&Vec<u8>>; 
+}
+
+
+#[derive(Debug, PartialEq,  Clone)]
 pub struct GDPPacket {
     pub action: GdpAction,
     pub gdpname: GDPName,
-    pub payload: Vec<u8>,
+    // the payload can be either (both)
+    // Vec u8 bytes or protobuf 
+    // converting back and forth between proto and u8 is expensive
+    // preferably forward directly without conversion
+    pub payload: Option<Vec<u8>>,
+    pub proto: Option<GdpPacket>
 }
+
+impl Packet for GDPPacket{
+    fn get_proto(&self) -> Option<&GdpPacket>{
+        None
+    }
+    fn get_byte_payload(&self) -> Option<&Vec<u8>>{
+        match &self.payload {
+            Some(p) => Some(p), 
+            None => None //TODO
+        }
+    }
+}
+
 
 impl fmt::Display for GDPPacket {
     // This trait requires `fmt` with this exact signature.
@@ -77,14 +105,24 @@ impl fmt::Display for GDPPacket {
         // stream: `f`. Returns `fmt::Result` which indicates whether the
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
-        write!(
-            f,
-            "{:?}: {:?}",
-            self.gdpname,
-            std::str::from_utf8(&self.payload)
-                .expect("parsing failure")
-                .trim_matches(char::from(0))
-        )
+        if let Some(payload) = &self.payload {
+            write!(
+                f,
+                "{:?}: {:?}",
+                self.gdpname,
+                std::str::from_utf8(&payload)
+                    .expect("parsing failure")
+                    .trim_matches(char::from(0))
+            )
+        } else if let Some(payload) = &self.proto {
+            write!(
+                f,
+                "{:?}: {:?}",
+                self.gdpname, payload
+            )
+        } else {
+            write!(f, "{:?}: packet do not exist", self.gdpname)
+        }
     }
 }
 

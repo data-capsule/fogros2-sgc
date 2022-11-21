@@ -1,5 +1,8 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::proc_gdp_packet;
+use crate::pipeline::{
+    proc_gdp_packet,
+    populate_gdp_struct_from_bytes
+};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
 
 use openssl::{
@@ -9,7 +12,7 @@ use openssl::{
 };
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use crate::structs::{GDPChannel, GDPPacket};
+use crate::structs::{GDPChannel, Packet, GDPPacket};
 use tokio::sync::mpsc::{self, Sender};
 
 const UDP_BUFFER_SIZE: usize = 4096; // 17kb
@@ -50,15 +53,18 @@ async fn handle_dtls_stream(
         // or new data to be sent
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
-                let packet: &GDPPacket = &pkt_to_forward;
-                stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
+                let pkt_to_forward: GDPPacket = pkt_to_forward;
+                // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
+                let payload = pkt_to_forward.get_byte_payload().unwrap(); 
+                stream.write_all(&payload[..payload.len()]).await.unwrap();
             }
             // _ = do_stuff_async()
             // async read is cancellation safe
             _ = stream.read(&mut buf) => {
                 // NOTE: if we want real time system bound
                 // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
-                proc_gdp_packet(buf.to_vec(),  // packet
+                let pkt = populate_gdp_struct_from_bytes(buf.to_vec());
+                proc_gdp_packet(pkt,  // packet
                     rib_tx,  //used to send packet to rib
                     channel_tx, // used to send GDPChannel to rib
                     &m_tx //the sending handle of this connection

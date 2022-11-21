@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
 use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
 use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
+use crate::pipeline::populate_gdp_struct_from_proto;
 use futures::future;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::task::JoinHandle;
@@ -29,7 +30,9 @@ impl Globaldataplane for GDPService {
         println!("Got a request: {:?}", request);
         let request_body = request.into_inner();
 
-        self.rib_tx.send(request_body).await;
+        let packet = populate_gdp_struct_from_proto(request_body);
+
+        self.rib_tx.send(packet).await;
 
         // TODO: a more meaningful ack? 
         let forward_response = "ACK";
