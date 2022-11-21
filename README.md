@@ -5,7 +5,9 @@
 **Table of Contents**
 
 - [How to build](#how-to-build)
+  - [(Optional) Install grpcurl](#optional-install-grpcurl)
 - [Testcases](#testcases)
+  - [grpc](#grpc)
 - [TODOs](#todos)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
