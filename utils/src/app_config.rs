@@ -24,10 +24,10 @@ pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
     pub channel_size: usize,
-    pub tcp_port: String, 
-    pub dtls_port: String, 
-    pub grpc_port: String, 
-    pub default_gateway: String, 
+    pub tcp_port: String,
+    pub dtls_port: String,
+    pub grpc_port: String,
+    pub default_gateway: String,
 }
 
 impl AppConfig {

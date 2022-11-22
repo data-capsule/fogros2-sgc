@@ -21,7 +21,6 @@ fn verify_get() {
 
     // Check value with get
     assert_eq!(AppConfig::get::<bool>("debug").unwrap(), false);
-
 }
 
 #[test]
@@ -35,5 +34,4 @@ fn verify_set() {
 
     // Fetch a new instance of Config
     let config = AppConfig::fetch().unwrap();
-
 }

@@ -26,9 +26,9 @@ async fn router_async_loop() {
     let config = AppConfig::fetch().expect("App config unable to load");
     println!("{:#?}", config);
 
-    // initialize the address binding 
+    // initialize the address binding
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
-    let tcp_bind_addr = format!("{}:{}", all_addr , config.tcp_port);
+    let tcp_bind_addr = format!("{}:{}", all_addr, config.tcp_port);
     let dtls_bind_addr = format!("{}:{}", all_addr, config.dtls_port);
     let grpc_bind_addr = format!("{}:{}", all_addr, config.grpc_port);
 
@@ -39,11 +39,17 @@ async fn router_async_loop() {
     // stat_tx <GdpUpdate proto>: any status update from other routers
     let (stat_tx, stat_rx) = mpsc::channel(config.channel_size);
 
-    let tcp_sender_handle =
-        tokio::spawn(tcp_listener(tcp_bind_addr, rib_tx.clone(), channel_tx.clone()));
+    let tcp_sender_handle = tokio::spawn(tcp_listener(
+        tcp_bind_addr,
+        rib_tx.clone(),
+        channel_tx.clone(),
+    ));
 
-    let dtls_sender_handle =
-        tokio::spawn(dtls_listener(dtls_bind_addr, rib_tx.clone(), channel_tx.clone()));
+    let dtls_sender_handle = tokio::spawn(dtls_listener(
+        dtls_bind_addr,
+        rib_tx.clone(),
+        channel_tx.clone(),
+    ));
 
     let psl_service = GDPService {
         rib_tx: rib_tx,
@@ -61,9 +67,9 @@ async fn router_async_loop() {
     });
     let grpc_server_handle = manager_handle;
     let rib_handle = tokio::spawn(connection_router(
-        rib_rx, // receive packets to forward 
-        stat_rx, // recevie control place info, e.g. routing 
-        channel_rx // receive channel information for connection rib
+        rib_rx,     // receive packets to forward
+        stat_rx,    // recevie control place info, e.g. routing
+        channel_rx, // receive channel information for connection rib
     ));
 
     future::join_all([
@@ -101,7 +107,7 @@ pub fn simulate_error() -> Result<()> {
     println!("{:#?}", config);
     // test_cert();
     // get address from default gateway
-    let test_router_addr = format!("{}:{}", config.default_gateway , config.dtls_port);
+    let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
     dtls_test_client(test_router_addr).expect("DLTS Client error");
     Ok(())
 }

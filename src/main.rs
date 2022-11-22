@@ -4,10 +4,10 @@ use human_panic::setup_panic;
 #[cfg(debug_assertions)]
 extern crate better_panic;
 
-use utils::app_config::AppConfig;
-use utils::error::Result;
 use std::env;
 use std::fs;
+use utils::app_config::AppConfig;
+use utils::error::Result;
 
 /// The main entry point of the application.
 fn main() -> Result<()> {
@@ -34,10 +34,8 @@ fn main() -> Result<()> {
     let include_path = match env::var_os("GDP_CONFIG") {
         Some(config_file) => {
             format!("{}{:?}", "./src/resources/", config_file)
-        }, 
-        None => {
-            "./src/resources/default_config.toml".to_owned()
         }
+        None => "./src/resources/default_config.toml".to_owned(),
     };
     println!("Using config file : {}", include_path);
     let config_contents = fs::read_to_string(include_path).expect("config file not found!");

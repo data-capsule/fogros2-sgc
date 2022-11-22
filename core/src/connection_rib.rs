@@ -1,7 +1,7 @@
+use crate::gdp_proto::GdpUpdate;
 use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
 use tokio::sync::mpsc::{Receiver, Sender};
-use crate::gdp_proto::GdpUpdate;
 
 /// receive, check, and route GDP messages
 ///
@@ -11,8 +11,7 @@ use crate::gdp_proto::GdpUpdate;
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_router(
-    mut rib_rx: Receiver<GDPPacket>, 
-    mut stat_rs: Receiver<GdpUpdate>, 
+    mut rib_rx: Receiver<GDPPacket>, mut stat_rs: Receiver<GdpUpdate>,
     mut channel_rx: Receiver<GDPChannel>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
