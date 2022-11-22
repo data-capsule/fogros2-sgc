@@ -11,6 +11,8 @@ jobs:
     - name: Checkout Source
       id: checkout-source
       uses: actions/checkout@v2
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v1
     - name: Set variables
       id: vars
       run: |
@@ -29,5 +31,5 @@ jobs:
   
     - name: Build
       id: build-release
-      run: cargo build --release
+      run: cargo build 
       
