@@ -72,9 +72,9 @@ async fn handle_dtls_stream(
 }
 
 pub async fn dtls_listener(
-    addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
+    addr: String, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
 ) {
-    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap())
+    let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
         .unwrap();
     let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
@@ -90,8 +90,8 @@ pub async fn dtls_listener(
 }
 
 #[tokio::main]
-pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext> {
-    let stream = UdpStream::connect(SocketAddr::from_str(addr).unwrap()).await?;
+pub async fn dtls_test_client(addr: String) -> std::io::Result<SslContext> {
+    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap()).await?;
 
     // setup ssl
     let mut connector_builder = SslConnector::builder(SslMethod::dtls())?;

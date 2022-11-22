@@ -50,7 +50,7 @@ pub async fn connection_router(
                 },
 
                 Some(update) = stat_rs.recv() => {
-                    
+                    //TODO: update rib here
                 }
             }
         }

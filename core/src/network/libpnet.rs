@@ -12,7 +12,7 @@ pub fn pnet_proc_loop() {
     println!("Running with the following config: {:#?}", config);
 
     let iface_config = config.expect("Cannot find the config");
-    let iface_name = iface_config.net_interface.clone();
+    let iface_name = "eno0";
 
     println!("Running with interface: {}", iface_name);
     let interface_names_match = |iface: &NetworkInterface| iface.name == iface_name;

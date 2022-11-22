@@ -1,9 +1,9 @@
-debug = false
+debug = true
 log_level = "info"
-net_interface = "eno1"
-ip_local = "128.32.37.48"
-ip_gateway = "128.32.37.48"
-router_port=31415
-local_rib_path="/tmp/rib"
+channel_size = 100
+tcp_port = "9997"
+dtls_port = "9232"
+grpc_port = "50051"
+default_gateway = "localhost"
 [database]
 url = "custom database url"

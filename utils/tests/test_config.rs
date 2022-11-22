@@ -11,7 +11,6 @@ fn fetch_config() {
 
     // Check the values
     assert_eq!(config.debug, false);
-    assert_eq!(config.database.url, "custom database url");
 }
 
 #[test]
@@ -22,10 +21,7 @@ fn verify_get() {
 
     // Check value with get
     assert_eq!(AppConfig::get::<bool>("debug").unwrap(), false);
-    assert_eq!(
-        AppConfig::get::<String>("database.url").unwrap(),
-        "custom database url"
-    );
+
 }
 
 #[test]
@@ -40,6 +36,4 @@ fn verify_set() {
     // Fetch a new instance of Config
     let config = AppConfig::fetch().unwrap();
 
-    // Check value was modified
-    assert_eq!(config.database.url, "new url");
 }

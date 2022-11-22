@@ -92,7 +92,7 @@ fn handle_ipv4_packet(
             // res_ipv4.set_destination(header.get_source());
             // res_ipv4.set_source(header.get_destination());
 
-            let m_ip = str_to_ipv4(&config.ip_local);
+            let m_ip = LEFT;
             res_ipv4.set_source(m_ip);
             res_ipv4.set_checksum(checksum(&res_ipv4.to_immutable()));
 
@@ -132,7 +132,7 @@ pub fn gdp_pipeline(
         _ => return None,
     };
 
-    let m_ip = str_to_ipv4(&config.ip_local);
+    let m_ip = LEFT;
     //check ipv4 destination
     if ipv4_packet.get_destination() != m_ip {
         return None;
@@ -150,7 +150,7 @@ pub fn gdp_pipeline(
     };
 
     // check port goes to our predefined port
-    if udp.get_destination() != config.router_port {
+    if udp.get_destination() != 999 {
         return None;
     }
 
