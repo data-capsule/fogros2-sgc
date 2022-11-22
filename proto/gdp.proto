@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package gdp;
+// This file is copied from PSL project for test and compatibility reason 
+
+service Globaldataplane {
+    // let GDP to forward a packet
+    rpc gdp_forward (GdpPacket) returns (GdpResponse);
+    // TODO: status update rpc 
+    rpc gdp_update (GdpUpdate) returns (GdpResponse);
+}
+
+message GdpPacket {
+    // 256 bit name of the sender
+    string sender = 1;
+    // 256 bit name of the receiver
+    string receiver = 2;
+    // gdp action
+    uint32 action = 3; 
+    // payload
+    // TODO: later payload should be bytes 
+    bytes payload = 4; 
+}
+
+message GdpResponse {
+    // Reply contains message like ACK
+    string message = 1;
+}
+
+
+message GdpUpdate {
+    // placeholder, some sender ID? 
+    string name = 1;
+    // placebolder, some updates?
+    string status = 2; 
+    // placebolder, some address?
+    string address = 3; 
+}

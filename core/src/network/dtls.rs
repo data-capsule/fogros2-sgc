@@ -1,5 +1,5 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::proc_gdp_packet;
+use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
 
 use openssl::{
@@ -8,8 +8,8 @@ use openssl::{
     x509::X509,
 };
 
+use crate::structs::{GDPChannel, GDPPacket, Packet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use crate::structs::{GDPChannel, GDPPacket};
 use tokio::sync::mpsc::{self, Sender};
 
 const UDP_BUFFER_SIZE: usize = 4096; // 17kb
@@ -50,15 +50,18 @@ async fn handle_dtls_stream(
         // or new data to be sent
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
-                let packet: &GDPPacket = &pkt_to_forward;
-                stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
+                let pkt_to_forward: GDPPacket = pkt_to_forward;
+                // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
+                let payload = pkt_to_forward.get_byte_payload().unwrap();
+                stream.write_all(&payload[..payload.len()]).await.unwrap();
             }
             // _ = do_stuff_async()
             // async read is cancellation safe
             _ = stream.read(&mut buf) => {
                 // NOTE: if we want real time system bound
                 // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
-                proc_gdp_packet(buf.to_vec(),  // packet
+                let pkt = populate_gdp_struct_from_bytes(buf.to_vec());
+                proc_gdp_packet(pkt,  // packet
                     rib_tx,  //used to send packet to rib
                     channel_tx, // used to send GDPChannel to rib
                     &m_tx //the sending handle of this connection
@@ -69,9 +72,9 @@ async fn handle_dtls_stream(
 }
 
 pub async fn dtls_listener(
-    addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
+    addr: String, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
 ) {
-    let listener = UdpListener::bind(SocketAddr::from_str(addr).unwrap())
+    let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
         .unwrap();
     let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
@@ -87,8 +90,8 @@ pub async fn dtls_listener(
 }
 
 #[tokio::main]
-pub async fn dtls_test_client(addr: &'static str) -> std::io::Result<SslContext> {
-    let stream = UdpStream::connect(SocketAddr::from_str(addr).unwrap()).await?;
+pub async fn dtls_test_client(addr: String) -> std::io::Result<SslContext> {
+    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap()).await?;
 
     // setup ssl
     let mut connector_builder = SslConnector::builder(SslMethod::dtls())?;

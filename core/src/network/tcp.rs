@@ -1,5 +1,5 @@
-use crate::pipeline::proc_gdp_packet;
-use crate::structs::{GDPChannel, GDPPacket};
+use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
+use crate::structs::{GDPChannel, GDPPacket, Packet};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
@@ -42,8 +42,8 @@ async fn handle_tcp_stream(
                         continue;
                     }
                 }
-
-                proc_gdp_packet(buf,  // packet
+                let packet = populate_gdp_struct_from_bytes(buf);
+                proc_gdp_packet(packet,  // packet
                     rib_tx,  //used to send packet to rib
                     channel_tx, // used to send GDPChannel to rib
                     &m_tx //the sending handle of this connection
@@ -53,12 +53,14 @@ async fn handle_tcp_stream(
 
             // new data to send to TCP!
             Some(pkt_to_forward) = m_rx.recv() => {
-                stream.writable().await.expect("TCP stream is closed");
                 // okay this may have deadlock
+                stream.writable().await.expect("TCP stream is closed");
 
+
+                let payload = pkt_to_forward.get_byte_payload().unwrap();
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
-                match stream.try_write(&pkt_to_forward.payload) {
+                match stream.try_write(&payload) {
                     Ok(n) => {
                         println!("write {} bytes", n);
                     }
@@ -78,10 +80,8 @@ async fn handle_tcp_stream(
 /// listen at @param address and process on tcp accept()
 ///     rib_tx: channel that send GDPPacket to rib
 ///     channel_tx: channel that advertise GDPChannel to rib
-pub async fn tcp_listener(
-    addr: &'static str, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
-) {
-    let listener = TcpListener::bind(addr).await.unwrap();
+pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>) {
+    let listener = TcpListener::bind(&addr).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let rib_tx = rib_tx.clone();

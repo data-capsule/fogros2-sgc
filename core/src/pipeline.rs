@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Sender;
 /// we may want to use protobuf later
 /// this part is facilitate testing only
 
-fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
+pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
     let received_str: Vec<&str> = std::str::from_utf8(&buffer)
         .unwrap()
         .trim()
@@ -23,13 +23,26 @@ fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
         _ => GDPName([0, 0, 0, 0]),
     };
 
-    let pkt = GDPPacket {
+    GDPPacket {
         action: m_gdp_action,
         gdpname: m_gdp_name,
-        payload: buffer,
-    };
+        payload: Some(buffer),
+        proto: None,
+    }
+}
 
-    pkt
+use crate::gdp_proto::GdpPacket;
+
+pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
+    // GDPPacket {
+    //     action: GdpAction::try_from(proto.action as u8).unwrap(),
+    //     gdpname: proto.receiver,
+    //     payload: Some(buffer),
+    //     proto: None,
+    // }
+
+    // TODO: currently, populate directly from payload as placeholder
+    populate_gdp_struct_from_bytes(proto.payload)
 }
 
 /// parses the processsing received GDP packets
@@ -42,13 +55,13 @@ fn populate_gdp_struct(buffer: Vec<u8>) -> GDPPacket {
 ///  );
 ///
 pub async fn proc_gdp_packet(
-    packet: Vec<u8>,
+    gdp_packet: GDPPacket,
     rib_tx: &Sender<GDPPacket>,      //used to send packet to rib
     channel_tx: &Sender<GDPChannel>, // used to send GDPChannel to rib
     m_tx: &Sender<GDPPacket>,        //the sending handle of this connection
 ) {
     // Vec<u8> to GDP Packet
-    let gdp_packet = populate_gdp_struct(packet);
+    // let gdp_packet = populate_gdp_struct(packet);
     let action = gdp_packet.action;
     let gdp_name = gdp_packet.gdpname;
 

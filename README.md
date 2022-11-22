@@ -5,7 +5,9 @@
 **Table of Contents**
 
 - [How to build](#how-to-build)
+  - [(Optional) Install grpcurl](#optional-install-grpcurl)
 - [Testcases](#testcases)
+  - [grpc](#grpc)
 - [TODOs](#todos)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -16,6 +18,14 @@
 ```
 cargo build
 ```
+
+
+#### (Optional) Install grpcurl
+`grpcurl` helps with testing the grpc interface. Run 
+```
+curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.8.7/grpcurl_1.8.7_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
+```
+to install. 
 
 ### Testcases 
 
@@ -47,6 +57,12 @@ FWD,1,444
 ```
 We should expect messages appearing in dtls client's terminal.
 
+
+#### grpc 
+```
+grpcurl -plaintext -import-path proto -proto gdp.proto -d '{"sender": "sender", "receiver": "receiver", "action": 1, "payload":"RldELDEsMDAw"}' '[::]:50001' gdp.Globaldataplane/gdp_forward
+```
+ceveat: convert payload to byte64 encoding (e.g. `RldELDEsMDAw` is `FWD,1,000`. A useful tool can be found [here](https://www.base64encode.org/))
 
 ### TODOs
 - [x] tcp test interface
