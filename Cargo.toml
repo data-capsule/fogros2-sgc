@@ -25,7 +25,7 @@ journald = ["utils/journald"]
 syslog = ["utils/syslog"]
 
 [dependencies]
-utils = { path = "utils" }
+utils = { path = "utils", features = ["termlog"]}
 cli = { path = "cli"}
 core = { path = "core" }
 human-panic = "1.0.3"

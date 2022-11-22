@@ -5,7 +5,6 @@ use futures::future;
 use tokio::sync::mpsc::{self};
 use utils::app_config::AppConfig;
 use utils::error::Result;
-
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
 use tonic::{transport::Server, Request, Response, Status};
