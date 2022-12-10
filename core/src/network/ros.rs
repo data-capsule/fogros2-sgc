@@ -8,12 +8,15 @@ use futures::future;
 use futures::stream::StreamExt;
 use futures::task::LocalSpawnExt;
 use pnet::packet;
-use r2r::QosProfile;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json;
 use std::str;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
+#[cfg(feature = "ros")]
+use r2r::QosProfile;
+
+#[cfg(feature = "ros")]
 pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>) {
     let (m_tx, mut m_rx) = mpsc::channel::<GDPPacket>(32);
     let ctx = r2r::Context::create().expect("context creation failure");
@@ -73,6 +76,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     // handle.await;
 }
 
+#[cfg(feature = "ros")]
 pub fn ros_sample() -> Result<(), Box<dyn std::error::Error>> {
     let ctx = r2r::Context::create()?;
     let mut node = r2r::Node::create(ctx, "node", "namespace")?;

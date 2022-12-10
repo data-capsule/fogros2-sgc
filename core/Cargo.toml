@@ -5,6 +5,10 @@ authors = ["Eric Chen <kych@berkeley.edu>", "Jiachen Yuan <jcyuan_johnson@berkel
 description = "The application core code"
 edition = "2021"
 
+[features]
+default = []
+ros = ["dep:r2r"]
+
 [dependencies]
 utils = { path = "../utils" }
 
@@ -32,7 +36,10 @@ tokio-openssl = '0.6'
 tonic = "0.8"
 prost = "0.11"
 
+[dependencies.r2r]
 r2r = "0.6.2"
+optional = true 
 
 [build-dependencies]
 tonic-build = "0.8"
+
