@@ -31,5 +31,7 @@ tokio-openssl = '0.6'
 tonic = "0.8"
 prost = "0.11"
 
+r2r = "0.6.2"
+
 [build-dependencies]
 tonic-build = "0.8"

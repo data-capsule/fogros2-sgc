@@ -1,13 +1,14 @@
 extern crate tokio;
 extern crate tokio_core;
+use crate::connection_rib::connection_router;
+use crate::network::dtls::{dtls_listener, dtls_test_client};
+use crate::network::ros::{ros_sample, ros_listener};
 use crate::network::tcp::tcp_listener;
 use futures::future;
 use tokio::sync::mpsc::{self};
+use tonic::{transport::Server, Request, Response, Status};
 use utils::app_config::AppConfig;
 use utils::error::Result;
-use crate::connection_rib::connection_router;
-use crate::network::dtls::{dtls_listener, dtls_test_client};
-use tonic::{transport::Server, Request, Response, Status};
 
 use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
 use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
@@ -51,9 +52,14 @@ async fn router_async_loop() {
     ));
 
     let psl_service = GDPService {
-        rib_tx: rib_tx,
+        rib_tx: rib_tx.clone(),
         status_tx: stat_tx,
     };
+
+    let ros_sender_handle = tokio::spawn(ros_listener(
+        rib_tx.clone(),
+        channel_tx.clone(),
+    ));
 
     // grpc
     let serve = Server::builder()
@@ -74,6 +80,7 @@ async fn router_async_loop() {
     future::join_all([
         tcp_sender_handle,
         rib_handle,
+        ros_sender_handle,
         dtls_sender_handle,
         grpc_server_handle,
     ])
@@ -106,7 +113,11 @@ pub fn simulate_error() -> Result<()> {
     println!("{:#?}", config);
     // test_cert();
     // get address from default gateway
-    let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
-    dtls_test_client(test_router_addr).expect("DLTS Client error");
+
+    
+    ros_sample();
+    // TODO: uncomment them
+    // let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
+    // dtls_test_client(test_router_addr).expect("DLTS Client error");
     Ok(())
 }
