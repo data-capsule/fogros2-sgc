@@ -24,7 +24,7 @@ use crate::network::grpc::GDPService;
 #[tokio::main]
 async fn router_async_loop() {
     let config = AppConfig::fetch().expect("App config unable to load");
-    println!("{:#?}", config);
+    info!("{:#?}", config);
 
     // initialize the address binding
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
@@ -102,7 +102,7 @@ pub fn router() -> Result<()> {
 /// Show the configuration file
 pub fn config() -> Result<()> {
     let config = AppConfig::fetch()?;
-    println!("{:#?}", config);
+    info!("{:#?}", config);
 
     Ok(())
 }
@@ -110,7 +110,7 @@ pub fn config() -> Result<()> {
 /// Simulate an error
 pub fn simulate_error() -> Result<()> {
     let config = AppConfig::fetch().expect("App config unable to load");
-    println!("{:#?}", config);
+    info!("{:#?}", config);
     // test_cert();
     // get address from default gateway
 

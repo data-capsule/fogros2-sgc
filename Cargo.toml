@@ -25,12 +25,13 @@ journald = ["utils/journald"]
 syslog = ["utils/syslog"]
 
 [dependencies]
-utils = { path = "utils", features = ["termlog"]}
+utils = { path = "utils"}
 cli = { path = "cli"}
 core = { path = "core" }
 human-panic = "1.0.3"
 better-panic = "0.3.0"
 log = "0.4.14"
+env_logger = "0.10.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
