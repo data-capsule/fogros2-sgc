@@ -29,7 +29,7 @@ fn main() -> Result<()> {
 
     ::std::env::set_var("RUST_LOG", "info");
     env_logger::init();
-    
+
     // Initialize Configuration
     // Initialize Configuration
     let include_path = match env::var_os("GDP_CONFIG") {

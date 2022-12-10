@@ -2,7 +2,7 @@ extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
-use crate::network::ros::{ros_sample, ros_listener};
+use crate::network::ros::{ros_listener, ros_sample};
 use crate::network::tcp::tcp_listener;
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -56,10 +56,7 @@ async fn router_async_loop() {
         status_tx: stat_tx,
     };
 
-    let ros_sender_handle = tokio::spawn(ros_listener(
-        rib_tx.clone(),
-        channel_tx.clone(),
-    ));
+    let ros_sender_handle = tokio::spawn(ros_listener(rib_tx.clone(), channel_tx.clone()));
 
     // grpc
     let serve = Server::builder()
@@ -114,7 +111,6 @@ pub fn simulate_error() -> Result<()> {
     // test_cert();
     // get address from default gateway
 
-    
     ros_sample();
     // TODO: uncomment them
     // let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);

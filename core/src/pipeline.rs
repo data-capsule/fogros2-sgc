@@ -4,7 +4,6 @@ use tokio::sync::mpsc::Sender;
 /// construct gdp struct from bytes
 /// bytes is put as payload
 pub fn construct_gdp_forward_from_bytes(gdp_name: GDPName, buffer: Vec<u8>) -> GDPPacket {
-
     GDPPacket {
         action: GdpAction::Forward,
         gdpname: gdp_name,
@@ -16,7 +15,6 @@ pub fn construct_gdp_forward_from_bytes(gdp_name: GDPName, buffer: Vec<u8>) -> G
 /// construct gdp struct from bytes
 /// bytes is put as payload
 pub fn construct_gdp_advertisement_from_bytes(gdp_name: GDPName) -> GDPPacket {
-
     GDPPacket {
         action: GdpAction::Advertise,
         gdpname: gdp_name,
@@ -24,7 +22,6 @@ pub fn construct_gdp_advertisement_from_bytes(gdp_name: GDPName) -> GDPPacket {
         proto: None,
     }
 }
-
 
 /// construct a gdp packet struct
 /// we may want to use protobuf later
