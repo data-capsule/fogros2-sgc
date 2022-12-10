@@ -1,10 +1,21 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
 use tokio::sync::mpsc::Sender;
 
+/// construct gdp struct from bytes
+/// bytes is put as payload
+pub fn construct_gdp_struct_from_bytes(gdp_name: GDPName, buffer: Vec<u8>) -> GDPPacket {
+
+    GDPPacket {
+        action: GdpAction::Forward,
+        gdpname: gdp_name,
+        payload: Some(buffer),
+        proto: None,
+    }
+}
+
 /// construct a gdp packet struct
 /// we may want to use protobuf later
 /// this part is facilitate testing only
-
 pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
     let received_str: Vec<&str> = std::str::from_utf8(&buffer)
         .unwrap()

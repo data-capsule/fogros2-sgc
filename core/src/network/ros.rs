@@ -9,6 +9,7 @@ use serde::{Serialize, Serializer, Deserialize, Deserializer};
 use serde_json; 
 use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
 use crate::structs::{GDPChannel, GDPPacket, Packet};
+use std::str;
 
 pub fn ros_sample() -> Result<(), Box<dyn std::error::Error>> {
     let ctx = r2r::Context::create()?;
@@ -111,8 +112,8 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
                 // let msg = r2r::std_msgs::msg::String {
                 //     data: format!("Hello, world! ({:?})", payload),
                 // };
-                let json = format!("{{ \"data\": {:?} }}", payload);
-                let ros_msg = serde_json::from_str(&json).unwrap();
+                // let json = format!("{{ \"data\": {:?} }}", payload);
+                let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
                 publisher.publish(ros_msg).unwrap();
             },
 
@@ -130,3 +131,4 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     //     }).await
     // });
 }
+
