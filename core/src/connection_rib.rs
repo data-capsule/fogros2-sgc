@@ -34,7 +34,10 @@ pub async fn connection_router(
                             routing_dst.send(pkt).await.expect("RIB: remote connection closed");
                         }
                         None => {
-                            println!("{:} is not there.", pkt.gdpname);
+                            println!("{:} is not there, broadcasting...", pkt.gdpname);
+                            for dst in coonection_rib_table.values(){
+                                dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                            }
                         }
                     }
                 }
