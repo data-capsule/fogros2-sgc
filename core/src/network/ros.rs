@@ -93,18 +93,16 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     loop {
         tokio::select! {
             Some(packet) = subscriber.next() => {
-                let packet = packet;
                 println!("received a packet {:?}", packet);
-            //     let mut serializer = serde_json::Serializer::new(Vec::new());
+                let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
                 
-            //     let packet_str = packet.serialize();
-            //     let packet = populate_gdp_struct_from_bytes(packet.serialize().unwrap());
-            //     proc_gdp_packet(packet,  // packet
-            //         &rib_tx,  //used to send packet to rib
-            //         &channel_tx, // used to send GDPChannel to rib
-            //         &m_tx //the sending handle of this connection
-            //     ).await;
-            // }
+                let packet = populate_gdp_struct_from_bytes(ros_msg);
+                proc_gdp_packet(packet,  // packet
+                    &rib_tx,  //used to send packet to rib
+                    &channel_tx, // used to send GDPChannel to rib
+                    &m_tx //the sending handle of this connection
+                ).await;
+            
             }
             Some(pkt_to_forward) = m_rx.recv() => {
                 // okay this may have deadlock
