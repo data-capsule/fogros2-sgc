@@ -1,13 +1,14 @@
 extern crate tokio;
 extern crate tokio_core;
+use crate::connection_rib::connection_router;
+use crate::network::dtls::{dtls_listener, dtls_test_client};
+use crate::network::ros::{ros_listener, ros_sample};
 use crate::network::tcp::tcp_listener;
 use futures::future;
 use tokio::sync::mpsc::{self};
+use tonic::{transport::Server, Request, Response, Status};
 use utils::app_config::AppConfig;
 use utils::error::Result;
-use crate::connection_rib::connection_router;
-use crate::network::dtls::{dtls_listener, dtls_test_client};
-use tonic::{transport::Server, Request, Response, Status};
 
 use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
 use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
@@ -23,7 +24,7 @@ use crate::network::grpc::GDPService;
 #[tokio::main]
 async fn router_async_loop() {
     let config = AppConfig::fetch().expect("App config unable to load");
-    println!("{:#?}", config);
+    info!("{:#?}", config);
 
     // initialize the address binding
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
@@ -51,9 +52,11 @@ async fn router_async_loop() {
     ));
 
     let psl_service = GDPService {
-        rib_tx: rib_tx,
+        rib_tx: rib_tx.clone(),
         status_tx: stat_tx,
     };
+
+    let ros_sender_handle = tokio::spawn(ros_listener(rib_tx.clone(), channel_tx.clone()));
 
     // grpc
     let serve = Server::builder()
@@ -74,6 +77,7 @@ async fn router_async_loop() {
     future::join_all([
         tcp_sender_handle,
         rib_handle,
+        ros_sender_handle,
         dtls_sender_handle,
         grpc_server_handle,
     ])
@@ -95,7 +99,7 @@ pub fn router() -> Result<()> {
 /// Show the configuration file
 pub fn config() -> Result<()> {
     let config = AppConfig::fetch()?;
-    println!("{:#?}", config);
+    info!("{:#?}", config);
 
     Ok(())
 }
@@ -103,10 +107,13 @@ pub fn config() -> Result<()> {
 /// Simulate an error
 pub fn simulate_error() -> Result<()> {
     let config = AppConfig::fetch().expect("App config unable to load");
-    println!("{:#?}", config);
+    info!("{:#?}", config);
     // test_cert();
     // get address from default gateway
-    let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
-    dtls_test_client(test_router_addr).expect("DLTS Client error");
+
+    ros_sample();
+    // TODO: uncomment them
+    // let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
+    // dtls_test_client(test_router_addr).expect("DLTS Client error");
     Ok(())
 }

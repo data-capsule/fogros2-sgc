@@ -25,23 +25,26 @@ pub async fn connection_router(
                 // GDP packet received
                 // recv () -> find_where_to_route() -> route()
                 Some(pkt) = rib_rx.recv() => {
-                    println!("forwarder received: {pkt}");
+                    info!("forwarder received: {pkt}");
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
                         Some(routing_dst) => {
-                            println!("fwd!");
+                            debug!("fwd!");
                             routing_dst.send(pkt).await.expect("RIB: remote connection closed");
                         }
                         None => {
-                            println!("{:} is not there.", pkt.gdpname);
+                            info!("{:} is not there, broadcasting...", pkt.gdpname);
+                            for dst in coonection_rib_table.values(){
+                                dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                            }
                         }
                     }
                 }
 
                 // connection rib advertisement received
                 Some(channel) = channel_rx.recv() => {
-                    println!("channel registry received {:}", channel.gdpname);
+                    info!("channel registry received {:}", channel.gdpname);
                     coonection_rib_table.insert(
                         channel.gdpname,
                         channel.channel

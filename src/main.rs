@@ -27,7 +27,8 @@ fn main() -> Result<()> {
             .install();
     }
 
-    let _guard = utils::logger::setup_logging()?;
+    ::std::env::set_var("RUST_LOG", "info");
+    env_logger::init();
 
     // Initialize Configuration
     // Initialize Configuration
