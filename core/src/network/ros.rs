@@ -7,8 +7,8 @@ use tokio::sync::mpsc::{self, Sender, Receiver};
 use r2r::QosProfile;
 use serde::{Serialize, Serializer, Deserialize, Deserializer};
 use serde_json; 
-use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
-use crate::structs::{GDPChannel, GDPPacket, Packet};
+use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet, construct_gdp_struct_from_bytes};
+use crate::structs::{GDPChannel, GDPPacket, Packet, GDPName};
 use std::str;
 
 pub fn ros_sample() -> Result<(), Box<dyn std::error::Error>> {
@@ -97,7 +97,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
                 println!("received a packet {:?}", packet);
                 let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
                 
-                let packet = populate_gdp_struct_from_bytes(ros_msg);
+                let packet = construct_gdp_struct_from_bytes(GDPName([1u8,1,1,1]), ros_msg);
                 proc_gdp_packet(packet,  // packet
                     &rib_tx,  //used to send packet to rib
                     &channel_tx, // used to send GDPChannel to rib
