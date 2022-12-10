@@ -2,9 +2,11 @@ use futures::future;
 use futures::stream::StreamExt;
 use futures::task::LocalSpawnExt;
 use futures::{executor::LocalPool};
+use pnet::packet;
 use tokio::sync::mpsc::{self, Sender, Receiver};
 use r2r::QosProfile;
-
+use serde::{Serialize, Serializer, Deserialize, Deserializer};
+use serde_json; 
 use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
 use crate::structs::{GDPChannel, GDPPacket, Packet};
 
@@ -58,9 +60,9 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     let mut node =
         r2r::Node::create(ctx, "GDP_Router", "namespace").expect("node creation failure");
     let mut subscriber = node
-        .subscribe::<r2r::std_msgs::msg::String>("/topic", QosProfile::default())
+        .subscribe_untyped("/topic", "std_msgs/msg/String", QosProfile::default())
         .expect("topic subscribing failure");
-    let publisher = node.create_publisher::<r2r::std_msgs::msg::String>("/topic", QosProfile::default()).expect("publisher creation failure");
+    let publisher = node.create_publisher_untyped("/topic", "std_msgs/msg/String", QosProfile::default()).expect("publisher creation failure");
 
     // subscriber
     //     .for_each(|msg| {
@@ -91,17 +93,29 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     loop {
         tokio::select! {
             Some(packet) = subscriber.next() => {
+                let packet = packet;
                 println!("received a packet {:?}", packet);
+            //     let mut serializer = serde_json::Serializer::new(Vec::new());
+                
+            //     let packet_str = packet.serialize();
+            //     let packet = populate_gdp_struct_from_bytes(packet.serialize().unwrap());
+            //     proc_gdp_packet(packet,  // packet
+            //         &rib_tx,  //used to send packet to rib
+            //         &channel_tx, // used to send GDPChannel to rib
+            //         &m_tx //the sending handle of this connection
+            //     ).await;
+            // }
             }
-
             Some(pkt_to_forward) = m_rx.recv() => {
                 // okay this may have deadlock
 
                 let payload = pkt_to_forward.get_byte_payload().unwrap();
-                let msg = r2r::std_msgs::msg::String {
-                    data: format!("Hello, world! ({:?})", payload),
-                };
-                publisher.publish(&msg).unwrap();
+                // let msg = r2r::std_msgs::msg::String {
+                //     data: format!("Hello, world! ({:?})", payload),
+                // };
+                let json = format!("{{ \"data\": {:?} }}", payload);
+                let ros_msg = serde_json::from_str(&json).unwrap();
+                publisher.publish(ros_msg).unwrap();
             },
 
 

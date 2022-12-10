@@ -22,7 +22,8 @@ strum = "0.24.1"
 multimap = "0.8.3"
 openssl = "0.10.42"
 regex="1.7.0"
-
+serde = "1.0.149"
+serde_json = "*"
 tokio = { version = "1.21.2", features = ["full"] }
 tokio-core = "0.1"
 futures = "0.3.19"
