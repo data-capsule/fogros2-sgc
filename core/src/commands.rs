@@ -2,7 +2,6 @@ extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
-use crate::network::ros::{ros_listener, ros_sample};
 use crate::network::tcp::tcp_listener;
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -15,6 +14,8 @@ use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneS
 use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
 use crate::network::grpc::GDPService;
 
+#[cfg(feature = "ros")]
+use crate::network::ros::{ros_listener, ros_sample};
 // const TCP_ADDR: &'static str = "127.0.0.1:9997";
 // const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 // const GRPC_ADDR: &'static str = "0.0.0.0:50001";
@@ -56,6 +57,7 @@ async fn router_async_loop() {
         status_tx: stat_tx,
     };
 
+    #[cfg(feature = "ros")]
     let ros_sender_handle = tokio::spawn(ros_listener(rib_tx.clone(), channel_tx.clone()));
 
     // grpc
@@ -77,6 +79,7 @@ async fn router_async_loop() {
     future::join_all([
         tcp_sender_handle,
         rib_handle,
+        #[cfg(feature = "ros")]
         ros_sender_handle,
         dtls_sender_handle,
         grpc_server_handle,
@@ -111,6 +114,7 @@ pub fn simulate_error() -> Result<()> {
     // test_cert();
     // get address from default gateway
 
+    #[cfg(feature = "ros")]
     ros_sample();
     // TODO: uncomment them
     // let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
