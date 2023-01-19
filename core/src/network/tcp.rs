@@ -9,7 +9,8 @@ use crate::pipeline::construct_gdp_advertisement_from_bytes;
 use crate::structs::get_gdp_name_from_topic;
 const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 use serde::{Serialize, Deserialize};
-
+use crate::structs::GDPPacketInTransit;
+use crate::pipeline::construct_gdp_forward_from_bytes;
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
 /// 2. select between
@@ -33,12 +34,14 @@ async fn handle_tcp_stream(
                 // being stored in the async task.
 
                 let mut buf = vec![0u8; UDP_BUFFER_SIZE];
+                let mut buffer_size = 0;
                 // Try to read data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
                 match stream.try_read(&mut buf) {
                     Ok(0) => break,
                     Ok(n) => {
                         println!("read {} bytes", n);
+                        buffer_size = n;
                     }
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
@@ -47,7 +50,10 @@ async fn handle_tcp_stream(
                         continue;
                     }
                 }
-                let packet = populate_gdp_struct_from_bytes(buf);
+
+                let deserialized:GDPPacketInTransit = serde_json::from_str(std::str::from_utf8(&buf[..buffer_size]).unwrap()).unwrap();
+                let packet = construct_gdp_forward_from_bytes(deserialized.destination, GDPName([0u8,0,0,0]), deserialized.payload.unwrap());
+
                 proc_gdp_packet(packet,  // packet
                     rib_tx,  //used to send packet to rib
                     channel_tx, // used to send GDPChannel to rib
@@ -62,15 +68,11 @@ async fn handle_tcp_stream(
                 stream.writable().await.expect("TCP stream is closed");
 
                 info!("TCP packet to forward: {:?}", pkt_to_forward);
-                //let payload = pkt_to_forward.get_byte_payload().unwrap();
+                let payload = pkt_to_forward.get_serialized();
                 // Convert the Point to a JSON string.
-                let serialized = serde_json::to_string(&pkt_to_forward).unwrap();
-
-                // Prints serialized = {"x":1,"y":2}
-                println!("serialized = {}", serialized);
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
-                match stream.try_write(serialized.as_bytes()) {
+                match stream.try_write(payload.as_bytes()) {
                     Ok(n) => {
                         println!("write {} bytes", n);
                     }

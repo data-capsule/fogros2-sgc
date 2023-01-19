@@ -69,10 +69,9 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
 
             }
             Some(pkt_to_forward) = m_rx.recv() => {
-                // okay this may have deadlock
                 
                 if (pkt_to_forward.action == GdpAction::Forward) {
-                    info!("the crashing payload is {:#?}", pkt_to_forward);
+                    info!("the payload to publish is {:?}", pkt_to_forward);
                     let payload = pkt_to_forward.get_byte_payload().unwrap();
                     let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
                     publisher.publish(ros_msg).unwrap();
