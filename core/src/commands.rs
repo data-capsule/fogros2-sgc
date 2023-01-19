@@ -15,7 +15,7 @@ use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
 use crate::network::grpc::GDPService;
 
 #[cfg(feature = "ros")]
-use crate::network::ros::{ros_listener, ros_sample};
+use crate::network::ros::{ros_subscriber, ros_sample};
 // const TCP_ADDR: &'static str = "127.0.0.1:9997";
 // const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 // const GRPC_ADDR: &'static str = "0.0.0.0:50001";
@@ -53,7 +53,7 @@ async fn router_async_loop() {
     ));
 
     let peer_advertisement = tokio::spawn(tcp_to_peer(
-        "128.32.37.48:9997".into(),
+        config.default_gateway.into(),
         rib_tx.clone(),
         channel_tx.clone(),
     ));
@@ -80,7 +80,13 @@ async fn router_async_loop() {
     ));
 
     #[cfg(feature = "ros")]
-    let ros_sender_handle = tokio::spawn(ros_listener(rib_tx.clone(), channel_tx.clone()));
+
+    let ros_sender_handle = tokio::spawn(ros_subscriber(
+        rib_tx.clone(), channel_tx.clone(), 
+        config.ros.node_name, 
+        config.ros.topic_name, 
+        config.ros.topic_type
+    ));
 
     future::join_all([
         tcp_sender_handle,
