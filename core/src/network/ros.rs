@@ -2,7 +2,7 @@ use crate::pipeline::{
     construct_gdp_advertisement_from_bytes, construct_gdp_forward_from_bytes,
     populate_gdp_struct_from_bytes, proc_gdp_packet,
 };
-use crate::structs::{GDPChannel, GDPName, GDPPacket, Packet};
+use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, Packet};
 use futures::executor::LocalPool;
 use futures::future;
 use futures::stream::StreamExt;
@@ -20,13 +20,21 @@ use crate::structs::get_gdp_name_from_topic;
 
 #[cfg(feature = "ros")]
 pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>)  {
-    let publisher_topic_name = "/chatter";
+
+    let publisher_name = "/GDP_Router";
+    let publisher_gdp_name = GDPName(get_gdp_name_from_topic(publisher_name));
+    info!("ROS takes gdp name {:?}", publisher_gdp_name);
+
+    let topic_name = "/chatter";
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(topic_name));
+    info!("topic /chatter takes gdp name {:?}", topic_gdp_name);
+
     let (m_tx, mut m_rx) = mpsc::channel::<GDPPacket>(32);
     let ctx = r2r::Context::create().expect("context creation failure");
     let mut node =
         r2r::Node::create(ctx, "GDP_Router", "namespace").expect("node creation failure");
     let mut subscriber = node
-        .subscribe_untyped(publisher_topic_name, "std_msgs/msg/String", QosProfile::default())
+        .subscribe_untyped(topic_name, "std_msgs/msg/String", QosProfile::default())
         .expect("topic subscribing failure");
     let publisher = node
         .create_publisher_untyped("/chatter_echo", "std_msgs/msg/String", QosProfile::default())
@@ -37,7 +45,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     });
 
     // note that different from other connection ribs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(GDPName(get_gdp_name_from_topic(publisher_topic_name)));
+    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, publisher_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            //used to send packet to rib
@@ -52,7 +60,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
                 info!("received a packet {:?}", packet);
                 let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
 
-                let packet = construct_gdp_forward_from_bytes(GDPName(get_gdp_name_from_topic(publisher_topic_name)), ros_msg);
+                let packet = construct_gdp_forward_from_bytes(topic_gdp_name,publisher_gdp_name, ros_msg );
                 proc_gdp_packet(packet,  // packet
                     &rib_tx,  //used to send packet to rib
                     &channel_tx, // used to send GDPChannel to rib
@@ -62,17 +70,14 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
             }
             Some(pkt_to_forward) = m_rx.recv() => {
                 // okay this may have deadlock
-
-                let payload = pkt_to_forward.get_byte_payload().unwrap();
-                // let msg = r2r::std_msgs::msg::String {
-                //     data: format!("Hello, world! ({:?})", payload),
-                // };
-                // let json = format!("{{ \"data\": {:?} }}", payload);
-                let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
-                publisher.publish(ros_msg).unwrap();
+                
+                if (pkt_to_forward.action == GdpAction::Forward) {
+                    info!("the crashing payload is {:#?}", pkt_to_forward);
+                    let payload = pkt_to_forward.get_byte_payload().unwrap();
+                    let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
+                    publisher.publish(ros_msg).unwrap();
+                }
             },
-
-
         }
     }
 

@@ -60,7 +60,7 @@ async fn handle_tcp_stream(
                 // okay this may have deadlock
                 stream.writable().await.expect("TCP stream is closed");
 
-
+                info!("TCP packet to forward: {:?}", pkt_to_forward);
                 let payload = pkt_to_forward.get_byte_payload().unwrap();
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
@@ -108,9 +108,13 @@ pub async fn tcp_to_peer(addr: String,
     let stream = TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await.unwrap();
     println!("{:?}", stream);
 
+    let m_gdp_name = GDPName(get_gdp_name_from_topic(addr.as_str())); 
+    info!("TCP takes gdp name {:?}", m_gdp_name);
 
     let (m_tx, mut m_rx) = mpsc::channel(32);
-    let node_advertisement = construct_gdp_advertisement_from_bytes(GDPName(get_gdp_name_from_topic(addr.as_str())));
+    let node_advertisement = construct_gdp_advertisement_from_bytes(
+        m_gdp_name, m_gdp_name
+    );
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            //used to send packet to rib
@@ -118,5 +122,5 @@ pub async fn tcp_to_peer(addr: String,
         &m_tx,              //the sending handle of this connection
     )
     .await;
-    handle_tcp_stream(stream, &rib_tx, &channel_tx, m_tx,m_rx);
+    handle_tcp_stream(stream, &rib_tx, &channel_tx, m_tx,m_rx).await;
 }

@@ -17,7 +17,7 @@ pub async fn connection_router(
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
-        let mut coonection_rib_table: HashMap<GDPName, Sender<GDPPacket>> = HashMap::new();
+        let mut coonection_rib_table: HashMap<GDPName, GDPChannel> = HashMap::new();
 
         // loop polling from
         loop {
@@ -33,15 +33,21 @@ pub async fn connection_router(
                             
                             //routing_dst.send(pkt).await.expect("RIB: remote connection closed");
                             for dst in coonection_rib_table.values(){
-                                info!("fwd to {:?}", dst);
-                                dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                                info!("data from {} send to {}", pkt.source, dst.advertisement.source);
+                                if (dst.advertisement.source == pkt.source){
+                                    continue;
+                                }
+                                dst.channel.send(pkt.clone()).await.expect("RIB: remote connection closed");
                             }
                         }
                         None => {
                             info!("{:} is not there, broadcasting...", pkt.gdpname);
                             for dst in coonection_rib_table.values(){
-                                info!("fwd to {:?}", dst);
-                                dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                                info!("data from {} send to {}", pkt.source, dst.advertisement.source);
+                                if (dst.advertisement.source == pkt.source){
+                                    continue;
+                                }
+                                dst.channel.send(pkt.clone()).await.expect("RIB: remote connection closed");
                             }
                         }
                     }
@@ -52,12 +58,20 @@ pub async fn connection_router(
                     info!("channel registry received {:}", channel.gdpname);
                     info!("broadcasting...");
                     for dst in coonection_rib_table.values(){
-                        dst.send(channel.advertisement.clone()).await.expect("RIB: remote connection closed");
+                        info!("advertisement of {} is sent to channel {}",dst.advertisement.source, channel.advertisement.source);
+                        if (dst.advertisement.source == channel.advertisement.source){
+                            continue;
+                        }
+                        dst.channel.send(channel.advertisement.clone()).await.expect("RIB: remote connection closed");
                     }
+                    // coonection_rib_table.insert(
+                    //     channel.gdpname,
+                    //     channel.channel
+                    // );
                     coonection_rib_table.insert(
                         channel.gdpname,
-                        channel.channel
-                    );
+                        channel
+                    );           
                 },
 
                 Some(update) = stat_rs.recv() => {

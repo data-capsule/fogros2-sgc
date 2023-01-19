@@ -81,6 +81,7 @@ pub struct GDPPacket {
     // preferably forward directly without conversion
     pub payload: Option<Vec<u8>>,
     pub proto: Option<GdpPacket>,
+    pub source: GDPName,
 }
 
 impl Packet for GDPPacket {
