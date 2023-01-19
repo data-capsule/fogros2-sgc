@@ -92,6 +92,7 @@ pub async fn proc_gdp_packet(
             let channel = GDPChannel {
                 gdpname: gdp_name,
                 channel: m_tx.clone(),
+                advertisement: gdp_packet,
             };
             channel_tx
                 .send(channel)

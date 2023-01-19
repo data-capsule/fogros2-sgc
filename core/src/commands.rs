@@ -63,9 +63,6 @@ async fn router_async_loop() {
         status_tx: stat_tx,
     };
 
-    #[cfg(feature = "ros")]
-    let ros_sender_handle = tokio::spawn(ros_listener(rib_tx.clone(), channel_tx.clone()));
-
     // grpc
     let serve = Server::builder()
         .add_service(GlobaldataplaneServer::new(psl_service))
@@ -81,6 +78,9 @@ async fn router_async_loop() {
         stat_rx,    // recevie control place info, e.g. routing
         channel_rx, // receive channel information for connection rib
     ));
+
+    #[cfg(feature = "ros")]
+    let ros_sender_handle = tokio::spawn(ros_listener(rib_tx.clone(), channel_tx.clone()));
 
     future::join_all([
         tcp_sender_handle,

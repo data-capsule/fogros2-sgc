@@ -30,12 +30,17 @@ pub async fn connection_router(
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
                         Some(routing_dst) => {
-                            debug!("fwd!");
-                            routing_dst.send(pkt).await.expect("RIB: remote connection closed");
+                            
+                            //routing_dst.send(pkt).await.expect("RIB: remote connection closed");
+                            for dst in coonection_rib_table.values(){
+                                info!("fwd to {:?}", dst);
+                                dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                            }
                         }
                         None => {
                             info!("{:} is not there, broadcasting...", pkt.gdpname);
                             for dst in coonection_rib_table.values(){
+                                info!("fwd to {:?}", dst);
                                 dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
                             }
                         }
@@ -45,6 +50,10 @@ pub async fn connection_router(
                 // connection rib advertisement received
                 Some(channel) = channel_rx.recv() => {
                     info!("channel registry received {:}", channel.gdpname);
+                    info!("broadcasting...");
+                    for dst in coonection_rib_table.values(){
+                        dst.send(channel.advertisement.clone()).await.expect("RIB: remote connection closed");
+                    }
                     coonection_rib_table.insert(
                         channel.gdpname,
                         channel.channel

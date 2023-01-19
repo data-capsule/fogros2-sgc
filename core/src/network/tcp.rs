@@ -2,8 +2,11 @@ use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
 use crate::structs::{GDPChannel, GDPPacket, Packet};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc::{self, Sender};
+use tokio::sync::mpsc::{self, Sender, Receiver};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
+use crate::structs::GDPName;
+use crate::pipeline::construct_gdp_advertisement_from_bytes;
+use crate::structs::get_gdp_name_from_topic;
 const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 
 /// handle one single session of tcpstream
@@ -13,9 +16,10 @@ const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 ///         incomine packets from rib -> send to the tcp session
 async fn handle_tcp_stream(
     stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
+    m_tx:Sender<GDPPacket>, mut m_rx:Receiver<GDPPacket>
 ) {
     // ...
-    let (m_tx, mut m_rx) = mpsc::channel(32);
+    
     // TODO: placeholder, later replace with packet parsing
 
     loop {
@@ -88,7 +92,10 @@ pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: S
         let channel_tx = channel_tx.clone();
 
         // Process each socket concurrently.
-        tokio::spawn(async move { handle_tcp_stream(socket, &rib_tx, &channel_tx).await });
+        tokio::spawn(async move { 
+            let (m_tx, mut m_rx) = mpsc::channel(32);
+            handle_tcp_stream(socket, &rib_tx, &channel_tx, m_tx, m_rx).await 
+        });
     }
 }
 
@@ -97,8 +104,19 @@ pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: S
 pub async fn tcp_to_peer(addr: String, 
     rib_tx: Sender<GDPPacket>,
     channel_tx: Sender<GDPChannel>) {
-        
+    
     let stream = TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await.unwrap();
     println!("{:?}", stream);
-    handle_tcp_stream(stream, &rib_tx, &channel_tx);
+
+
+    let (m_tx, mut m_rx) = mpsc::channel(32);
+    let node_advertisement = construct_gdp_advertisement_from_bytes(GDPName(get_gdp_name_from_topic(addr.as_str())));
+    proc_gdp_packet(
+        node_advertisement, // packet
+        &rib_tx,            //used to send packet to rib
+        &channel_tx,        // used to send GDPChannel to rib
+        &m_tx,              //the sending handle of this connection
+    )
+    .await;
+    handle_tcp_stream(stream, &rib_tx, &channel_tx, m_tx,m_rx);
 }

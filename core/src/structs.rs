@@ -127,4 +127,23 @@ use tokio::sync::mpsc::Sender;
 pub struct GDPChannel {
     pub gdpname: GDPName,
     pub channel: Sender<GDPPacket>,
+    pub advertisement: GDPPacket,
+}
+
+use sha2::Sha256;
+use sha2::Digest;
+pub fn get_gdp_name_from_topic(topic_name: &str)-> [u8; 4]{
+    // create a Sha256 object
+    let mut hasher = Sha256::new();
+
+    // write input message
+    hasher.update(topic_name);
+    let result = hasher.finalize();
+    // Get the first 4 bytes of the digest
+    let mut bytes = [0u8; 4];
+    bytes.copy_from_slice(&result[..4]);
+
+    bytes
+    // // Convert the bytes to a u32
+    // unsafe { transmute::<[u8; 4], u32>(bytes) }
 }
