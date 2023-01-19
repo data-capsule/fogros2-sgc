@@ -8,7 +8,6 @@ pub fn construct_gdp_forward_from_bytes(destination: GDPName, source: GDPName, b
         action: GdpAction::Forward,
         gdpname: destination,
         payload: Some(buffer),
-        proto: None,
         source: source,
     }
 }
@@ -20,7 +19,6 @@ pub fn construct_gdp_advertisement_from_bytes(destination: GDPName, source: GDPN
         action: GdpAction::Advertise,
         gdpname: destination,
         payload: None,
-        proto: None,
         source: source,
     }
 }
@@ -50,7 +48,6 @@ pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
         action: m_gdp_action,
         gdpname: m_gdp_name,
         payload: Some(buffer),
-        proto: None,
         source: GDPName([0,0,0,0]),
     }
 }

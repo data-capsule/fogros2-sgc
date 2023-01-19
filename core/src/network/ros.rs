@@ -60,7 +60,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
                 info!("received a packet {:?}", packet);
                 let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
 
-                let packet = construct_gdp_forward_from_bytes(topic_gdp_name,publisher_gdp_name, ros_msg );
+                let packet = construct_gdp_forward_from_bytes(topic_gdp_name, publisher_gdp_name, ros_msg );
                 proc_gdp_packet(packet,  // packet
                     &rib_tx,  //used to send packet to rib
                     &channel_tx, // used to send GDPChannel to rib

@@ -5,7 +5,7 @@ pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
 
 pub type GdpName = [u8; 32];
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, EnumIter)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, Hash, EnumIter)]
 pub enum GdpAction {
     Noop = 0,
     Forward = 1,
@@ -55,7 +55,7 @@ impl From<u16be> for u16 {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Copy, Hash, Default)]
 pub struct GDPName(pub [u8; 4]); //256 bit destination
 impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -70,8 +70,9 @@ pub(crate) trait Packet {
     /// get serialized byte array of the packet
     fn get_byte_payload(&self) -> Option<&Vec<u8>>;
 }
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct GDPPacket {
     pub action: GdpAction,
     pub gdpname: GDPName,
@@ -80,16 +81,14 @@ pub struct GDPPacket {
     // converting back and forth between proto and u8 is expensive
     // preferably forward directly without conversion
     pub payload: Option<Vec<u8>>,
-    pub proto: Option<GdpPacket>,
+    //pub proto: Option<GdpPacket>,
     pub source: GDPName,
 }
 
 impl Packet for GDPPacket {
     fn get_proto(&self) -> Option<&GdpPacket> {
-        match &self.proto {
-            Some(p) => Some(p),
-            None => None, //TODO
-        }
+        todo!("proto support not implemented yet!");
+        None
     }
     fn get_byte_payload(&self) -> Option<&Vec<u8>> {
         match &self.payload {
@@ -115,9 +114,7 @@ impl fmt::Display for GDPPacket {
                     .expect("parsing failure")
                     .trim_matches(char::from(0))
             )
-        } else if let Some(payload) = &self.proto {
-            write!(f, "{:?}: {:?}", self.gdpname, payload)
-        } else {
+        }  else {
             write!(f, "{:?}: packet do not exist", self.gdpname)
         }
     }

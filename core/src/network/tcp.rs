@@ -8,6 +8,7 @@ use crate::structs::GDPName;
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
 use crate::structs::get_gdp_name_from_topic;
 const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
+use serde::{Serialize, Deserialize};
 
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
@@ -61,10 +62,15 @@ async fn handle_tcp_stream(
                 stream.writable().await.expect("TCP stream is closed");
 
                 info!("TCP packet to forward: {:?}", pkt_to_forward);
-                let payload = pkt_to_forward.get_byte_payload().unwrap();
+                //let payload = pkt_to_forward.get_byte_payload().unwrap();
+                // Convert the Point to a JSON string.
+                let serialized = serde_json::to_string(&pkt_to_forward).unwrap();
+
+                // Prints serialized = {"x":1,"y":2}
+                println!("serialized = {}", serialized);
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
-                match stream.try_write(&payload) {
+                match stream.try_write(serialized.as_bytes()) {
                     Ok(n) => {
                         println!("write {} bytes", n);
                     }
