@@ -6,7 +6,6 @@
 
 - [How to build](#how-to-build)
   - [(Optional) Install grpcurl](#optional-install-grpcurl)
-- [Testcases](#testcases)
   - [grpc](#grpc)
 - [TODOs](#todos)
 
