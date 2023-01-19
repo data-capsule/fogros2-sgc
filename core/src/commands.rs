@@ -1,7 +1,7 @@
 extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
-use crate::network::dtls::{dtls_listener, dtls_test_client};
+use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
 use crate::network::tcp::tcp_listener;
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -52,6 +52,12 @@ async fn router_async_loop() {
         channel_tx.clone(),
     ));
 
+    let dtls_sender_handle2 = tokio::spawn(dtls_to_peer(
+        "128.32.37.48:9232".into(),
+        rib_tx.clone(),
+        channel_tx.clone(),
+    ));
+
     let psl_service = GDPService {
         rib_tx: rib_tx.clone(),
         status_tx: stat_tx,
@@ -82,6 +88,7 @@ async fn router_async_loop() {
         #[cfg(feature = "ros")]
         ros_sender_handle,
         dtls_sender_handle,
+        dtls_sender_handle2,
         grpc_server_handle,
     ])
     .await;
@@ -117,7 +124,8 @@ pub fn simulate_error() -> Result<()> {
     #[cfg(feature = "ros")]
     ros_sample();
     // TODO: uncomment them
-    // let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
-    // dtls_test_client(test_router_addr).expect("DLTS Client error");
+    let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
+    println!("{}", test_router_addr);
+    dtls_test_client("128.32.37.48:9232".into()).expect("DLTS Client error");
     Ok(())
 }
