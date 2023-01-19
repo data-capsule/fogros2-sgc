@@ -15,7 +15,7 @@ use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
 use crate::network::grpc::GDPService;
 
 #[cfg(feature = "ros")]
-use crate::network::ros::{ros_subscriber, ros_sample};
+use crate::network::ros::{ros_subscriber, ros_sample, ros_publisher};
 // const TCP_ADDR: &'static str = "127.0.0.1:9997";
 // const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 // const GRPC_ADDR: &'static str = "0.0.0.0:50001";
@@ -80,13 +80,27 @@ async fn router_async_loop() {
     ));
 
     #[cfg(feature = "ros")]
-
-    let ros_sender_handle = tokio::spawn(ros_subscriber(
-        rib_tx.clone(), channel_tx.clone(), 
-        config.ros.node_name, 
-        config.ros.topic_name, 
-        config.ros.topic_type
-    ));
+    let ros_sender_handle = match config.ros.local.as_str() {
+        "pub" => {
+            tokio::spawn(
+                ros_subscriber(
+                    rib_tx.clone(), channel_tx.clone(), 
+                    config.ros.node_name, 
+                    config.ros.topic_name, 
+                    config.ros.topic_type
+                )
+            )
+        }
+        _ => {tokio::spawn(
+            ros_publisher(
+                rib_tx.clone(), channel_tx.clone(), 
+                config.ros.node_name, 
+                config.ros.topic_name, 
+                config.ros.topic_type
+            )
+        )
+    }
+    };
 
     future::join_all([
         tcp_sender_handle,
