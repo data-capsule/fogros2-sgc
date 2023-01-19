@@ -2,7 +2,7 @@ extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
-use crate::network::tcp::tcp_listener;
+use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use futures::future;
 use tokio::sync::mpsc::{self};
 use tonic::{transport::Server, Request, Response, Status};
@@ -52,8 +52,8 @@ async fn router_async_loop() {
         channel_tx.clone(),
     ));
 
-    let dtls_sender_handle2 = tokio::spawn(dtls_to_peer(
-        "128.32.37.48:9232".into(),
+    let peer_advertisement = tokio::spawn(tcp_to_peer(
+        "128.32.37.48:9997".into(),
         rib_tx.clone(),
         channel_tx.clone(),
     ));
@@ -88,7 +88,7 @@ async fn router_async_loop() {
         #[cfg(feature = "ros")]
         ros_sender_handle,
         dtls_sender_handle,
-        dtls_sender_handle2,
+        peer_advertisement,
         grpc_server_handle,
     ])
     .await;

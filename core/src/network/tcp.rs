@@ -3,7 +3,7 @@ use crate::structs::{GDPChannel, GDPPacket, Packet};
 use std::io;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender};
-
+use std::{net::SocketAddr, pin::Pin, str::FromStr};
 const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 
 /// handle one single session of tcpstream
@@ -90,4 +90,15 @@ pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: S
         // Process each socket concurrently.
         tokio::spawn(async move { handle_tcp_stream(socket, &rib_tx, &channel_tx).await });
     }
+}
+
+
+
+pub async fn tcp_to_peer(addr: String, 
+    rib_tx: Sender<GDPPacket>,
+    channel_tx: Sender<GDPChannel>) {
+        
+    let stream = TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await.unwrap();
+    println!("{:?}", stream);
+    handle_tcp_stream(stream, &rib_tx, &channel_tx);
 }

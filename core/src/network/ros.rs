@@ -12,21 +12,37 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json;
 use std::str;
 use tokio::sync::mpsc::{self, Receiver, Sender};
-
+use sha2::{Sha256, Sha512, Digest};
 #[cfg(feature = "ros")]
 use r2r::QosProfile;
+use std::mem::transmute;
+fn get_gdp_name_from_topic(topic_name: &str)-> [u8; 4]{
+    // create a Sha256 object
+    let mut hasher = Sha256::new();
 
+    // write input message
+    hasher.update(topic_name);
+    let result = hasher.finalize();
+    // Get the first 4 bytes of the digest
+    let mut bytes = [0u8; 4];
+    bytes.copy_from_slice(&result[..4]);
+
+    bytes
+    // // Convert the bytes to a u32
+    // unsafe { transmute::<[u8; 4], u32>(bytes) }
+}
 #[cfg(feature = "ros")]
-pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>) {
+pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>)  {
+    let publisher_topic_name = "/chatter";
     let (m_tx, mut m_rx) = mpsc::channel::<GDPPacket>(32);
     let ctx = r2r::Context::create().expect("context creation failure");
     let mut node =
         r2r::Node::create(ctx, "GDP_Router", "namespace").expect("node creation failure");
     let mut subscriber = node
-        .subscribe_untyped("/topic", "std_msgs/msg/String", QosProfile::default())
+        .subscribe_untyped(publisher_topic_name, "std_msgs/msg/String", QosProfile::default())
         .expect("topic subscribing failure");
     let publisher = node
-        .create_publisher_untyped("/topic", "std_msgs/msg/String", QosProfile::default())
+        .create_publisher_untyped("/chatter_echo", "std_msgs/msg/String", QosProfile::default())
         .expect("publisher creation failure");
 
     let handle = tokio::task::spawn_blocking(move || loop {
@@ -34,7 +50,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
     });
 
     // note that different from other connection ribs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(GDPName([1u8, 1, 1, 1]));
+    let node_advertisement = construct_gdp_advertisement_from_bytes(GDPName(get_gdp_name_from_topic(publisher_topic_name)));
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            //used to send packet to rib

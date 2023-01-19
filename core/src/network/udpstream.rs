@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
-
+use local_ip_address::local_ip;
 use std::future::Future;
 use tokio::{
     io::{AsyncRead, AsyncWrite, ReadBuf},
@@ -188,11 +188,13 @@ impl UdpStream {
     /// occurs.
     #[allow(unused)]
     pub async fn connect(addr: SocketAddr) -> Result<Self, tokio::io::Error> {
-        let local_addr: SocketAddr = if addr.is_ipv4() {
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(128, 32, 37, 40)), 0)
-        } else {
-            SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)), 0)
-        };
+        // let local_addr: SocketAddr = if addr.is_ipv4() {
+        //     SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 0)
+        // } else {
+        //     SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)), 0)
+        // };
+        // let local_addr = local_ip().unwrap();
+        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 0);
 
         let socket = Arc::new(UdpSocket::bind(local_addr).await?);
         let local_addr = socket.local_addr()?;
