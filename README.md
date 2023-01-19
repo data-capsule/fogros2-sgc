@@ -19,44 +19,12 @@
 cargo build
 ```
 
-
 #### (Optional) Install grpcurl
 `grpcurl` helps with testing the grpc interface. Run 
 ```
 curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.8.7/grpcurl_1.8.7_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
 ```
 to install. 
-
-### Testcases 
-
-We can come up with the following test case: 
-a router, a dtls client and a tcp client. We want to route tcp client's message
-to dtls client. 
-```bash
-# (terminal A) run router
-$ cargo run router
-
-# (terminal B) run dtls client 
-$ cargo run client
-
-# (terminal C) run tcp client
-$ nc localhost 9997
-```
-
-Then we can use the following sample test cases
-```
-# (dtls client) advertise itself with name 1
-ADV,1
-FWD,1,000 // this sends itself a message
-
-# (tcp client) send message to name 1
-FWD,1,111
-FWD,1,222
-FWD,1,333
-FWD,1,444
-```
-We should expect messages appearing in dtls client's terminal.
-
 
 #### grpc 
 ```

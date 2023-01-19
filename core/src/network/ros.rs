@@ -74,6 +74,7 @@ pub async fn ros_listener(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChann
                     info!("the payload to publish is {:?}", pkt_to_forward);
                     let payload = pkt_to_forward.get_byte_payload().unwrap();
                     let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
+                    info!("the decoded payload to publish is {:?}", ros_msg);
                     publisher.publish(ros_msg).unwrap();
                 }
             },
