@@ -22,23 +22,20 @@ use crate::structs::get_gdp_name_from_topic;
 pub async fn ros_publisher(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>, 
     node_name:String, topic_name:String, topic_type: String)  {
 
-    let node_name = "GDP_Router";
-    let topic_name = "/chatter";
-    let topic_type = "std_msgs/msg/String";
 
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(node_name));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
     info!("ROS {} takes gdp name {:?}",node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(topic_name));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, mut m_rx) = mpsc::channel::<GDPPacket>(32);
 
     let ctx = r2r::Context::create().expect("context creation failure");
     let mut node =
-        r2r::Node::create(ctx, node_name, "namespace").expect("node creation failure");
+        r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
     let publisher = node
-        .create_publisher_untyped(topic_name, topic_type, QosProfile::default())
+        .create_publisher_untyped(&topic_name, &topic_type, QosProfile::default())
         .expect("publisher creation failure");
 
     let handle = tokio::task::spawn_blocking(move || loop {
@@ -60,10 +57,14 @@ pub async fn ros_publisher(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChan
             Some(pkt_to_forward) = m_rx.recv() => {
                 if (pkt_to_forward.action == GdpAction::Forward) {
                     info!("the payload to publish is {:?}", pkt_to_forward);
-                    let payload = pkt_to_forward.get_byte_payload().unwrap();
-                    let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
-                    info!("the decoded payload to publish is {:?}", ros_msg);
-                    publisher.publish(ros_msg).unwrap();
+                    if pkt_to_forward.gdpname == topic_gdp_name {
+                        let payload = pkt_to_forward.get_byte_payload().unwrap();
+                        let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
+                        info!("the decoded payload to publish is {:?}", ros_msg);
+                        publisher.publish(ros_msg).unwrap();
+                    } else{
+                        info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
+                    }
                 }
             },
         }
