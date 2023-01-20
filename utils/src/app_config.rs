@@ -37,7 +37,7 @@ pub struct AppConfig {
     pub dtls_port: String,
     pub grpc_port: String,
     pub default_gateway: String,
-    pub ros:ROS,
+    pub ros:Vec<ROS>,
 }
 
 impl AppConfig {

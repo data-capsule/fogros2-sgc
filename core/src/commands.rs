@@ -26,6 +26,7 @@ use crate::network::ros::{ros_subscriber, ros_sample, ros_publisher};
 async fn router_async_loop() {
     let config = AppConfig::fetch().expect("App config unable to load");
     info!("{:#?}", config);
+    let mut future_handles = Vec::new();
 
     // initialize the address binding
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
@@ -45,74 +46,75 @@ async fn router_async_loop() {
         rib_tx.clone(),
         channel_tx.clone(),
     ));
+    future_handles.push(tcp_sender_handle);
 
     let dtls_sender_handle = tokio::spawn(dtls_listener(
         dtls_bind_addr,
         rib_tx.clone(),
         channel_tx.clone(),
     ));
+    future_handles.push(dtls_sender_handle);
 
     let peer_advertisement = tokio::spawn(tcp_to_peer(
         config.default_gateway.into(),
         rib_tx.clone(),
         channel_tx.clone(),
     ));
-
-    let psl_service = GDPService {
-        rib_tx: rib_tx.clone(),
-        status_tx: stat_tx,
-    };
+    future_handles.push(peer_advertisement);
 
     // grpc
-    let serve = Server::builder()
-        .add_service(GlobaldataplaneServer::new(psl_service))
-        .serve(grpc_bind_addr.parse().unwrap());
-    let manager_handle = tokio::spawn(async move {
-        if let Err(e) = serve.await {
-            eprintln!("Error = {:?}", e);
-        }
-    });
-    let grpc_server_handle = manager_handle;
+    // TODO: uncomment for grpc
+    // let psl_service = GDPService {
+    //     rib_tx: rib_tx.clone(),
+    //     status_tx: stat_tx,
+    // };
+
+    // let serve = Server::builder()
+    //     .add_service(GlobaldataplaneServer::new(psl_service))
+    //     .serve(grpc_bind_addr.parse().unwrap());
+    // let manager_handle = tokio::spawn(async move {
+    //     if let Err(e) = serve.await {
+    //         eprintln!("Error = {:?}", e);
+    //     }
+    // });
+    // let grpc_server_handle = manager_handle;
+    // future_handles.push(grpc_server_handle);
+
     let rib_handle = tokio::spawn(connection_router(
         rib_rx,     // receive packets to forward
         stat_rx,    // recevie control place info, e.g. routing
         channel_rx, // receive channel information for connection rib
     ));
+    future_handles.push(rib_handle);
 
     #[cfg(feature = "ros")]
-    let ros_sender_handle = match config.ros.local.as_str() {
-        "pub" => {
-            tokio::spawn(
-                ros_subscriber(
+    for ros_config in config.ros {
+        let ros_handle = match ros_config.local.as_str() {
+            "pub" => {
+                tokio::spawn(
+                    ros_subscriber(
+                        rib_tx.clone(), channel_tx.clone(), 
+                        ros_config.node_name, 
+                        ros_config.topic_name, 
+                        ros_config.topic_type
+                    )
+                )
+            }
+            _ => {tokio::spawn(
+                ros_publisher(
                     rib_tx.clone(), channel_tx.clone(), 
-                    config.ros.node_name, 
-                    config.ros.topic_name, 
-                    config.ros.topic_type
+                    ros_config.node_name, 
+                    ros_config.topic_name, 
+                    ros_config.topic_type
                 )
             )
-        }
-        _ => {tokio::spawn(
-            ros_publisher(
-                rib_tx.clone(), channel_tx.clone(), 
-                config.ros.node_name, 
-                config.ros.topic_name, 
-                config.ros.topic_type
-            )
-        )
+            }
+        };
+        future_handles.push(ros_handle);
     }
-    };
 
-    future::join_all([
-        tcp_sender_handle,
-        rib_handle,
-        #[cfg(feature = "ros")]
-        ros_sender_handle,
-        dtls_sender_handle,
-        peer_advertisement,
-        grpc_server_handle,
-    ])
-    .await;
-    //join!(foo_sender_handle, bar_sender_handle, receive_handle);
+
+    future::join_all(future_handles).await;
 }
 
 /// Show the configuration file

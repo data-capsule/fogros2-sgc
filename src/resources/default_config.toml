@@ -5,7 +5,7 @@ tcp_port = "9997"
 dtls_port = "9232"
 grpc_port = "50051"
 default_gateway = "128.32.37.48:9997"
-[ros]
+[[ros]]
 local = "pub"
 node_name = "GDP_Router"
 topic_name = "/chatter"
