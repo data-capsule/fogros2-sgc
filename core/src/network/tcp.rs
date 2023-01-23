@@ -1,13 +1,14 @@
 use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet};
 use crate::structs::{GDPChannel, GDPPacket, Packet, GdpAction};
 use std::io;
+use std::mem::size_of;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, Sender, Receiver};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
 use crate::structs::GDPName;
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
 use crate::structs::get_gdp_name_from_topic;
-const UDP_BUFFER_SIZE: usize = 31480; // 17480 17kb TODO: make it formal
+const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 use serde::{Serialize, Deserialize};
 use crate::structs::GDPPacketInTransit;
 use crate::pipeline::construct_gdp_forward_from_bytes;
@@ -36,8 +37,16 @@ async fn handle_tcp_stream(
 ) {
     // ...
     
-    // TODO: placeholder, later replace with packet parsing
+    // init variables
 
+    let mut received_header_yet = false; 
+    let mut gdp_header:GDPPacketInTransit = GDPPacketInTransit{
+        action : GdpAction::Noop,
+        destination: GDPName([0u8,0,0,0]),
+        length: 0,  //doesn't have any payload
+    };
+    let mut read_payload_size:usize = 0;
+    let mut gdp_payload:Vec<u8> = vec!();
     loop {
         // Wait for the TCP socket to be readable
         // or new data to be sent
@@ -47,27 +56,58 @@ async fn handle_tcp_stream(
                 // Creating the buffer **after** the `await` prevents it from
                 // being stored in the async task.
 
-                let mut buf = vec![0u8; UDP_BUFFER_SIZE];
-                let mut buffer_size = 0;
+                let mut receiving_buf = vec![0u8; UDP_BUFFER_SIZE];
+
                 // Try to read data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
-                match stream.try_read(&mut buf) {
+                match stream.try_read(&mut receiving_buf) {
                     Ok(0) => break,
-                    Ok(n) => {
-                        println!("read {} bytes", n);
-                        buffer_size = n;
-                    }
+                    Ok(receiving_buf_size) => {
+                        println!("read {} bytes", receiving_buf_size);
+                        match received_header_yet {
+                            true => {
+                                gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
+                                read_payload_size += receiving_buf_size;
+                                if read_payload_size < gdp_header.length {
+                                    continue;
+                                }
+                            }, 
+                            false => {
+                                let received_buffer = &receiving_buf[..receiving_buf_size];
+                                let json_string:&str = std::str::from_utf8(received_buffer).unwrap();
+                                // use the first null byte \0 as delimiter
+                                let header_and_remaining: Vec<&str> = json_string.splitn(2, |c| c == '\0').collect();
+                                let header = header_and_remaining[0];
+                                let mut payload = header_and_remaining[1];
+                                info!("received header {:?}", header);
+                                // parse header from json
+                                gdp_header = serde_json::from_str::<GDPPacketInTransit>(header).unwrap().clone();
+                                received_header_yet = true;
+
+                                // append the rest of the payload to the payload buffer
+                                read_payload_size += payload.len();
+                                gdp_payload.append(&mut payload.as_bytes().to_vec());
+                                info!("received payload with size {:}",  payload.len());
+                                if read_payload_size < gdp_header.length {
+                                    continue;
+                                }
+                            }
+                        };
+                    },
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
-                    }
+                    },
                     Err(_e) => {
                         continue;
                     }
                 }
 
-                let deserialized:GDPPacketInTransit = serde_json::from_str(std::str::from_utf8(&buf[..buffer_size]).unwrap()).unwrap();
+                info!("the total received payload with size {:} and size {} with gdp header length {}",  gdp_payload.len(), read_payload_size, gdp_header.length);
+
+                let deserialized = gdp_header; //TODO: change the var name here
+                
                 if (deserialized.action == GdpAction::Forward) {
-                    let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, vec!()); //todo
+                    let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, gdp_payload); //todo
                     proc_gdp_packet(packet,  // packet
                         rib_tx,  //used to send packet to rib
                         channel_tx, // used to send GDPChannel to rib
@@ -86,6 +126,9 @@ async fn handle_tcp_stream(
                     info!("TCP received a packet but did not handle: {:?}", deserialized)
                 }
 
+                read_payload_size = 0;
+                gdp_payload = vec!();
+                received_header_yet = false; 
             },
 
             // new data to send to TCP!
