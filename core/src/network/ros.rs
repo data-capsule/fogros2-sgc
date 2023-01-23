@@ -123,6 +123,57 @@ pub async fn ros_subscriber(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPCha
     }
 }
 
+#[cfg(feature = "ros")]
+pub async fn ros_subscriber_image(rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>, 
+    node_name:String, topic_name:String, topic_type: String)  {
+
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
+    info!("ROS {} takes gdp name {:?}",node_name, node_gdp_name);
+
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name));
+    info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
+
+    let (m_tx, mut m_rx) = mpsc::channel::<GDPPacket>(32);
+    let ctx = r2r::Context::create().expect("context creation failure");
+    let mut node =
+        r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
+    let mut subscriber = node
+        .subscribe::<r2r::sensor_msgs::msg::CompressedImage>(&topic_name, QosProfile::default())
+        .expect("topic subscribing failure");
+
+    let handle = tokio::task::spawn_blocking(move || loop {
+        node.spin_once(std::time::Duration::from_millis(100));
+    });
+
+    // note that different from other connection ribs, we send advertisement ahead of time
+    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
+    proc_gdp_packet(
+        node_advertisement, // packet
+        &rib_tx,            //used to send packet to rib
+        &channel_tx,        // used to send GDPChannel to rib
+        &m_tx,              //the sending handle of this connection
+    )
+    .await;
+
+    loop {
+        tokio::select! {
+            Some(packet) = subscriber.next() => {
+
+                let ros_msg = packet.data;
+                info!("received a ROS packet");
+
+                let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
+                proc_gdp_packet(packet,  // packet
+                    &rib_tx,  //used to send packet to rib
+                    &channel_tx, // used to send GDPChannel to rib
+                    &m_tx //the sending handle of this connection
+                ).await;
+
+            }
+        }
+    }
+}
+
 
 #[cfg(feature = "ros")]
 pub fn ros_sample() -> Result<(), Box<dyn std::error::Error>> {

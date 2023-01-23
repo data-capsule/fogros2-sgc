@@ -125,13 +125,15 @@ impl fmt::Display for GDPPacket {
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
         if let Some(payload) = &self.payload {
+            let ret = match std::str::from_utf8(&payload) {
+                Ok(payload) => payload.trim_matches(char::from(0)),
+                Err(_) => "unable to render",
+            };
             write!(
                 f,
                 "{:?}: {:?}",
                 self.gdpname,
-                std::str::from_utf8(&payload)
-                    .expect("parsing failure")
-                    .trim_matches(char::from(0))
+                ret
             )
         } else if let Some(payload) = &self.proto {
             write!(f, "{:?}: {:?}", self.gdpname, payload)

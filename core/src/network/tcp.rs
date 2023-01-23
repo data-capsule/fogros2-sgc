@@ -93,7 +93,7 @@ async fn handle_tcp_stream(
                 // okay this may have deadlock
                 stream.writable().await.expect("TCP stream is closed");
 
-                info!("TCP packet to forward: {:?}", pkt_to_forward);
+                //info!("TCP packet to forward: {:?}", pkt_to_forward);
                 let payload = pkt_to_forward.get_serialized();
                 // Convert the Point to a JSON string.
                 // Try to write data, this may still fail with `WouldBlock`

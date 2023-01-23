@@ -2,6 +2,7 @@ extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
+use crate::network::ros::ros_subscriber_image;
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -32,7 +33,7 @@ async fn router_async_loop() {
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
     let tcp_bind_addr = format!("{}:{}", all_addr, config.tcp_port);
     let dtls_bind_addr = format!("{}:{}", all_addr, config.dtls_port);
-    let grpc_bind_addr = format!("{}:{}", all_addr, config.grpc_port);
+    // let grpc_bind_addr = format!("{}:{}", all_addr, config.grpc_port);
 
     // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib
     let (rib_tx, rib_rx) = mpsc::channel(config.channel_size);
@@ -55,12 +56,15 @@ async fn router_async_loop() {
     ));
     future_handles.push(dtls_sender_handle);
 
-    let peer_advertisement = tokio::spawn(tcp_to_peer(
-        config.default_gateway.into(),
-        rib_tx.clone(),
-        channel_tx.clone(),
-    ));
-    future_handles.push(peer_advertisement);
+    if (config.peer_with_gateway){
+        let peer_advertisement = tokio::spawn(tcp_to_peer(
+            config.default_gateway.into(),
+            rib_tx.clone(),
+            channel_tx.clone(),
+        ));
+        future_handles.push(peer_advertisement);
+    }
+
 
     // grpc
     // TODO: uncomment for grpc
@@ -91,14 +95,28 @@ async fn router_async_loop() {
     for ros_config in config.ros {
         let ros_handle = match ros_config.local.as_str() {
             "pub" => {
-                tokio::spawn(
-                    ros_subscriber(
-                        rib_tx.clone(), channel_tx.clone(), 
-                        ros_config.node_name, 
-                        ros_config.topic_name, 
-                        ros_config.topic_type
-                    )
-                )
+                match ros_config.topic_type.as_str() {
+                    "sensor_msgs/msg/CompressedImage" => {
+                        tokio::spawn(
+                            ros_subscriber_image(
+                                rib_tx.clone(), channel_tx.clone(), 
+                                ros_config.node_name, 
+                                ros_config.topic_name, 
+                                ros_config.topic_type
+                            )
+                        )
+                    }
+                    _ => {
+                        tokio::spawn(
+                            ros_subscriber(
+                                rib_tx.clone(), channel_tx.clone(), 
+                                ros_config.node_name, 
+                                ros_config.topic_name, 
+                                ros_config.topic_type
+                            )
+                        )
+                    }
+                }
             }
             _ => {tokio::spawn(
                 ros_publisher(

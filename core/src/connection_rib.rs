@@ -25,13 +25,12 @@ pub async fn connection_router(
                 // GDP packet received
                 // recv () -> find_where_to_route() -> route()
                 Some(pkt) = rib_rx.recv() => {
-                    info!("forwarder received: {pkt}");
+                    // info!("forwarder received: {pkt}");
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
                         Some(routing_dst) => {
-                            
-                            //routing_dst.send(pkt).await.expect("RIB: remote connection closed");
+                            // routing_dst.channel.send(pkt).await.expect("RIB: remote connection closed");
                             for dst in coonection_rib_table.values(){
                                 info!("data from {} send to {}", pkt.source, dst.advertisement.source);
                                 if (dst.advertisement.source == pkt.source){
