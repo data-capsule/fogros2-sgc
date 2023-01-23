@@ -95,8 +95,11 @@ async fn handle_tcp_stream(
 
                 //info!("TCP packet to forward: {:?}", pkt_to_forward);
                 let transit_header = pkt_to_forward.get_header();
-                let header_string = serde_json::to_string(&transit_header).unwrap();
+                let mut header_string = serde_json::to_string(&transit_header).unwrap();
                 info!("the final serialized size is {}", header_string.len());
+
+                //insert the first null byte to separate the packet header
+                header_string.push(0u8 as char);
                 // Convert the Point to a JSON string.
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
