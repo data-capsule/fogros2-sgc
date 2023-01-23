@@ -70,7 +70,7 @@ pub(crate) trait Packet {
     /// get serialized byte array of the packet
     fn get_byte_payload(&self) -> Option<&Vec<u8>>;
 
-    fn get_serialized(&self) -> String;
+    fn get_header(&self) -> GDPPacketInTransit;
 }
 
 
@@ -91,7 +91,7 @@ pub struct GDPPacket {
 pub struct GDPPacketInTransit {
     pub action: GdpAction,
     pub destination: GDPName,
-    pub payload: Option<Vec<u8>>,
+    pub length: usize, 
 }
 
 impl Packet for GDPPacket {
@@ -107,13 +107,26 @@ impl Packet for GDPPacket {
             None => None, //TODO
         }
     }
-    fn get_serialized(&self) -> String {
-        let transit_packet = GDPPacketInTransit{
-            action : self.action,
-            destination: self.gdpname,
-            payload: self.payload.clone(), 
-        }; 
-        serde_json::to_string(&transit_packet).unwrap()
+    fn get_header(&self) -> GDPPacketInTransit {
+        let transit_packet = 
+        match &self.payload {
+            Some(payload) => {
+                GDPPacketInTransit{
+                    action : self.action,
+                    destination: self.gdpname,
+                    length: payload.len(), 
+                }
+            },
+            None => {
+                GDPPacketInTransit{
+                    action : self.action,
+                    destination: self.gdpname,
+                    length: 0,  //doesn't have any payload
+                }
+            },
+        };
+        // serde_json::to_string(&transit_packet).unwrap()
+        transit_packet
     }
 }
 

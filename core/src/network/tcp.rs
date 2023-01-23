@@ -67,7 +67,7 @@ async fn handle_tcp_stream(
 
                 let deserialized:GDPPacketInTransit = serde_json::from_str(std::str::from_utf8(&buf[..buffer_size]).unwrap()).unwrap();
                 if (deserialized.action == GdpAction::Forward) {
-                    let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, deserialized.payload.unwrap());
+                    let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, vec!()); //todo
                     proc_gdp_packet(packet,  // packet
                         rib_tx,  //used to send packet to rib
                         channel_tx, // used to send GDPChannel to rib
@@ -94,11 +94,13 @@ async fn handle_tcp_stream(
                 stream.writable().await.expect("TCP stream is closed");
 
                 //info!("TCP packet to forward: {:?}", pkt_to_forward);
-                let payload = pkt_to_forward.get_serialized();
+                let transit_header = pkt_to_forward.get_header();
+                let header_string = serde_json::to_string(&transit_header).unwrap();
+                info!("the final serialized size is {}", header_string.len());
                 // Convert the Point to a JSON string.
                 // Try to write data, this may still fail with `WouldBlock`
                 // if the readiness event is a false positive.
-                match stream.try_write(payload.as_bytes()) {
+                match stream.try_write(header_string.as_bytes()) {
                     Ok(n) => {
                         println!("write {} bytes", n);
                     }
@@ -108,6 +110,20 @@ async fn handle_tcp_stream(
                     Err(_e) => {
                         println!("Err of other kind");
                         continue
+                    }
+                }
+                if let Some(payload) = pkt_to_forward.payload {
+                    match stream.try_write(&payload) {
+                        Ok(n) => {
+                            println!("payload with size {}: write {} bytes", payload.len(), n);
+                        }
+                        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                            continue
+                        }
+                        Err(_e) => {
+                            println!("Err of other kind");
+                            continue
+                        }
                     }
                 }
             },
