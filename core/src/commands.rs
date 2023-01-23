@@ -2,7 +2,6 @@ extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
-use crate::network::ros::ros_subscriber_image;
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -17,6 +16,8 @@ use crate::network::grpc::GDPService;
 
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_subscriber, ros_sample, ros_publisher};
+#[cfg(feature = "ros")]
+use crate::network::ros::ros_subscriber_image;
 // const TCP_ADDR: &'static str = "127.0.0.1:9997";
 // const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 // const GRPC_ADDR: &'static str = "0.0.0.0:50001";

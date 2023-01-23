@@ -7,7 +7,7 @@ use std::{net::SocketAddr, pin::Pin, str::FromStr};
 use crate::structs::GDPName;
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
 use crate::structs::get_gdp_name_from_topic;
-const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
+const UDP_BUFFER_SIZE: usize = 31480; // 17480 17kb TODO: make it formal
 use serde::{Serialize, Deserialize};
 use crate::structs::GDPPacketInTransit;
 use crate::pipeline::construct_gdp_forward_from_bytes;
@@ -139,7 +139,16 @@ pub async fn tcp_to_peer(addr: String,
     rib_tx: Sender<GDPPacket>,
     channel_tx: Sender<GDPChannel>) {
     
-    let stream = TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await.unwrap();
+    let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
+        Ok(s) => {
+            s
+        },
+        Err(_) => {
+            error!("TCP: Unable to connect to the dafault gateway {}", addr);
+            return;
+        },
+    };
+
     println!("{:?}", stream);
 
     let m_gdp_name = generate_random_gdp_name_for_thread(); 

@@ -3,6 +3,17 @@ use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
 use tokio::sync::mpsc::{Receiver, Sender};
 
+async fn send_to_destination(channel:tokio::sync::mpsc::Sender<GDPPacket>, packet:GDPPacket){
+    let result = channel.send(packet).await;
+    match result {
+        Ok(_) => {},
+        Err(_) => {
+            warn!("Send Failure: channel sent to destination is closed");
+        },
+    }
+}
+
+
 /// receive, check, and route GDP messages
 ///
 /// receive from a pool of receiver connections (one per interface)
@@ -36,7 +47,7 @@ pub async fn connection_router(
                                 if (dst.advertisement.source == pkt.source){
                                     continue;
                                 }
-                                dst.channel.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                                send_to_destination(dst.channel.clone(), pkt.clone()).await;
                             }
                         }
                         None => {
@@ -46,7 +57,7 @@ pub async fn connection_router(
                                 if (dst.advertisement.source == pkt.source){
                                     continue;
                                 }
-                                dst.channel.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                                send_to_destination(dst.channel.clone(), pkt.clone()).await;
                             }
                         }
                     }
@@ -61,7 +72,7 @@ pub async fn connection_router(
                         if (dst.advertisement.source == channel.advertisement.source){
                             continue;
                         }
-                        dst.channel.send(channel.advertisement.clone()).await.expect("RIB: remote connection closed");
+                        send_to_destination(dst.channel.clone(), channel.advertisement.clone()).await;
                     }
                     // coonection_rib_table.insert(
                     //     channel.gdpname,
