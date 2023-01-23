@@ -87,7 +87,7 @@ pub struct GDPPacket {
     pub source: GDPName,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct GDPPacketInTransit {
     pub action: GdpAction,
     pub destination: GDPName,
