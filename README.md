@@ -4,10 +4,11 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [How to build](#how-to-build)
-  - [(Optional) Install grpcurl](#optional-install-grpcurl)
-  - [grpc](#grpc)
-- [TODOs](#todos)
+- [Installation](#installation)
+- [Install dependencies](#install-dependencies)
+  - [(Optional) ROS](#optional-ros)
+- [Build the repo](#build-the-repo)
+- [Run Demo Image Transport](#run-demo-image-transport)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
