@@ -9,4 +9,4 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 COPY . .
 
 # Build the project
-RUN cargo build --release
+RUN bash -c 'source /opt/ros/rolling/setup.bash; cargo build --release' 
