@@ -33,5 +33,5 @@ fn verify_set() {
     AppConfig::set("database.url", "new url").unwrap();
 
     // Fetch a new instance of Config
-    let config = AppConfig::fetch().unwrap();
+    let _config = AppConfig::fetch().unwrap();
 }

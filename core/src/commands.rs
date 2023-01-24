@@ -1,23 +1,23 @@
 extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
-use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
+use crate::network::dtls::{dtls_listener, dtls_test_client};
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use futures::future;
 use tokio::sync::mpsc::{self};
-use tonic::{transport::Server, Request, Response, Status};
+
 use utils::app_config::AppConfig;
 use utils::error::Result;
 
-use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
-use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
-use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
-use crate::network::grpc::GDPService;
+
+
+
+
 
 #[cfg(feature = "ros")]
-use crate::network::ros::{ros_subscriber, ros_sample, ros_publisher};
+use crate::network::ros::{ros_publisher, ros_sample, ros_subscriber};
 #[cfg(feature = "ros")]
-use crate::network::ros::{ros_subscriber_image, ros_publisher_image};
+use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 // const TCP_ADDR: &'static str = "127.0.0.1:9997";
 // const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 // const GRPC_ADDR: &'static str = "0.0.0.0:50001";
@@ -41,7 +41,7 @@ async fn router_async_loop() {
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
     let (channel_tx, channel_rx) = mpsc::unbounded_channel();
     // stat_tx <GdpUpdate proto>: any status update from other routers
-    let (stat_tx, stat_rx) = mpsc::unbounded_channel();
+    let (_stat_tx, stat_rx) = mpsc::unbounded_channel();
 
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
@@ -57,7 +57,7 @@ async fn router_async_loop() {
     ));
     future_handles.push(dtls_sender_handle);
 
-    if (config.peer_with_gateway){
+    if config.peer_with_gateway {
         let peer_advertisement = tokio::spawn(tcp_to_peer(
             config.default_gateway.into(),
             rib_tx.clone(),
@@ -65,7 +65,6 @@ async fn router_async_loop() {
         ));
         future_handles.push(peer_advertisement);
     }
-
 
     // grpc
     // TODO: uncomment for grpc
@@ -95,58 +94,41 @@ async fn router_async_loop() {
     #[cfg(feature = "ros")]
     for ros_config in config.ros {
         let ros_handle = match ros_config.local.as_str() {
-            "pub" => {
-                match ros_config.topic_type.as_str() {
-                    "sensor_msgs/msg/CompressedImage" => {
-                        tokio::spawn(
-                            ros_subscriber_image(
-                                rib_tx.clone(), channel_tx.clone(), 
-                                ros_config.node_name, 
-                                ros_config.topic_name, 
-                                ros_config.topic_type
-                            )
-                        )
-                    }
-                    _ => {
-                        tokio::spawn(
-                            ros_subscriber(
-                                rib_tx.clone(), channel_tx.clone(), 
-                                ros_config.node_name, 
-                                ros_config.topic_name, 
-                                ros_config.topic_type
-                            )
-                        )
-                    }
-                }
-            }
-            _ => {
-                match ros_config.topic_type.as_str() {
-                    "sensor_msgs/msg/CompressedImage" => {
-                        tokio::spawn(
-                            ros_publisher_image(
-                                rib_tx.clone(), channel_tx.clone(), 
-                                ros_config.node_name, 
-                                ros_config.topic_name, 
-                                ros_config.topic_type
-                            )
-                        )
-                    },
-                    _ => {
-                        tokio::spawn(
-                            ros_publisher(
-                                rib_tx.clone(), channel_tx.clone(), 
-                                ros_config.node_name, 
-                                ros_config.topic_name, 
-                                ros_config.topic_type
-                            )
-                        )
-                    }
-                }
-            }
+            "pub" => match ros_config.topic_type.as_str() {
+                "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
+                    rib_tx.clone(),
+                    channel_tx.clone(),
+                    ros_config.node_name,
+                    ros_config.topic_name,
+                    ros_config.topic_type,
+                )),
+                _ => tokio::spawn(ros_subscriber(
+                    rib_tx.clone(),
+                    channel_tx.clone(),
+                    ros_config.node_name,
+                    ros_config.topic_name,
+                    ros_config.topic_type,
+                )),
+            },
+            _ => match ros_config.topic_type.as_str() {
+                "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
+                    rib_tx.clone(),
+                    channel_tx.clone(),
+                    ros_config.node_name,
+                    ros_config.topic_name,
+                    ros_config.topic_type,
+                )),
+                _ => tokio::spawn(ros_publisher(
+                    rib_tx.clone(),
+                    channel_tx.clone(),
+                    ros_config.node_name,
+                    ros_config.topic_name,
+                    ros_config.topic_type,
+                )),
+            },
         };
         future_handles.push(ros_handle);
     }
-
 
     future::join_all(future_handles).await;
 }

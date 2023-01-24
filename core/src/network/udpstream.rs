@@ -1,3 +1,5 @@
+
+use std::future::Future;
 /// The code is vendored and adapted from
 /// https://github.com/SajjadPourali/udp-stream
 /// udp-stream == 0.3.0
@@ -6,13 +8,11 @@
 use std::{
     collections::HashMap,
     io::{self},
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
 };
-use local_ip_address::local_ip;
-use std::future::Future;
 use tokio::{
     io::{AsyncRead, AsyncWrite, ReadBuf},
     net::UdpSocket,

@@ -1,18 +1,17 @@
 use crate::gdp_proto::GdpUpdate;
 use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
-use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-async fn send_to_destination(channel:UnboundedSender<GDPPacket>, packet:GDPPacket){
+async fn send_to_destination(channel: UnboundedSender<GDPPacket>, packet: GDPPacket) {
     let result = channel.send(packet);
     match result {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(_) => {
             warn!("Send Failure: channel sent to destination is closed");
-        },
+        }
     }
 }
-
 
 /// receive, check, and route GDP messages
 ///
@@ -39,15 +38,15 @@ pub async fn connection_router(
                 Some(pkt) = rib_rx.recv() => {
                     counter += 1;
                     info!("RIB received the packet #{}", counter);
-                    
+
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
-                        Some(routing_dst) => {
+                        Some(_routing_dst) => {
                             // routing_dst.channel.send(pkt).await.expect("RIB: remote connection closed");
                             for dst in coonection_rib_table.values(){
                                 info!("data from {} send to {}", pkt.source, dst.advertisement.source);
-                                if (dst.advertisement.source == pkt.source){
+                                if dst.advertisement.source == pkt.source {
                                     continue;
                                 }
                                 send_to_destination(dst.channel.clone(), pkt.clone()).await;
@@ -57,7 +56,7 @@ pub async fn connection_router(
                             info!("{:} is not there, broadcasting...", pkt.gdpname);
                             for dst in coonection_rib_table.values(){
                                 info!("data from {} send to {}", pkt.source, dst.advertisement.source);
-                                if (dst.advertisement.source == pkt.source){
+                                if dst.advertisement.source == pkt.source {
                                     continue;
                                 }
                                 send_to_destination(dst.channel.clone(), pkt.clone()).await;
@@ -72,7 +71,7 @@ pub async fn connection_router(
                     info!("broadcasting...");
                     for dst in coonection_rib_table.values(){
                         info!("advertisement of {} is sent to channel {}",dst.advertisement.source, channel.advertisement.source);
-                        if (dst.advertisement.source == channel.advertisement.source){
+                        if dst.advertisement.source == channel.advertisement.source {
                             continue;
                         }
                         send_to_destination(dst.channel.clone(), channel.advertisement.clone()).await;
@@ -84,10 +83,10 @@ pub async fn connection_router(
                     coonection_rib_table.insert(
                         channel.gdpname,
                         channel
-                    );           
+                    );
                 },
 
-                Some(update) = stat_rs.recv() => {
+                Some(_update) = stat_rs.recv() => {
                     //TODO: update rib here
                 }
             }

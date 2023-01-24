@@ -9,9 +9,9 @@ use openssl::{
 };
 
 use crate::structs::{GDPChannel, GDPPacket, Packet};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc::{self, UnboundedSender};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const UDP_BUFFER_SIZE: usize = 4096; // 17kb
 
@@ -95,12 +95,13 @@ pub async fn dtls_listener(
     }
 }
 
-
-pub async fn dtls_to_peer(addr: String, 
-    rib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>) {
-    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
-    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap()).await.unwrap();
+pub async fn dtls_to_peer(
+    addr: String, _rib_tx: UnboundedSender<GDPPacket>, _channel_tx: UnboundedSender<GDPChannel>,
+) {
+    // let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
+        .await
+        .unwrap();
     println!("{:?}", stream);
 
     // setup ssl
@@ -126,25 +127,25 @@ pub async fn dtls_to_peer(addr: String,
     //     stream.write_all(&payload[..payload.len()]).await.unwrap();
     // }
 
-        // split the stream into read half and write half
-        let (mut rd, mut wr) = tokio::io::split(stream);
+    // split the stream into read half and write half
+    let (mut rd, mut wr) = tokio::io::split(stream);
 
-        // read: separate thread
-        let _dtls_sender_handle = tokio::spawn(async move {
-            loop {
-                let mut buf = vec![0u8; 1024];
-                let n = rd.read(&mut buf).await.unwrap();
-                print!("-> {}", String::from_utf8_lossy(&buf[..n]));
-            }
-        });
-    
+    // read: separate thread
+    let _dtls_sender_handle = tokio::spawn(async move {
         loop {
-            let mut buffer = String::new();
-            std::io::stdin().read_line(&mut buffer).unwrap();
-            wr.write_all(buffer.as_bytes()).await.unwrap();
+            let mut buf = vec![0u8; 1024];
+            let n = rd.read(&mut buf).await.unwrap();
+            print!("-> {}", String::from_utf8_lossy(&buf[..n]));
         }
+    });
 
+    loop {
+        let mut buffer = String::new();
+        std::io::stdin().read_line(&mut buffer).unwrap();
+        wr.write_all(buffer.as_bytes()).await.unwrap();
+    }
 
+    /* 
     loop {
         // TODO:
         // Question: what's the bahavior here, will it keep allocating memory?
@@ -171,8 +172,7 @@ pub async fn dtls_to_peer(addr: String,
                 ).await;
             },
         }
-    }
-
+    }*/
 }
 
 #[tokio::main]

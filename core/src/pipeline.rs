@@ -1,9 +1,11 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use tokio::sync::mpsc::{Sender, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedSender};
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
-pub fn construct_gdp_forward_from_bytes(destination: GDPName, source: GDPName, buffer: Vec<u8>) -> GDPPacket {
+pub fn construct_gdp_forward_from_bytes(
+    destination: GDPName, source: GDPName, buffer: Vec<u8>,
+) -> GDPPacket {
     GDPPacket {
         action: GdpAction::Forward,
         gdpname: destination,
@@ -51,7 +53,7 @@ pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
         gdpname: m_gdp_name,
         payload: Some(buffer),
         proto: None,
-        source: GDPName([0,0,0,0]),
+        source: GDPName([0, 0, 0, 0]),
     }
 }
 
@@ -80,9 +82,9 @@ pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
 ///
 pub async fn proc_gdp_packet(
     gdp_packet: GDPPacket,
-    rib_tx: &UnboundedSender<GDPPacket>,      //used to send packet to rib
+    rib_tx: &UnboundedSender<GDPPacket>, //used to send packet to rib
     channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to rib
-    m_tx: &UnboundedSender<GDPPacket>,        //the sending handle of this connection
+    m_tx: &UnboundedSender<GDPPacket>,   //the sending handle of this connection
 ) {
     // Vec<u8> to GDP Packet
     // let gdp_packet = populate_gdp_struct(packet);
@@ -103,9 +105,7 @@ pub async fn proc_gdp_packet(
         }
         GdpAction::Forward => {
             //send the packet to RIB
-            rib_tx
-                .send(gdp_packet)
-                .expect("rib_tx channel closed!");
+            rib_tx.send(gdp_packet).expect("rib_tx channel closed!");
         }
         GdpAction::RibGet => {
             // handle rib query by responding with the RIB item

@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
-use tokio::sync::mpsc::UnboundedSender;
 use std::fmt;
 use strum_macros::EnumIter;
+use tokio::sync::mpsc::UnboundedSender;
 pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
 
 pub type GdpName = [u8; 32];
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, Hash, EnumIter)]
 pub enum GdpAction {
     Noop = 0,
@@ -56,7 +56,7 @@ impl From<u16be> for u16 {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize,Hash, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, Hash, Default)]
 pub struct GDPName(pub [u8; 4]); //256 bit destination
 impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -73,7 +73,6 @@ pub(crate) trait Packet {
 
     fn get_header(&self) -> GDPPacketInTransit;
 }
-
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct GDPPacket {
@@ -92,7 +91,7 @@ pub struct GDPPacket {
 pub struct GDPPacketInTransit {
     pub action: GdpAction,
     pub destination: GDPName,
-    pub length: usize, 
+    pub length: usize,
 }
 
 impl Packet for GDPPacket {
@@ -109,22 +108,19 @@ impl Packet for GDPPacket {
         }
     }
     fn get_header(&self) -> GDPPacketInTransit {
-        let transit_packet = 
-        match &self.payload {
-            Some(payload) => {
-                GDPPacketInTransit{
-                    action : self.action,
-                    destination: self.gdpname,
-                    length: payload.len(), 
-                }
+        let transit_packet = match &self.payload {
+            Some(payload) => GDPPacketInTransit {
+                action: self.action,
+                destination: self.gdpname,
+                length: payload.len(),
             },
             None => {
-                GDPPacketInTransit{
-                    action : self.action,
+                GDPPacketInTransit {
+                    action: self.action,
                     destination: self.gdpname,
-                    length: 0,  //doesn't have any payload
+                    length: 0, //doesn't have any payload
                 }
-            },
+            }
         };
         // serde_json::to_string(&transit_packet).unwrap()
         transit_packet
@@ -143,12 +139,7 @@ impl fmt::Display for GDPPacket {
                 Ok(payload) => payload.trim_matches(char::from(0)),
                 Err(_) => "unable to render",
             };
-            write!(
-                f,
-                "{:?}: {:?}",
-                self.gdpname,
-                ret
-            )
+            write!(f, "{:?}: {:?}", self.gdpname, ret)
         } else if let Some(payload) = &self.proto {
             write!(f, "{:?}: {:?}", self.gdpname, payload)
         } else {
@@ -157,7 +148,7 @@ impl fmt::Display for GDPPacket {
     }
 }
 
-use tokio::sync::mpsc::Sender;
+
 #[derive(Debug, Clone)]
 pub struct GDPChannel {
     pub gdpname: GDPName,
@@ -165,9 +156,9 @@ pub struct GDPChannel {
     pub advertisement: GDPPacket,
 }
 
-use sha2::Sha256;
 use sha2::Digest;
-pub fn get_gdp_name_from_topic(topic_name: &str)-> [u8; 4]{
+use sha2::Sha256;
+pub fn get_gdp_name_from_topic(topic_name: &str) -> [u8; 4] {
     // create a Sha256 object
     let mut hasher = Sha256::new();
 

@@ -27,7 +27,6 @@ pub struct ROS {
     pub topic_type: String,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub debug: bool,
@@ -38,7 +37,7 @@ pub struct AppConfig {
     pub grpc_port: String,
     pub peer_with_gateway: bool,
     pub default_gateway: String,
-    pub ros:Vec<ROS>,
+    pub ros: Vec<ROS>,
 }
 
 impl AppConfig {

@@ -10,7 +10,7 @@ pub struct RoutingInformationBase {
 }
 
 impl RoutingInformationBase {
-    pub fn new(config: &AppConfig) -> RoutingInformationBase {
+    pub fn new(_config: &AppConfig) -> RoutingInformationBase {
         // TODO: config can populate the RIB somehow
         let m_gateway_addr = str_to_ipv4(&"localhost".to_owned());
 
