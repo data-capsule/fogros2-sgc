@@ -74,19 +74,24 @@ async fn handle_tcp_stream(
                             }, 
                             false => {
                                 let received_buffer = &receiving_buf[..receiving_buf_size];
-                                let json_string:&str = std::str::from_utf8(received_buffer).unwrap();
                                 // use the first null byte \0 as delimiter
-                                let header_and_remaining: Vec<&str> = json_string.splitn(2, |c| c == '\0').collect();
-                                let header = header_and_remaining[0];
-                                let mut payload = header_and_remaining[1];
-                                info!("received header {:?}", header);
-                                // parse header from json
-                                gdp_header = serde_json::from_str::<GDPPacketInTransit>(header).unwrap().clone();
-                                received_header_yet = true;
+                                // split to the first /0 as delimiter
+                                info!("received buffer: {:?}", received_buffer);
+                                let header_and_remaining = received_buffer.splitn(2, |c| c == &0).collect::<Vec<_>>();
+                                let header_buf = header_and_remaining[0];
 
+                                let header:&str = std::str::from_utf8(header_buf).unwrap();
+                                info!("received header json string: {:?}", header);
+                                gdp_header = serde_json::from_str::<GDPPacketInTransit>(header).unwrap().clone();
+                                received_header_yet = true;          
+                            
+                                let mut payload = header_and_remaining[1];
+
+                                info!("received header {:?}", payload);
+                                // parse header from json
                                 // append the rest of the payload to the payload buffer
                                 read_payload_size += payload.len();
-                                gdp_payload.append(&mut payload.as_bytes().to_vec());
+                                gdp_payload.append(&mut payload.to_vec());
                                 info!("received payload with size {:}",  payload.len());
                                 if read_payload_size < gdp_header.length {
                                     continue;
