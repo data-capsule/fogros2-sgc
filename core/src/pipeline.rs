@@ -1,5 +1,5 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Sender, UnboundedSender};
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
@@ -80,9 +80,9 @@ pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
 ///
 pub async fn proc_gdp_packet(
     gdp_packet: GDPPacket,
-    rib_tx: &Sender<GDPPacket>,      //used to send packet to rib
-    channel_tx: &Sender<GDPChannel>, // used to send GDPChannel to rib
-    m_tx: &Sender<GDPPacket>,        //the sending handle of this connection
+    rib_tx: &UnboundedSender<GDPPacket>,      //used to send packet to rib
+    channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to rib
+    m_tx: &UnboundedSender<GDPPacket>,        //the sending handle of this connection
 ) {
     // Vec<u8> to GDP Packet
     // let gdp_packet = populate_gdp_struct(packet);
@@ -99,14 +99,12 @@ pub async fn proc_gdp_packet(
             };
             channel_tx
                 .send(channel)
-                .await
                 .expect("channel_tx channel closed!");
         }
         GdpAction::Forward => {
             //send the packet to RIB
             rib_tx
                 .send(gdp_packet)
-                .await
                 .expect("rib_tx channel closed!");
         }
         GdpAction::RibGet => {

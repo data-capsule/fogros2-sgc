@@ -10,7 +10,7 @@ use openssl::{
 
 use crate::structs::{GDPChannel, GDPPacket, Packet};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::mpsc::{self, Sender};
+use tokio::sync::mpsc::{self, UnboundedSender};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const UDP_BUFFER_SIZE: usize = 4096; // 17kb
@@ -40,10 +40,10 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
 ///         incoming dtls packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
 async fn handle_dtls_stream(
-    socket: UdpStream, acceptor: SslContext, rib_tx: &Sender<GDPPacket>,
-    channel_tx: &Sender<GDPChannel>,
+    socket: UdpStream, acceptor: SslContext, rib_tx: &UnboundedSender<GDPPacket>,
+    channel_tx: &UnboundedSender<GDPChannel>,
 ) {
-    let (m_tx, mut m_rx) = mpsc::channel(32);
+    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
     let ssl = Ssl::new(&acceptor).unwrap();
     let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
     Pin::new(&mut stream).accept().await.unwrap();
@@ -78,7 +78,7 @@ async fn handle_dtls_stream(
 }
 
 pub async fn dtls_listener(
-    addr: String, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>,
+    addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) {
     let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
@@ -97,9 +97,9 @@ pub async fn dtls_listener(
 
 
 pub async fn dtls_to_peer(addr: String, 
-    rib_tx: Sender<GDPPacket>,
-    channel_tx: Sender<GDPChannel>) {
-    let (m_tx, mut m_rx) = mpsc::channel(32);
+    rib_tx: UnboundedSender<GDPPacket>,
+    channel_tx: UnboundedSender<GDPChannel>) {
+    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap()).await.unwrap();
     println!("{:?}", stream);
 

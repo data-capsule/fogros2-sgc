@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use tokio::sync::mpsc::UnboundedSender;
 use std::fmt;
 use strum_macros::EnumIter;
 pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
@@ -160,7 +161,7 @@ use tokio::sync::mpsc::Sender;
 #[derive(Debug, Clone)]
 pub struct GDPChannel {
     pub gdpname: GDPName,
-    pub channel: Sender<GDPPacket>,
+    pub channel: UnboundedSender<GDPPacket>,
     pub advertisement: GDPPacket,
 }
 

@@ -1,10 +1,10 @@
 use crate::gdp_proto::GdpUpdate;
 use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
 
-async fn send_to_destination(channel:tokio::sync::mpsc::Sender<GDPPacket>, packet:GDPPacket){
-    let result = channel.send(packet).await;
+async fn send_to_destination(channel:UnboundedSender<GDPPacket>, packet:GDPPacket){
+    let result = channel.send(packet);
     match result {
         Ok(_) => {},
         Err(_) => {
@@ -22,13 +22,14 @@ async fn send_to_destination(channel:tokio::sync::mpsc::Sender<GDPPacket>, packe
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_router(
-    mut rib_rx: Receiver<GDPPacket>, mut stat_rs: Receiver<GdpUpdate>,
-    mut channel_rx: Receiver<GDPChannel>,
+    mut rib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GdpUpdate>,
+    mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
         let mut coonection_rib_table: HashMap<GDPName, GDPChannel> = HashMap::new();
+        let mut counter = 0;
 
         // loop polling from
         loop {
@@ -36,7 +37,9 @@ pub async fn connection_router(
                 // GDP packet received
                 // recv () -> find_where_to_route() -> route()
                 Some(pkt) = rib_rx.recv() => {
-                    // info!("forwarder received: {pkt}");
+                    counter += 1;
+                    info!("RIB received the packet #{}", counter);
+                    
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {

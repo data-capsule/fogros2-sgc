@@ -3,7 +3,7 @@ use crate::structs::{GDPChannel, GDPPacket, Packet, GdpAction};
 use std::io;
 use std::mem::size_of;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc::{self, Sender, Receiver};
+use tokio::sync::mpsc::{self, UnboundedSender, UnboundedReceiver};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
 use crate::structs::GDPName;
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
@@ -31,8 +31,8 @@ fn generate_random_gdp_name_for_thread() -> GDPName{
 ///         incoming tcp packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
 async fn handle_tcp_stream(
-    stream: TcpStream, rib_tx: &Sender<GDPPacket>, channel_tx: &Sender<GDPChannel>,
-    m_tx:Sender<GDPPacket>, mut m_rx:Receiver<GDPPacket>, 
+    stream: TcpStream, rib_tx: &UnboundedSender<GDPPacket>, channel_tx: &UnboundedSender<GDPChannel>,
+    m_tx:UnboundedSender<GDPPacket>, mut m_rx:UnboundedReceiver<GDPPacket>, 
     thread_name: GDPName
 ) {
     // ...
@@ -180,7 +180,7 @@ async fn handle_tcp_stream(
 /// listen at @param address and process on tcp accept()
 ///     rib_tx: channel that send GDPPacket to rib
 ///     channel_tx: channel that advertise GDPChannel to rib
-pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: Sender<GDPChannel>) {
+pub async fn tcp_listener(addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>) {
     let listener = TcpListener::bind(&addr).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
@@ -189,7 +189,7 @@ pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: S
 
         // Process each socket concurrently.
         tokio::spawn(async move { 
-            let (m_tx, mut m_rx) = mpsc::channel(32);
+            let (m_tx, mut m_rx) = mpsc::unbounded_channel();
             handle_tcp_stream(socket, &rib_tx, &channel_tx, m_tx, m_rx, generate_random_gdp_name_for_thread()).await 
         });
     }
@@ -198,8 +198,8 @@ pub async fn tcp_listener(addr: String, rib_tx: Sender<GDPPacket>, channel_tx: S
 
 
 pub async fn tcp_to_peer(addr: String, 
-    rib_tx: Sender<GDPPacket>,
-    channel_tx: Sender<GDPChannel>) {
+    rib_tx: UnboundedSender<GDPPacket>,
+    channel_tx: UnboundedSender<GDPChannel>) {
     
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => {
@@ -216,7 +216,7 @@ pub async fn tcp_to_peer(addr: String,
     let m_gdp_name = generate_random_gdp_name_for_thread(); 
     info!("TCP takes gdp name {:?}", m_gdp_name);
 
-    let (m_tx, mut m_rx) = mpsc::channel(32);
+    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
     let node_advertisement = construct_gdp_advertisement_from_bytes(
         m_gdp_name, m_gdp_name
     );

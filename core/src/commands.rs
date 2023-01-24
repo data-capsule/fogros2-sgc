@@ -37,11 +37,11 @@ async fn router_async_loop() {
     // let grpc_bind_addr = format!("{}:{}", all_addr, config.grpc_port);
 
     // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib
-    let (rib_tx, rib_rx) = mpsc::channel(config.channel_size);
+    let (rib_tx, rib_rx) = mpsc::unbounded_channel();
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
-    let (channel_tx, channel_rx) = mpsc::channel(config.channel_size);
+    let (channel_tx, channel_rx) = mpsc::unbounded_channel();
     // stat_tx <GdpUpdate proto>: any status update from other routers
-    let (stat_tx, stat_rx) = mpsc::channel(config.channel_size);
+    let (stat_tx, stat_rx) = mpsc::unbounded_channel();
 
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
