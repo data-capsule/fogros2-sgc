@@ -17,7 +17,7 @@ use crate::network::grpc::GDPService;
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_subscriber, ros_sample, ros_publisher};
 #[cfg(feature = "ros")]
-use crate::network::ros::ros_subscriber_image;
+use crate::network::ros::{ros_subscriber_image, ros_publisher_image};
 // const TCP_ADDR: &'static str = "127.0.0.1:9997";
 // const DTLS_ADDR: &'static str = "127.0.0.1:9232";
 // const GRPC_ADDR: &'static str = "0.0.0.0:50001";
@@ -119,14 +119,29 @@ async fn router_async_loop() {
                     }
                 }
             }
-            _ => {tokio::spawn(
-                ros_publisher(
-                    rib_tx.clone(), channel_tx.clone(), 
-                    ros_config.node_name, 
-                    ros_config.topic_name, 
-                    ros_config.topic_type
-                )
-            )
+            _ => {
+                match ros_config.topic_type.as_str() {
+                    "sensor_msgs/msg/CompressedImage" => {
+                        tokio::spawn(
+                            ros_publisher_image(
+                                rib_tx.clone(), channel_tx.clone(), 
+                                ros_config.node_name, 
+                                ros_config.topic_name, 
+                                ros_config.topic_type
+                            )
+                        )
+                    },
+                    _ => {
+                        tokio::spawn(
+                            ros_publisher(
+                                rib_tx.clone(), channel_tx.clone(), 
+                                ros_config.node_name, 
+                                ros_config.topic_name, 
+                                ros_config.topic_type
+                            )
+                        )
+                    }
+                }
             }
         };
         future_handles.push(ros_handle);
