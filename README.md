@@ -6,6 +6,7 @@
 
 - [Installation](#installation)
 - [Install dependencies](#install-dependencies)
+  - [Install Rust](#install-rust)
   - [(Optional) ROS](#optional-ros)
 - [Build the repo](#build-the-repo)
 - [Run Demo Image Transport](#run-demo-image-transport)
