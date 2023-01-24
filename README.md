@@ -19,6 +19,16 @@
 sudo apt update
 sudo apt install build-essential curl pkg-config libssl-dev protobuf-compiler clang
 
+#### Install Rust 
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
+```
+and run 
+```
+source "$HOME/.cargo/env"
+```
+to configure the environment variables. 
+
 #### (Optional) ROS 
 If you do not plan to use ROS on the machine and only use the machine as a router or proxy, you need 
 to change the `default = ["ros"]` to `default = []` in `./core/Cargo.toml`. 
