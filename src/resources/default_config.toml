@@ -11,10 +11,5 @@ local = "pub"
 node_name = "GDP_Router"
 topic_name = "/chatter"
 topic_type = "std_msgs/msg/String"
-[[ros]]
-local = "pub"
-node_name = "GDP_Router_for_image"
-topic_name = "/Image"
-topic_type = "sensor_msgs/msg/CompressedImage"
 [database]
 url = "custom database url"
