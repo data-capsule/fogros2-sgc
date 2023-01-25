@@ -68,6 +68,8 @@ pub async fn connection_router(
                 // connection rib advertisement received
                 Some(channel) = channel_rx.recv() => {
                     info!("channel registry received {:}", channel.gdpname);
+
+                    /* 
                     info!("broadcasting...");
                     for dst in coonection_rib_table.values(){
                         info!("advertisement of {} is sent to channel {}",dst.advertisement.source, channel.advertisement.source);
@@ -75,7 +77,8 @@ pub async fn connection_router(
                             continue;
                         }
                         send_to_destination(dst.channel.clone(), channel.advertisement.clone()).await;
-                    }
+                    }*/
+                    
                     // coonection_rib_table.insert(
                     //     channel.gdpname,
                     //     channel.channel

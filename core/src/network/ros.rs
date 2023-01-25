@@ -56,7 +56,7 @@ pub async fn ros_publisher(
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
                 if pkt_to_forward.action == GdpAction::Forward {
-                    info!("the payload to publish is {:?}", pkt_to_forward);
+                    info!("new payload to publish ");
                     if pkt_to_forward.gdpname == topic_gdp_name {
                         let payload = pkt_to_forward.get_byte_payload().unwrap();
                         let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
@@ -124,7 +124,7 @@ pub async fn ros_subscriber(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, _topic_type: String,
+    topic_name: String,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
@@ -174,8 +174,10 @@ pub async fn ros_subscriber_image(
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
-    rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, _topic_type: String,
+    rib_tx: UnboundedSender<GDPPacket>, 
+    channel_tx: UnboundedSender<GDPChannel>, 
+    node_name: String,
+    topic_name: String,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
@@ -212,7 +214,7 @@ pub async fn ros_publisher_image(
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
                 if pkt_to_forward.action == GdpAction::Forward {
-                    info!("the payload to publish is {:?}", pkt_to_forward);
+                    info!("new payload to publish");
                     if pkt_to_forward.gdpname == topic_gdp_name {
                         let payload = pkt_to_forward.get_byte_payload().unwrap();
                         let ros_msg:CompressedImage = CompressedImage{

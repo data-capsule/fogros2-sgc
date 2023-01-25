@@ -2,7 +2,7 @@ extern crate tokio;
 extern crate tokio_core;
 use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
-use crate::network::tcp::{tcp_listener, tcp_to_peer};
+use crate::network::tcp::{tcp_listener, tcp_to_peer, tcp_to_peer_direct};
 use futures::future;
 use tokio::sync::mpsc::{self};
 
@@ -54,7 +54,7 @@ async fn router_async_loop() {
 
     if config.peer_with_gateway {
         let peer_advertisement = tokio::spawn(tcp_to_peer(
-            config.default_gateway.into(),
+            config.default_gateway.clone().into(),
             rib_tx.clone(),
             channel_tx.clone(),
         ));
@@ -88,17 +88,30 @@ async fn router_async_loop() {
 
     #[cfg(feature = "ros")]
     for ros_config in config.ros {
+        // This sender handle is a specific connection for ROS 
+        // this is used to diffentiate different channels in ROS topics 
+        let (m_tx, m_rx) = mpsc::unbounded_channel();
+        if config.peer_with_gateway {
+            let ros_peer = tokio::spawn(tcp_to_peer_direct(
+                config.default_gateway.clone().into(),
+                rib_tx.clone(),
+                channel_tx.clone(),
+                m_tx.clone(), 
+                m_rx,
+            ));
+            future_handles.push(ros_peer);
+        }
+
         let ros_handle = match ros_config.local.as_str() {
             "pub" => match ros_config.topic_type.as_str() {
                 "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
-                    rib_tx.clone(),
+                    m_tx.clone(),
                     channel_tx.clone(),
                     ros_config.node_name,
                     ros_config.topic_name,
-                    ros_config.topic_type,
                 )),
                 _ => tokio::spawn(ros_subscriber(
-                    rib_tx.clone(),
+                    m_tx.clone(),
                     channel_tx.clone(),
                     ros_config.node_name,
                     ros_config.topic_name,
@@ -107,14 +120,13 @@ async fn router_async_loop() {
             },
             _ => match ros_config.topic_type.as_str() {
                 "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
-                    rib_tx.clone(),
+                    m_tx.clone(),
                     channel_tx.clone(),
                     ros_config.node_name,
                     ros_config.topic_name,
-                    ros_config.topic_type,
                 )),
                 _ => tokio::spawn(ros_publisher(
-                    rib_tx.clone(),
+                    m_tx.clone(),
                     channel_tx.clone(),
                     ros_config.node_name,
                     ros_config.topic_name,

@@ -105,7 +105,10 @@ pub async fn proc_gdp_packet(
         }
         GdpAction::Forward => {
             //send the packet to RIB
-            rib_tx.send(gdp_packet).expect("rib_tx channel closed!");
+            match rib_tx.send(gdp_packet) {
+                Ok(_) => {},
+                Err(_) => error!("Unable to forward the packet because connection channel or rib is closed"),
+            };
         }
         GdpAction::RibGet => {
             // handle rib query by responding with the RIB item
