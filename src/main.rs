@@ -34,7 +34,11 @@ fn main() -> Result<()> {
     // Initialize Configuration
     let include_path = match env::var_os("GDP_CONFIG") {
         Some(config_file) => {
-            format!("{}{}", "./src/resources/", config_file.into_string().unwrap())
+            format!(
+                "{}{}",
+                "./src/resources/",
+                config_file.into_string().unwrap()
+            )
         }
         None => "./src/resources/demo_robot.toml".to_owned(),
     };

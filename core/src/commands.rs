@@ -88,15 +88,15 @@ async fn router_async_loop() {
 
     #[cfg(feature = "ros")]
     for ros_config in config.ros {
-        // This sender handle is a specific connection for ROS 
-        // this is used to diffentiate different channels in ROS topics 
+        // This sender handle is a specific connection for ROS
+        // this is used to diffentiate different channels in ROS topics
         let (m_tx, m_rx) = mpsc::unbounded_channel();
         if config.peer_with_gateway {
             let ros_peer = tokio::spawn(tcp_to_peer_direct(
                 config.default_gateway.clone().into(),
                 rib_tx.clone(),
                 channel_tx.clone(),
-                m_tx.clone(), 
+                m_tx.clone(),
                 m_rx,
             ));
             future_handles.push(ros_peer);

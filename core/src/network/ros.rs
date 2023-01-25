@@ -174,9 +174,7 @@ pub async fn ros_subscriber_image(
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
-    rib_tx: UnboundedSender<GDPPacket>, 
-    channel_tx: UnboundedSender<GDPChannel>, 
-    node_name: String,
+    rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
     topic_name: String,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));

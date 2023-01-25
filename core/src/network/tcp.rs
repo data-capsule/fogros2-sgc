@@ -236,14 +236,13 @@ pub async fn tcp_to_peer(
     handle_tcp_stream(stream, &rib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
 }
 
-
 /// does not go to rib when peering
 pub async fn tcp_to_peer_direct(
-    addr: String, 
-    rib_tx: UnboundedSender<GDPPacket>, 
+    addr: String,
+    rib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>,
-    peer_tx: UnboundedSender<GDPPacket>,  // used 
-    peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network 
+    peer_tx: UnboundedSender<GDPPacket>,   // used
+    peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => s,
@@ -257,7 +256,6 @@ pub async fn tcp_to_peer_direct(
 
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("TCP connection takes gdp name {:?}", m_gdp_name);
-
 
     handle_tcp_stream(stream, &rib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
 }
