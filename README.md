@@ -54,6 +54,16 @@ whenever you launch a new terminal.
 cargo build
 ```
 
+### Run Demo 
+robot side: 
+```
+GDP_CONFIG=demo_robot.toml cargo run router
+```
+
+cloud side: 
+```
+GDP_CONFIG=demo_cloud.toml cargo run router
+```
 
 ### Run Demo Image Transport
 In the example, we use two machines A and B to show the image transport capability. 

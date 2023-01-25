@@ -37,20 +37,21 @@ pub async fn connection_router(
                 // recv () -> find_where_to_route() -> route()
                 Some(pkt) = rib_rx.recv() => {
                     counter += 1;
-                    info!("RIB received the packet #{}", counter);
+                    info!("RIB received the packet #{} with name {}", counter, &pkt.gdpname);
 
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
-                        Some(_routing_dst) => {
-                            // routing_dst.channel.send(pkt).await.expect("RIB: remote connection closed");
-                            for dst in coonection_rib_table.values(){
-                                info!("data from {} send to {}", pkt.source, dst.advertisement.source);
-                                if dst.advertisement.source == pkt.source {
-                                    continue;
-                                }
-                                send_to_destination(dst.channel.clone(), pkt.clone()).await;
-                            }
+                        Some(routing_dst) => {
+                            info!("data {} from {} send to {}", pkt.gdpname, pkt.source, routing_dst.advertisement.source);
+                            send_to_destination(routing_dst.channel.clone(), pkt).await;
+                            // for dst in coonection_rib_table.values(){
+                            //     info!("data {} from {} send to {}", pkt.gdpname, pkt.source, dst.advertisement.source);
+                            //     if dst.advertisement.source == pkt.source {
+                            //         continue;
+                            //     }
+                            //     send_to_destination(dst.channel.clone(), pkt.clone()).await;s
+                            // }
                         }
                         None => {
                             info!("{:} is not there, broadcasting...", pkt.gdpname);

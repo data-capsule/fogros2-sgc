@@ -74,7 +74,7 @@ async fn handle_tcp_stream(
                                 let received_buffer = &receiving_buf[..receiving_buf_size];
                                 // use the first null byte \0 as delimiter
                                 // split to the first /0 as delimiter
-                                info!("received buffer: {:?}", received_buffer);
+                                info!("received buffer size: {}", receiving_buf_size);
                                 let header_and_remaining = received_buffer.splitn(2, |c| c == &0).collect::<Vec<_>>();
                                 let header_buf = header_and_remaining[0];
 
@@ -85,7 +85,6 @@ async fn handle_tcp_stream(
 
                                 let payload = header_and_remaining[1];
 
-                                info!("received header {:?}", payload);
                                 // parse header from json
                                 // append the rest of the payload to the payload buffer
                                 read_payload_size += payload.len();
