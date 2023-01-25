@@ -228,6 +228,8 @@ pub async fn ros_publisher_image(
                     } else{
                         info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
                     }
+                } else { 
+                    info!("Received a packet of type {:?}, dont do anything", pkt_to_forward.action)
                 }
             },
         }
