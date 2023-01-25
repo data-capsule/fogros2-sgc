@@ -60,7 +60,7 @@ pub async fn ros_publisher(
                     if pkt_to_forward.gdpname == topic_gdp_name {
                         let payload = pkt_to_forward.get_byte_payload().unwrap();
                         let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
-                        info!("the decoded payload to publish is {:?}", ros_msg);
+                        // info!("the decoded payload to publish is {:?}", ros_msg);
                         publisher.publish(ros_msg).unwrap();
                     } else{
                         info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
@@ -223,7 +223,7 @@ pub async fn ros_publisher_image(
                             format: "png".to_owned(),
                             data: payload.to_vec(),
                         };//serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
-                        info!("the decoded payload to publish is {:?}", ros_msg);
+                        // info!("the decoded payload to publish is {:?}", ros_msg);
                         publisher.publish(&ros_msg).unwrap();
                     } else{
                         info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
