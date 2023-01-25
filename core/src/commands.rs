@@ -90,7 +90,7 @@ async fn router_async_loop() {
     for ros_config in config.ros {
         // This sender handle is a specific connection for ROS
         // this is used to diffentiate different channels in ROS topics
-        let (m_tx, m_rx) = mpsc::unbounded_channel();
+        let (mut m_tx, mut m_rx) = mpsc::unbounded_channel();
         if config.peer_with_gateway {
             let ros_peer = tokio::spawn(tcp_to_peer_direct(
                 config.default_gateway.clone().into(),
@@ -100,7 +100,13 @@ async fn router_async_loop() {
                 m_rx,
             ));
             future_handles.push(ros_peer);
-        }
+        } else {
+            // reasoning here: 
+            // m_tx is the next hop that the ros sends messages 
+            // if we don't peer with another router directly
+            // we just forward to rib
+            m_tx = rib_tx.clone(); 
+        }   
 
         let ros_handle = match ros_config.local.as_str() {
             "pub" => match ros_config.topic_type.as_str() {

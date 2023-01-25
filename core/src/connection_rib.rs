@@ -3,12 +3,19 @@ use crate::structs::{GDPChannel, GDPName, GDPPacket};
 use std::collections::HashMap;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-async fn send_to_destination(channel: UnboundedSender<GDPPacket>, packet: GDPPacket) {
-    let result = channel.send(packet);
-    match result {
-        Ok(_) => {}
-        Err(_) => {
-            warn!("Send Failure: channel sent to destination is closed");
+async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
+    for dst in destinations {
+        info!("data {} from {} send to {}", packet.gdpname, packet.source, dst.advertisement.source);
+        if dst.advertisement.source == packet.source {
+            info!("Equal to the source, skipped!");
+            continue;
+        }
+        let result = dst.channel.send(packet.clone());
+        match result {
+            Ok(_) => {}
+            Err(_) => {
+                warn!("Send Failure: channel sent to destination is closed");
+            }
         }
     }
 }
@@ -27,7 +34,7 @@ pub async fn connection_router(
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
-        let mut coonection_rib_table: HashMap<GDPName, GDPChannel> = HashMap::new();
+        let mut coonection_rib_table: HashMap<GDPName, Vec<GDPChannel>> = HashMap::new();
         let mut counter = 0;
 
         // loop polling from
@@ -42,9 +49,8 @@ pub async fn connection_router(
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
-                        Some(routing_dst) => {
-                            info!("data {} from {} send to {}", pkt.gdpname, pkt.source, routing_dst.advertisement.source);
-                            send_to_destination(routing_dst.channel.clone(), pkt).await;
+                        Some(routing_dsts) => {
+                            send_to_destination(routing_dsts.clone(), pkt).await;
                             // for dst in coonection_rib_table.values(){
                             //     info!("data {} from {} send to {}", pkt.gdpname, pkt.source, dst.advertisement.source);
                             //     if dst.advertisement.source == pkt.source {
@@ -55,12 +61,8 @@ pub async fn connection_router(
                         }
                         None => {
                             info!("{:} is not there, broadcasting...", pkt.gdpname);
-                            for dst in coonection_rib_table.values(){
-                                info!("data from {} send to {}", pkt.source, dst.advertisement.source);
-                                if dst.advertisement.source == pkt.source {
-                                    continue;
-                                }
-                                send_to_destination(dst.channel.clone(), pkt.clone()).await;
+                            for routing_dsts in coonection_rib_table.values(){
+                                send_to_destination(routing_dsts.clone(), pkt.clone()).await;
                             }
                         }
                     }
@@ -84,10 +86,20 @@ pub async fn connection_router(
                     //     channel.gdpname,
                     //     channel.channel
                     // );
-                    coonection_rib_table.insert(
-                        channel.gdpname,
-                        channel
-                    );
+                    match  coonection_rib_table.get_mut(&channel.gdpname) {
+                        Some(v) => {
+                            info!("adding to connection rib vec");
+                            v.push(channel)
+                        }
+                        None =>{
+                            info!("Creating a new vec of gdp name");
+                            coonection_rib_table.insert(
+                                channel.gdpname,
+                                vec!(channel),
+                            );
+                        }
+                    };
+                    
                 },
 
                 Some(_update) = stat_rs.recv() => {
