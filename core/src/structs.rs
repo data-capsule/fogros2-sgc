@@ -148,7 +148,6 @@ impl fmt::Display for GDPPacket {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct GDPChannel {
     pub gdpname: GDPName,

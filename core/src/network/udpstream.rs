@@ -1,4 +1,3 @@
-
 use std::future::Future;
 /// The code is vendored and adapted from
 /// https://github.com/SajjadPourali/udp-stream

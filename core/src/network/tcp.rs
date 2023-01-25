@@ -1,5 +1,5 @@
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
-use crate::pipeline::{proc_gdp_packet};
+use crate::pipeline::proc_gdp_packet;
 
 use crate::structs::GDPName;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
@@ -12,7 +12,6 @@ const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
-
 
 fn generate_random_gdp_name_for_thread() -> GDPName {
     // u8:4

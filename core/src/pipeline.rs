@@ -1,5 +1,5 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use tokio::sync::mpsc::{UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
