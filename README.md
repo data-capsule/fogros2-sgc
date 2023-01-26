@@ -55,16 +55,19 @@ whenever you launch a new terminal.
 cargo build
 ```
 
-### Run Demo 
-robot side: 
-```
-GDP_CONFIG=demo_robot.toml cargo run router
-```
+### Run DAgger Demo 
 
-cloud side: 
+First run the cloud side (gateway, known IP address): 
 ```
 GDP_CONFIG=demo_cloud.toml cargo run router
 ```
+
+Then run robot side (no need to configure IP address): 
+```
+GDP_CONFIG=demo_robot.toml cargo run router
+```
+Note that you need to configure `default_gateway` to be the IP address of the cloud machine in `./src/demo_robot.toml`.
+
 
 ### Run Demo Image Transport
 In the example, we use two machines A and B to show the image transport capability. 
@@ -133,3 +136,7 @@ ros2 run demo_nodes_cpp listener
 should broadcast the chatter topic. 
 
 It should also broadcast the `/Image` topic at the same time. 
+
+
+### Known issues 
+1. segmentation fault / node creation failure: not caused by our project but our underlying framework or ROS rcl itself. Restart the program and the problem should be fixed. 

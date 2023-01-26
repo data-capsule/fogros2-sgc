@@ -150,7 +150,7 @@ async fn handle_tcp_stream(
                         if need_more_data_for_previous_header { 
                             let read_payload_size = remaining_gdp_payload.len() + receiving_buf_size;
                             if read_payload_size < remaining_gdp_header.length { //still need more things to read!
-                                info!("more data to read. Current {}, need {}", read_payload_size, remaining_gdp_header.length);
+                                info!("more data to read. Current {}, need {}, expect {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_header.length - read_payload_size);
                                 remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 continue;
                             } 
@@ -160,9 +160,12 @@ async fn handle_tcp_stream(
                             } 
                             else{ //overflow!!
                                 // only get what's needed
-                                remaining_gdp_payload.append(&mut receiving_buf[..(remaining_gdp_header.length - remaining_gdp_payload.len())].to_vec());
-                                warn!("Bytes are extra!!! {}", read_payload_size - remaining_gdp_header.length);
-                                receiving_buf = receiving_buf[(remaining_gdp_header.length - remaining_gdp_payload.len())..].to_vec();
+                                warn!("The packet is overflowed!!! read_payload_size {}, remaining_gdp_header.length {}, remaining_gdp_payload.len() {}, receiving_buf_size {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_payload.len(), receiving_buf_size);
+                                let num_remaining = remaining_gdp_header.length - remaining_gdp_payload.len();
+                                remaining_gdp_payload.append(&mut receiving_buf[..num_remaining].to_vec());
+                                // info!("remaining_gdp_payload {:?}", remaining_gdp_payload);
+                                
+                                receiving_buf = receiving_buf[num_remaining..].to_vec();
                             }
                         }
 
@@ -226,6 +229,7 @@ async fn handle_tcp_stream(
                 let transit_header = pkt_to_forward.get_header();
                 let mut header_string = serde_json::to_string(&transit_header).unwrap();
                 info!("the final serialized size is {}", header_string.len());
+                info!("the header to sent is {}", header_string);
 
                 //insert the first null byte to separate the packet header
                 header_string.push(0u8 as char);
