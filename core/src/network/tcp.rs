@@ -23,6 +23,9 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
     ])
 }
 
+
+
+
 /// handle one single session of tcpstream
 /// 1. init and advertise the mpsc channel to connection rib
 /// 2. select between
@@ -37,7 +40,7 @@ async fn handle_tcp_stream(
 
     // init variables
 
-    let mut need_more_data_for_header = false;
+    let mut need_more_data_for_previous_header = false;
     let mut gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
@@ -63,15 +66,26 @@ async fn handle_tcp_stream(
                     Ok(0) => break,
                     Ok(receiving_buf_size) => {
                         println!("read {} bytes", receiving_buf_size);
-                        match need_more_data_for_header {
-                            true => {
-                                gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
-                                read_payload_size += receiving_buf_size;
-                                if read_payload_size < gdp_header.length {
+
+                        let mut header_to_process = vec![gdp_header];
+                        let mut payload_need_to_process = vec!();
+                        match need_more_data_for_previous_header {
+                            true => { // last time it has incomplete buffer to complete
+                                read_payload_size += receiving_buf_size; 
+                                if read_payload_size < gdp_header.length { //still need more things to read!
+                                    info!("more data to read");
+                                    gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                     continue;
+                                } 
+                                else if read_payload_size == gdp_header.length { // match the end of the packet
+                                    info!("match and this is the end of buffer");
+                                    payload_need_to_process.push(gdp_payload.clone());
+                                } 
+                                else{ //overflow!!
+                                    error!("Bytes are extra!!! {}", read_payload_size - gdp_header.length);
                                 }
                             },
-                            false => {
+                            false => { // no, it need to read header first
                                 let received_buffer = &receiving_buf[..receiving_buf_size];
                                 // use the first null byte \0 as delimiter
                                 // split to the first /0 as delimiter
@@ -82,7 +96,7 @@ async fn handle_tcp_stream(
                                 let header:&str = std::str::from_utf8(header_buf).unwrap();
                                 info!("received header json string: {:?}", header);
                                 gdp_header = serde_json::from_str::<GDPPacketInTransit>(header).unwrap().clone();
-                                need_more_data_for_header = true;
+                                need_more_data_for_previous_header = true;
 
                                 let payload = header_and_remaining[1];
 
@@ -93,6 +107,12 @@ async fn handle_tcp_stream(
                                 info!("received payload with size {:}",  payload.len());
                                 if read_payload_size < gdp_header.length {
                                     continue;
+                                }
+                                else if read_payload_size == gdp_header.length {
+                                    payload_need_to_process.push(gdp_payload.clone());
+                                }
+                                else{
+                                    error!("Bytes are extra!!! {}", read_payload_size - gdp_header.length);
                                 }
                             }
                         };
@@ -123,7 +143,7 @@ async fn handle_tcp_stream(
         
                         read_payload_size = 0;
                         gdp_payload = vec!();
-                        need_more_data_for_header = false;
+                        need_more_data_for_previous_header = false;
                     },
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
