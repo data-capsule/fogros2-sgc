@@ -88,7 +88,7 @@ pub async fn connection_router(
 
                     
                     info!("broadcasting...");
-                    broadcast_advertisement(&channel, &coonection_rib_table).await;
+                    // broadcast_advertisement(&channel, &coonection_rib_table).await;
 
 
                     // coonection_rib_table.insert(

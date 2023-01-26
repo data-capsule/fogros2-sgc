@@ -37,7 +37,7 @@ async fn handle_tcp_stream(
 
     // init variables
 
-    let mut received_header_yet = false;
+    let mut need_more_data_for_header = false;
     let mut gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
@@ -63,7 +63,7 @@ async fn handle_tcp_stream(
                     Ok(0) => break,
                     Ok(receiving_buf_size) => {
                         println!("read {} bytes", receiving_buf_size);
-                        match received_header_yet {
+                        match need_more_data_for_header {
                             true => {
                                 gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 read_payload_size += receiving_buf_size;
@@ -82,7 +82,7 @@ async fn handle_tcp_stream(
                                 let header:&str = std::str::from_utf8(header_buf).unwrap();
                                 info!("received header json string: {:?}", header);
                                 gdp_header = serde_json::from_str::<GDPPacketInTransit>(header).unwrap().clone();
-                                received_header_yet = true;
+                                need_more_data_for_header = true;
 
                                 let payload = header_and_remaining[1];
 
@@ -96,6 +96,34 @@ async fn handle_tcp_stream(
                                 }
                             }
                         };
+
+                        info!("the total received payload with size {:} and size {} with gdp header length {}",  gdp_payload.len(), read_payload_size, gdp_header.length);
+
+                        let deserialized = gdp_header; //TODO: change the var name here
+        
+                        if deserialized.action == GdpAction::Forward {
+                            let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, gdp_payload); //todo
+                            proc_gdp_packet(packet,  // packet
+                                rib_tx,  //used to send packet to rib
+                                channel_tx, // used to send GDPChannel to rib
+                                &m_tx //the sending handle of this connection
+                            ).await;
+                        }
+                        else if deserialized.action == GdpAction::Advertise {
+                            let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name);
+                            proc_gdp_packet(packet,  // packet
+                                rib_tx,  //used to send packet to rib
+                                channel_tx, // used to send GDPChannel to rib
+                                &m_tx //the sending handle of this connection
+                            ).await;
+                        }
+                        else{
+                            info!("TCP received a packet but did not handle: {:?}", deserialized)
+                        }
+        
+                        read_payload_size = 0;
+                        gdp_payload = vec!();
+                        need_more_data_for_header = false;
                     },
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
@@ -105,33 +133,6 @@ async fn handle_tcp_stream(
                     }
                 }
 
-                info!("the total received payload with size {:} and size {} with gdp header length {}",  gdp_payload.len(), read_payload_size, gdp_header.length);
-
-                let deserialized = gdp_header; //TODO: change the var name here
-
-                if deserialized.action == GdpAction::Forward {
-                    let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, gdp_payload); //todo
-                    proc_gdp_packet(packet,  // packet
-                        rib_tx,  //used to send packet to rib
-                        channel_tx, // used to send GDPChannel to rib
-                        &m_tx //the sending handle of this connection
-                    ).await;
-                }
-                else if deserialized.action == GdpAction::Advertise {
-                    let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name);
-                    proc_gdp_packet(packet,  // packet
-                        rib_tx,  //used to send packet to rib
-                        channel_tx, // used to send GDPChannel to rib
-                        &m_tx //the sending handle of this connection
-                    ).await;
-                }
-                else{
-                    info!("TCP received a packet but did not handle: {:?}", deserialized)
-                }
-
-                read_payload_size = 0;
-                gdp_payload = vec!();
-                received_header_yet = false;
             },
 
             // new data to send to TCP!

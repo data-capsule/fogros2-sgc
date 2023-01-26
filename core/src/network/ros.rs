@@ -212,7 +212,7 @@ pub async fn ros_publisher_image(
         tokio::select! {
             Some(pkt_to_forward) = m_rx.recv() => {
                 if pkt_to_forward.action == GdpAction::Forward {
-                    info!("new payload to publish");
+                    info!("new payload to publish locally");
                     if pkt_to_forward.gdpname == topic_gdp_name {
                         let payload = pkt_to_forward.get_byte_payload().unwrap();
                         let ros_msg:CompressedImage = CompressedImage{
