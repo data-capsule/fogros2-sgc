@@ -37,6 +37,9 @@ fn parse_header_payload_pairs(
         destination: GDPName([0u8, 0, 0, 0]),
         length: 0, //doesn't have any payload
     };
+    if buffer.len() == 0 {
+        return (header_payload_pairs, None);
+    }
     loop {
         // parse the header
         // use the first null byte \0 as delimiter
@@ -102,7 +105,7 @@ async fn handle_tcp_stream(
                     Ok(0) => break,
                     Ok(receiving_buf_size) => {
                         let mut receiving_buf = receiving_buf[..receiving_buf_size].to_vec();
-                        println!("read {} bytes", receiving_buf_size);
+                        info!("read {} bytes", receiving_buf_size);
 
                         // match need_more_data_for_previous_header {
                         //     true => { // last time it has incomplete buffer to complete
@@ -147,13 +150,13 @@ async fn handle_tcp_stream(
                         if need_more_data_for_previous_header { 
                             let read_payload_size = remaining_gdp_payload.len() + receiving_buf_size;
                             if read_payload_size < remaining_gdp_header.length { //still need more things to read!
-                                info!("more data to read");
+                                info!("more data to read. Current {}, need {}", read_payload_size, remaining_gdp_header.length);
                                 remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 continue;
                             } 
                             else if read_payload_size == remaining_gdp_header.length { // match the end of the packet
-                                info!("match and this is the end of buffer");
                                 header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
+                                receiving_buf = vec!();
                             } 
                             else{ //overflow!!
                                 // only get what's needed
@@ -163,9 +166,9 @@ async fn handle_tcp_stream(
                             }
                         }
 
-                        let (processed_gdp_packets, processed_remaining_header) = parse_header_payload_pairs(receiving_buf.to_vec());
-
-                        for (header, payload) in processed_gdp_packets {
+                        let (mut processed_gdp_packets, processed_remaining_header) = parse_header_payload_pairs(receiving_buf.to_vec());
+                        header_payload_pair.append(&mut processed_gdp_packets);
+                        for (header, payload) in header_payload_pair {
                             let deserialized = header; //TODO: change the var name here
         
                             info!("the total received payload with size {:} with gdp header length {}",  payload.len(), header.length);
@@ -199,6 +202,7 @@ async fn handle_tcp_stream(
                             },
                             None => {
                                 need_more_data_for_previous_header = false;
+                                remaining_gdp_payload = vec!();
                             }
                         }
                         
