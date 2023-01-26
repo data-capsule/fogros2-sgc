@@ -9,8 +9,9 @@
   - [Install Rust](#install-rust)
   - [(Optional) ROS](#optional-ros)
 - [Build the repo](#build-the-repo)
-- [Run Demo](#run-demo)
+- [Run DAgger Demo](#run-dagger-demo)
 - [Run Demo Image Transport](#run-demo-image-transport)
+- [Known issues](#known-issues)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
