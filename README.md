@@ -68,6 +68,8 @@ GDP_CONFIG=demo_robot.toml cargo run router
 ```
 Note that you need to configure `default_gateway` to be the IP address of the cloud machine in `./src/demo_robot.toml`.
 
+### Known issues 
+1. segmentation fault / node creation failure: not caused by our project but our underlying framework or ROS rcl itself. Restart the program and the problem should be fixed. The hypothesis is asynchronous error when the nodes are created too fast in parallel. 
 
 ### Run Demo Image Transport
 In the example, we use two machines A and B to show the image transport capability. 
@@ -138,5 +140,3 @@ should broadcast the chatter topic.
 It should also broadcast the `/Image` topic at the same time. 
 
 
-### Known issues 
-1. segmentation fault / node creation failure: not caused by our project but our underlying framework or ROS rcl itself. Restart the program and the problem should be fixed. 
