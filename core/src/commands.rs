@@ -1,11 +1,17 @@
 extern crate tokio;
 extern crate tokio_core;
+use std::thread;
+use std::time::Duration;
+
 use crate::connection_rib::connection_router;
+use crate::gdp_proto::GdpUpdate;
 use crate::network::dtls::{dtls_listener, dtls_test_client};
 use crate::network::tcp::{tcp_listener, tcp_to_peer, tcp_to_peer_direct};
+use crate::structs::{GDPName, GDPStatus};
 use futures::future;
 use tokio::sync::mpsc::{self};
 
+use tokio::time::sleep;
 use utils::app_config::AppConfig;
 use utils::error::Result;
 
@@ -36,7 +42,7 @@ async fn router_async_loop() {
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
     let (channel_tx, channel_rx) = mpsc::unbounded_channel();
     // stat_tx <GdpUpdate proto>: any status update from other routers
-    let (_stat_tx, stat_rx) = mpsc::unbounded_channel();
+    let (stat_tx, stat_rx) = mpsc::unbounded_channel();
 
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
@@ -51,15 +57,6 @@ async fn router_async_loop() {
         channel_tx.clone(),
     ));
     future_handles.push(dtls_sender_handle);
-
-    if config.peer_with_gateway {
-        let peer_advertisement = tokio::spawn(tcp_to_peer(
-            config.default_gateway.clone().into(),
-            rib_tx.clone(),
-            channel_tx.clone(),
-        ));
-        future_handles.push(peer_advertisement);
-    }
 
     // grpc
     // TODO: uncomment for grpc
@@ -141,6 +138,28 @@ async fn router_async_loop() {
             },
         };
         future_handles.push(ros_handle);
+    }
+
+
+
+    if config.peer_with_gateway {
+        let (m_tx, m_rx) = mpsc::unbounded_channel();
+        let peer_advertisement = tokio::spawn(tcp_to_peer(
+            config.default_gateway.clone().into(),
+            rib_tx.clone(),
+            channel_tx.clone(),
+            m_tx.clone(),
+            m_rx,
+        ));
+        future_handles.push(peer_advertisement);
+
+        // only non-gateway proxy needs to advertise themselves 
+        // it needs the connection to be settled first, otherwise the advertisement is lost 
+        sleep(Duration::from_millis(1000)).await;
+        info!("Flushing the RIB....");
+        stat_tx.send(GDPStatus{
+            sink: m_tx,
+        }).expect("Flush the RIB Failure");
     }
 
     future::join_all(future_handles).await;

@@ -45,6 +45,7 @@ async fn handle_tcp_stream(
     };
     let mut read_payload_size: usize = 0;
     let mut gdp_payload: Vec<u8> = vec![];
+    info!("TCP connection is fully initialized");
     loop {
         // Wait for the TCP socket to be readable
         // or new data to be sent
@@ -209,6 +210,7 @@ pub async fn tcp_listener(
 
 pub async fn tcp_to_peer(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => s,
@@ -223,7 +225,7 @@ pub async fn tcp_to_peer(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("TCP takes gdp name {:?}", m_gdp_name);
 
-    let (m_tx, m_rx) = mpsc::unbounded_channel();
+    
     let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet

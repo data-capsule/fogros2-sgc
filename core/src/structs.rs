@@ -172,3 +172,8 @@ pub fn get_gdp_name_from_topic(topic_name: &str) -> [u8; 4] {
     // // Convert the bytes to a u32
     // unsafe { transmute::<[u8; 4], u32>(bytes) }
 }
+
+#[derive(Debug, Clone)]
+pub struct GDPStatus {
+    pub sink: UnboundedSender<GDPPacket>,
+}

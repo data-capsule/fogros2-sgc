@@ -1,5 +1,4 @@
-use crate::gdp_proto::GdpUpdate;
-use crate::structs::{GDPChannel, GDPName, GDPPacket};
+use crate::{structs::{GDPChannel, GDPName, GDPPacket, GDPStatus}, pipeline::construct_gdp_advertisement_from_bytes};
 use std::collections::HashMap;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -20,6 +19,21 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     }
 }
 
+async fn broadcast_advertisement(
+    channel: &GDPChannel,
+    coonection_rib_table: &HashMap<GDPName, Vec<GDPChannel>>){
+    for dsts in coonection_rib_table.values(){
+        for dst in dsts {
+            info!("advertisement of {} is sent to channel {}", dst.advertisement.source, channel.advertisement.source);
+            if dst.advertisement.source == channel.advertisement.source {
+                info!("skipping {} is because they come from same source", dst.advertisement.source);
+                continue;
+            }
+            dst.channel.send(channel.advertisement.clone()).expect("adv channel closed");
+        }
+    }
+}
+
 /// receive, check, and route GDP messages
 ///
 /// receive from a pool of receiver connections (one per interface)
@@ -28,7 +42,7 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_router(
-    mut rib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GdpUpdate>,
+    mut rib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GDPStatus>,
     mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
@@ -74,13 +88,8 @@ pub async fn connection_router(
 
                     
                     info!("broadcasting...");
-                    for dst in coonection_rib_table.values(){
-                        info!("advertisement of {} is sent to channel {}",dst.advertisement.source, channel.advertisement.source);
-                        if dst.advertisement.source == channel.advertisement.source {
-                            continue;
-                        }
-                        send_to_destination(dst.channel.clone(), channel.advertisement.clone()).await;
-                    }
+                    broadcast_advertisement(&channel, &coonection_rib_table).await;
+
 
                     // coonection_rib_table.insert(
                     //     channel.gdpname,
@@ -102,8 +111,20 @@ pub async fn connection_router(
                     
                 },
 
-                Some(_update) = stat_rs.recv() => {
-                    //TODO: update rib here
+                Some(update) = stat_rs.recv() => {
+                    // Note: incomplete implementation, only support flushing advertisement 
+                    let dst = update.sink;
+                    for (name, _) in &coonection_rib_table {
+                        info!("flushing advertisement for {}", name);
+                        let packet = construct_gdp_advertisement_from_bytes(*name, *name);
+                        let result = dst.send(packet.clone());
+                        match result {
+                            Ok(_) => {}
+                            Err(_) => {
+                                warn!("Send Failure: channel sent to destination is closed");
+                            }
+                        }
+                    }
                 }
             }
         }
