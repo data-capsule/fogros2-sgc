@@ -155,6 +155,7 @@ async fn handle_tcp_stream(
                                 continue;
                             } 
                             else if read_payload_size == remaining_gdp_header.length { // match the end of the packet
+                                remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
                                 receiving_buf = vec!();
                             } 
