@@ -1,7 +1,7 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
 use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet, construct_gdp_advertisement_from_bytes};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
-
+use tokio_openssl::SslStream;
 use openssl::{
     pkey::PKey,
     ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
@@ -105,16 +105,12 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
 ///         incoming dtls packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
 async fn handle_dtls_stream(
-    socket: UdpStream, acceptor: SslContext, rib_tx: &UnboundedSender<GDPPacket>,
+    mut stream: SslStream<UdpStream>, rib_tx: &UnboundedSender<GDPPacket>,
     channel_tx: &UnboundedSender<GDPChannel>,
     m_tx: UnboundedSender<GDPPacket>,
     mut m_rx: UnboundedReceiver<GDPPacket>, 
     thread_name: GDPName,
 ) {
-    let ssl = Ssl::new(&acceptor).unwrap();
-    let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
-    Pin::new(&mut stream).accept().await.unwrap();
-
 
     let mut need_more_data_for_previous_header = false;
     let mut remaining_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
@@ -233,6 +229,43 @@ async fn handle_dtls_stream(
 
 
 
+pub async fn dtls_to_peer(
+    addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>
+) {
+    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
+    .await
+    .unwrap();
+    println!("{:?}", stream);
+
+    // setup ssl
+    let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
+    connector_builder.set_verify(SslVerifyMode::NONE);
+    let connector = connector_builder.build().configure().unwrap();
+    let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
+    let mut stream = tokio_openssl::SslStream::new(ssl, stream).unwrap();
+    println!("{:?}", stream);
+    Pin::new(&mut stream).connect().await.unwrap();
+
+    let m_gdp_name = generate_random_gdp_name_for_thread();
+    info!("TCP takes gdp name {:?}", m_gdp_name);
+
+    
+    let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
+    proc_gdp_packet(
+        node_advertisement, // packet
+        &rib_tx,            //used to send packet to rib
+        &channel_tx,        // used to send GDPChannel to rib
+        &m_tx,              //the sending handle of this connection
+    )
+    .await;
+    handle_dtls_stream(stream,
+        &rib_tx, 
+        &channel_tx, m_tx, m_rx, m_gdp_name).await;
+}
+
+
+
 /// does not go to rib when peering
 pub async fn dtls_to_peer_direct(
     addr: String,
@@ -242,18 +275,25 @@ pub async fn dtls_to_peer_direct(
     peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network
 ) {
 
-    let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
+    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
     .await
     .unwrap();
-    let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
+    println!("{:?}", stream);
 
-    let (socket, _) = listener.accept().await.unwrap();
+    // setup ssl
+    let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
+    connector_builder.set_verify(SslVerifyMode::NONE);
+    let connector = connector_builder.build().configure().unwrap();
+    let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
+    let mut stream = tokio_openssl::SslStream::new(ssl, stream).unwrap();
+    println!("{:?}", stream);
+    Pin::new(&mut stream).connect().await.unwrap();
+
 
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("dTLS connection takes gdp name {:?}", m_gdp_name);
 
-    handle_dtls_stream(socket, 
-        acceptor,
+    handle_dtls_stream(stream, 
         &rib_tx, 
         &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
 }
@@ -271,11 +311,14 @@ pub async fn dtls_listener(
         let rib_tx = rib_tx.clone();
         let channel_tx = channel_tx.clone();
         let acceptor = acceptor.clone();
+        //TODO: loop here is not correct
         tokio::spawn(
             async move { 
                 let (m_tx, mut m_rx) = mpsc::unbounded_channel();
-                handle_dtls_stream(socket, 
-                    acceptor, &rib_tx, 
+                let ssl = Ssl::new(&acceptor).unwrap();
+                let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
+                Pin::new(&mut stream).accept().await.unwrap();            
+                handle_dtls_stream(stream, &rib_tx, 
                     &channel_tx, 
                     m_tx, m_rx, generate_random_gdp_name_for_thread()).await 
             },
@@ -283,85 +326,6 @@ pub async fn dtls_listener(
     }
 }
 
-pub async fn dtls_to_peer(
-    addr: String, _rib_tx: UnboundedSender<GDPPacket>, _channel_tx: UnboundedSender<GDPChannel>,
-) {
-    // let (m_tx, mut m_rx) = mpsc::unbounded_channel();
-    let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
-        .await
-        .unwrap();
-    println!("{:?}", stream);
-
-    // setup ssl
-    let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
-    connector_builder.set_verify(SslVerifyMode::NONE);
-    let connector = connector_builder.build().configure().unwrap();
-    let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
-    let mut stream = tokio_openssl::SslStream::new(ssl, stream).unwrap();
-    println!("{:?}", stream);
-    Pin::new(&mut stream).connect().await.unwrap();
-    //stream.connect().await.unwrap();
-
-    // // read: separate thread
-    // let _dtls_sender_handle = tokio::spawn(async move {
-    //     loop {
-    //         let mut buf = vec![0u8; 1024];
-    //         let n = rd.read(&mut buf).await.unwrap();
-    //         print!("-> {}", String::from_utf8_lossy(&buf[..n]));
-    //     }
-    // });
-    // loop{
-    //     let payload = "ADV,2".as_bytes();
-    //     stream.write_all(&payload[..payload.len()]).await.unwrap();
-    // }
-
-    // split the stream into read half and write half
-    let (mut rd, mut wr) = tokio::io::split(stream);
-
-    // read: separate thread
-    let _dtls_sender_handle = tokio::spawn(async move {
-        loop {
-            let mut buf = vec![0u8; 1024];
-            let n = rd.read(&mut buf).await.unwrap();
-            print!("-> {}", String::from_utf8_lossy(&buf[..n]));
-        }
-    });
-
-    loop {
-        let mut buffer = String::new();
-        std::io::stdin().read_line(&mut buffer).unwrap();
-        wr.write_all(buffer.as_bytes()).await.unwrap();
-    }
-
-    /*
-    loop {
-        // TODO:
-        // Question: what's the bahavior here, will it keep allocating memory?
-        let mut buf = vec![0u8; UDP_BUFFER_SIZE];
-        // Wait for the UDP socket to be readable
-        // or new data to be sent
-        tokio::select! {
-            Some(pkt_to_forward) = m_rx.recv() => {
-                let pkt_to_forward: GDPPacket = pkt_to_forward;
-                // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
-                let payload = pkt_to_forward.get_byte_payload().unwrap();
-                stream.write_all(&payload[..payload.len()]).await.unwrap();
-            }
-            // _ = do_stuff_async()
-            // async read is cancellation safe
-            _ = stream.read(&mut buf) => {
-                // NOTE: if we want real time system bound
-                // let n = match timeout(Duration::from_millis(UDP_TIMEOUT), stream.read(&mut buf))
-                let pkt = populate_gdp_struct_from_bytes(buf.to_vec());
-                proc_gdp_packet(pkt,  // packet
-                    &rib_tx,  //used to send packet to rib
-                    &channel_tx, // used to send GDPChannel to rib
-                    &m_tx //the sending handle of this connection
-                ).await;
-            },
-        }
-    }*/
-}
 
 #[tokio::main]
 pub async fn dtls_test_client(addr: String) -> std::io::Result<SslContext> {

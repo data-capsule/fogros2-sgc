@@ -193,7 +193,7 @@ impl UdpStream {
         //     SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)), 0)
         // };
         // let local_addr = local_ip().unwrap();
-        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 0);
+        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0);
 
         let socket = Arc::new(UdpSocket::bind(local_addr).await?);
         let local_addr = socket.local_addr()?;
