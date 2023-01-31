@@ -48,7 +48,13 @@ fn parse_header_payload_pairs(
         let header_buf = header_and_remaining[0];
         let header:&str = std::str::from_utf8(header_buf).unwrap();
         info!("received header json string: {:?}", header);
-        let gdp_header = serde_json::from_str::<GDPPacketInTransit>(header).unwrap().clone();
+        let gdp_header_parsed = serde_json::from_str::<GDPPacketInTransit>(header);
+        if gdp_header_parsed.is_err() {
+            // if the header is not complete, return the remaining
+            warn!("header is not complete, return the remaining");
+            return (header_payload_pairs, Some((default_gdp_header, buffer.to_vec())));
+        }
+        let gdp_header = gdp_header_parsed.unwrap();
         let remaining = header_and_remaining[1];
 
         if (gdp_header.length > remaining.len()) {
@@ -149,7 +155,13 @@ async fn handle_tcp_stream(
                         // last time it has incomplete buffer to complete
                         if need_more_data_for_previous_header { 
                             let read_payload_size = remaining_gdp_payload.len() + receiving_buf_size;
-                            if read_payload_size < remaining_gdp_header.length { //still need more things to read!
+                            if remaining_gdp_header.action == GdpAction::Noop {
+                                warn!("last time it has incomplete buffer to complete, the action is Noop.");
+                                // receiving_buf.append(&mut remaining_gdp_payload.clone());
+                                remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
+                                receiving_buf = remaining_gdp_payload.clone();
+                            }
+                            else if read_payload_size < remaining_gdp_header.length { //still need more things to read!
                                 info!("more data to read. Current {}, need {}, expect {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_header.length - read_payload_size);
                                 remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 continue;
