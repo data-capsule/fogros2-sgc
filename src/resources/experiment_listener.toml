@@ -1,0 +1,20 @@
+debug = true
+log_level = "info"
+channel_size = 100
+tcp_port = "9997"
+dtls_port = "9232"
+grpc_port = "50051"
+peer_with_gateway = true
+default_gateway = "128.32.37.48:9997"
+[[ros]]
+local = "sub"
+node_name = "benchmark_talker"
+topic_name = "/benchmark"
+topic_type = "std_msgs/msg/String"
+[[ros]]
+local = "pub"
+node_name = "benchmark_listener"
+topic_name = "/benchmark_echo"
+topic_type = "std_msgs/msg/String"
+[database]
+url = "custom database url"
