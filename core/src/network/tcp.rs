@@ -8,7 +8,7 @@ use std::io;
 use std::{net::SocketAddr, str::FromStr};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-const UDP_BUFFER_SIZE: usize = 4096; // 17480 17kb TODO: make it formal
+const UDP_BUFFER_SIZE: usize = 17480; // 17480 17kb TODO: make it formal
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
@@ -52,7 +52,7 @@ fn parse_header_payload_pairs(
         if gdp_header_parsed.is_err() {
             // if the header is not complete, return the remaining
             warn!("header is not complete, return the remaining");
-            return (header_payload_pairs, Some((default_gdp_header, buffer.to_vec())));
+            return (header_payload_pairs, Some((default_gdp_header, header_buf.to_vec())));
         }
         let gdp_header = gdp_header_parsed.unwrap();
         let remaining = header_and_remaining[1];
