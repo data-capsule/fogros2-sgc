@@ -18,7 +18,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
-const UDP_BUFFER_SIZE: usize = 4096; // 17kb
+const UDP_BUFFER_SIZE: usize = 1024; // 17kb
 
 fn generate_random_gdp_name_for_thread() -> GDPName {
     // u8:4
@@ -128,10 +128,11 @@ async fn handle_dtls_stream(
         tokio::select! {
             // _ = do_stuff_async()
             // async read is cancellation safe
-            _ = stream.read(&mut receiving_buf) => {
-                let receiving_buf_size = receiving_buf.len();
+            Ok(receiving_buf_size) = stream.read(&mut receiving_buf) => {
+                // let receiving_buf_size = receiving_buf.len();
                 let mut receiving_buf = receiving_buf[..receiving_buf_size].to_vec();
                 info!("read {} bytes", receiving_buf_size);
+                info!("read {:?}", receiving_buf);
 
                 let mut header_payload_pair = vec!();
 
@@ -215,13 +216,13 @@ async fn handle_dtls_stream(
 
                 //insert the first null byte to separate the packet header
                 header_string.push(0u8 as char);
-                let header_string_payload = pkt_to_forward.get_byte_payload().unwrap();
+                let header_string_payload = header_string.as_bytes();
                 stream.write_all(&header_string_payload[..header_string_payload.len()]).await.unwrap();
 
-
                 // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
-                let payload = pkt_to_forward.get_byte_payload().unwrap();
-                stream.write_all(&payload[..payload.len()]).await.unwrap();
+                if let Some(payload) = pkt_to_forward.payload {
+                    stream.write_all(&payload[..payload.len()]).await.unwrap();
+                }
             }
         }
     }
