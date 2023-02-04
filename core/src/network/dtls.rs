@@ -18,7 +18,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
-const UDP_BUFFER_SIZE: usize = 4096; // 17kb
+const UDP_BUFFER_SIZE: usize = 1024; // 17kb
 
 fn generate_random_gdp_name_for_thread() -> GDPName {
     // u8:4
@@ -226,7 +226,6 @@ async fn handle_dtls_stream(
                 header_string.push(0u8 as char);
                 let header_string_payload = header_string.as_bytes();
                 stream.write_all(&header_string_payload[..header_string_payload.len()]).await.unwrap();
-
 
                 // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
                 if let Some(payload) = pkt_to_forward.payload {
