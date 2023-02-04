@@ -119,6 +119,7 @@ async fn handle_dtls_stream(
         length: 0, //doesn't have any payload
     };
     let mut remaining_gdp_payload: Vec<u8> = vec![];
+    let mut reset_counter = 0; // TODO: a temporary counter to reset the connection
 
     loop {
 
@@ -144,6 +145,13 @@ async fn handle_dtls_stream(
                         // receiving_buf.append(&mut remaining_gdp_payload.clone());
                         remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                         receiving_buf = remaining_gdp_payload.clone();
+                        reset_counter += 1;
+                        if reset_counter >5 {
+                            error!("unable to match the buffer, reset the connection");
+                            receiving_buf = vec!();
+                            remaining_gdp_payload = vec!();
+                            reset_counter = 0;
+                        }
                     }
                     else if read_payload_size < remaining_gdp_header.length { //still need more things to read!
                         info!("more data to read. Current {}, need {}, expect {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_header.length - read_payload_size);
@@ -211,7 +219,7 @@ async fn handle_dtls_stream(
                 //info!("TCP packet to forward: {:?}", pkt_to_forward);
                 let transit_header = pkt_to_forward.get_header();
                 let mut header_string = serde_json::to_string(&transit_header).unwrap();
-                info!("the final serialized size is {}", header_string.len());
+                info!("the header size is {}", header_string.len());
                 info!("the header to sent is {}", header_string);
 
                 //insert the first null byte to separate the packet header
