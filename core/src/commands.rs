@@ -89,7 +89,7 @@ async fn router_async_loop() {
         // this is used to diffentiate different channels in ROS topics
         let (mut m_tx, mut m_rx) = mpsc::unbounded_channel();
         if config.peer_with_gateway {
-            let ros_peer = tokio::spawn(dtls_to_peer_direct(
+            let ros_peer = tokio::spawn(tcp_to_peer_direct(
                 config.default_gateway.clone().into(),
                 rib_tx.clone(),
                 channel_tx.clone(),
@@ -144,7 +144,7 @@ async fn router_async_loop() {
 
     if config.peer_with_gateway {
         let (m_tx, m_rx) = mpsc::unbounded_channel();
-        let peer_advertisement = tokio::spawn(dtls_to_peer(
+        let peer_advertisement = tokio::spawn(tcp_to_peer(
             config.default_gateway.clone().into(),
             rib_tx.clone(),
             channel_tx.clone(),

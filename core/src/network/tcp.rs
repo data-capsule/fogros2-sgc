@@ -176,6 +176,7 @@ async fn handle_tcp_stream(
                                 warn!("The packet is overflowed!!! read_payload_size {}, remaining_gdp_header.length {}, remaining_gdp_payload.len() {}, receiving_buf_size {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_payload.len(), receiving_buf_size);
                                 let num_remaining = remaining_gdp_header.length - remaining_gdp_payload.len();
                                 remaining_gdp_payload.append(&mut receiving_buf[..num_remaining].to_vec());
+                                header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
                                 // info!("remaining_gdp_payload {:?}", remaining_gdp_payload);
                                 
                                 receiving_buf = receiving_buf[num_remaining..].to_vec();
