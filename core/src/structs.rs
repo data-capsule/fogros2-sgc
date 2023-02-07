@@ -1,11 +1,12 @@
 use anyhow::{anyhow, Result};
 use std::fmt;
 use strum_macros::EnumIter;
+use tokio::sync::mpsc::UnboundedSender;
 pub const MAGIC_NUMBERS: u16 = u16::from_be_bytes([0x26, 0x2a]);
 
 pub type GdpName = [u8; 32];
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, EnumIter)]
+use serde::{Deserialize, Serialize};
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, Hash, EnumIter)]
 pub enum GdpAction {
     Noop = 0,
     Forward = 1,
@@ -55,7 +56,7 @@ impl From<u16be> for u16 {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, Hash, Default)]
 pub struct GDPName(pub [u8; 4]); //256 bit destination
 impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -69,6 +70,8 @@ pub(crate) trait Packet {
     fn get_proto(&self) -> Option<&GdpPacket>;
     /// get serialized byte array of the packet
     fn get_byte_payload(&self) -> Option<&Vec<u8>>;
+
+    fn get_header(&self) -> GDPPacketInTransit;
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -81,6 +84,14 @@ pub struct GDPPacket {
     // preferably forward directly without conversion
     pub payload: Option<Vec<u8>>,
     pub proto: Option<GdpPacket>,
+    pub source: GDPName,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+pub struct GDPPacketInTransit {
+    pub action: GdpAction,
+    pub destination: GDPName,
+    pub length: usize,
 }
 
 impl Packet for GDPPacket {
@@ -96,6 +107,24 @@ impl Packet for GDPPacket {
             None => None, //TODO
         }
     }
+    fn get_header(&self) -> GDPPacketInTransit {
+        let transit_packet = match &self.payload {
+            Some(payload) => GDPPacketInTransit {
+                action: self.action,
+                destination: self.gdpname,
+                length: payload.len(),
+            },
+            None => {
+                GDPPacketInTransit {
+                    action: self.action,
+                    destination: self.gdpname,
+                    length: 0, //doesn't have any payload
+                }
+            }
+        };
+        // serde_json::to_string(&transit_packet).unwrap()
+        transit_packet
+    }
 }
 
 impl fmt::Display for GDPPacket {
@@ -106,14 +135,11 @@ impl fmt::Display for GDPPacket {
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
         if let Some(payload) = &self.payload {
-            write!(
-                f,
-                "{:?}: {:?}",
-                self.gdpname,
-                std::str::from_utf8(&payload)
-                    .expect("parsing failure")
-                    .trim_matches(char::from(0))
-            )
+            let ret = match std::str::from_utf8(&payload) {
+                Ok(payload) => payload.trim_matches(char::from(0)),
+                Err(_) => "unable to render",
+            };
+            write!(f, "{:?}: {:?}", self.gdpname, ret)
         } else if let Some(payload) = &self.proto {
             write!(f, "{:?}: {:?}", self.gdpname, payload)
         } else {
@@ -122,9 +148,32 @@ impl fmt::Display for GDPPacket {
     }
 }
 
-use tokio::sync::mpsc::Sender;
 #[derive(Debug, Clone)]
 pub struct GDPChannel {
     pub gdpname: GDPName,
-    pub channel: Sender<GDPPacket>,
+    pub channel: UnboundedSender<GDPPacket>,
+    pub advertisement: GDPPacket,
+}
+
+use sha2::Digest;
+use sha2::Sha256;
+pub fn get_gdp_name_from_topic(topic_name: &str) -> [u8; 4] {
+    // create a Sha256 object
+    let mut hasher = Sha256::new();
+
+    // write input message
+    hasher.update(topic_name);
+    let result = hasher.finalize();
+    // Get the first 4 bytes of the digest
+    let mut bytes = [0u8; 4];
+    bytes.copy_from_slice(&result[..4]);
+
+    bytes
+    // // Convert the bytes to a u32
+    // unsafe { transmute::<[u8; 4], u32>(bytes) }
+}
+
+#[derive(Debug, Clone)]
+pub struct GDPStatus {
+    pub sink: UnboundedSender<GDPPacket>,
 }

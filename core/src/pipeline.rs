@@ -1,25 +1,29 @@
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
-pub fn construct_gdp_forward_from_bytes(gdp_name: GDPName, buffer: Vec<u8>) -> GDPPacket {
+pub fn construct_gdp_forward_from_bytes(
+    destination: GDPName, source: GDPName, buffer: Vec<u8>,
+) -> GDPPacket {
     GDPPacket {
         action: GdpAction::Forward,
-        gdpname: gdp_name,
+        gdpname: destination,
         payload: Some(buffer),
         proto: None,
+        source: source,
     }
 }
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
-pub fn construct_gdp_advertisement_from_bytes(gdp_name: GDPName) -> GDPPacket {
+pub fn construct_gdp_advertisement_from_bytes(destination: GDPName, source: GDPName) -> GDPPacket {
     GDPPacket {
         action: GdpAction::Advertise,
-        gdpname: gdp_name,
+        gdpname: destination,
         payload: None,
         proto: None,
+        source: source,
     }
 }
 
@@ -49,6 +53,7 @@ pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
         gdpname: m_gdp_name,
         payload: Some(buffer),
         proto: None,
+        source: GDPName([0, 0, 0, 0]),
     }
 }
 
@@ -77,9 +82,9 @@ pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
 ///
 pub async fn proc_gdp_packet(
     gdp_packet: GDPPacket,
-    rib_tx: &Sender<GDPPacket>,      //used to send packet to rib
-    channel_tx: &Sender<GDPChannel>, // used to send GDPChannel to rib
-    m_tx: &Sender<GDPPacket>,        //the sending handle of this connection
+    rib_tx: &UnboundedSender<GDPPacket>, //used to send packet to rib
+    channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to rib
+    m_tx: &UnboundedSender<GDPPacket>,   //the sending handle of this connection
 ) {
     // Vec<u8> to GDP Packet
     // let gdp_packet = populate_gdp_struct(packet);
@@ -92,18 +97,20 @@ pub async fn proc_gdp_packet(
             let channel = GDPChannel {
                 gdpname: gdp_name,
                 channel: m_tx.clone(),
+                advertisement: gdp_packet,
             };
             channel_tx
                 .send(channel)
-                .await
                 .expect("channel_tx channel closed!");
         }
         GdpAction::Forward => {
             //send the packet to RIB
-            rib_tx
-                .send(gdp_packet)
-                .await
-                .expect("rib_tx channel closed!");
+            match rib_tx.send(gdp_packet) {
+                Ok(_) => {}
+                Err(_) => error!(
+                    "Unable to forward the packet because connection channel or rib is closed"
+                ),
+            };
         }
         GdpAction::RibGet => {
             // handle rib query by responding with the RIB item

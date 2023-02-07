@@ -1,7 +1,38 @@
-use crate::gdp_proto::GdpUpdate;
-use crate::structs::{GDPChannel, GDPName, GDPPacket};
+use crate::{structs::{GDPChannel, GDPName, GDPPacket, GDPStatus}, pipeline::construct_gdp_advertisement_from_bytes};
 use std::collections::HashMap;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+
+async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
+    for dst in destinations {
+        info!("data {} from {} send to {}", packet.gdpname, packet.source, dst.advertisement.source);
+        if dst.advertisement.source == packet.source {
+            info!("Equal to the source, skipped!");
+            continue;
+        }
+        let result = dst.channel.send(packet.clone());
+        match result {
+            Ok(_) => {}
+            Err(_) => {
+                warn!("Send Failure: channel sent to destination is closed");
+            }
+        }
+    }
+}
+
+async fn broadcast_advertisement(
+    channel: &GDPChannel,
+    coonection_rib_table: &HashMap<GDPName, Vec<GDPChannel>>){
+    for dsts in coonection_rib_table.values(){
+        for dst in dsts {
+            info!("advertisement of {} is sent to channel {}", dst.advertisement.source, channel.advertisement.source);
+            if dst.advertisement.source == channel.advertisement.source {
+                info!("skipping {} is because they come from same source", dst.advertisement.source);
+                continue;
+            }
+            dst.channel.send(channel.advertisement.clone()).expect("adv channel closed");
+        }
+    }
+}
 
 /// receive, check, and route GDP messages
 ///
@@ -11,13 +42,14 @@ use tokio::sync::mpsc::{Receiver, Sender};
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_router(
-    mut rib_rx: Receiver<GDPPacket>, mut stat_rs: Receiver<GdpUpdate>,
-    mut channel_rx: Receiver<GDPChannel>,
+    mut rib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GDPStatus>,
+    mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
-        let mut coonection_rib_table: HashMap<GDPName, Sender<GDPPacket>> = HashMap::new();
+        let mut coonection_rib_table: HashMap<GDPName, Vec<GDPChannel>> = HashMap::new();
+        let mut counter = 0;
 
         // loop polling from
         loop {
@@ -25,18 +57,26 @@ pub async fn connection_router(
                 // GDP packet received
                 // recv () -> find_where_to_route() -> route()
                 Some(pkt) = rib_rx.recv() => {
-                    info!("forwarder received: {pkt}");
+                    counter += 1;
+                    info!("RIB received the packet #{} with name {}", counter, &pkt.gdpname);
+
 
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
-                        Some(routing_dst) => {
-                            debug!("fwd!");
-                            routing_dst.send(pkt).await.expect("RIB: remote connection closed");
+                        Some(routing_dsts) => {
+                            send_to_destination(routing_dsts.clone(), pkt).await;
+                            // for dst in coonection_rib_table.values(){
+                            //     info!("data {} from {} send to {}", pkt.gdpname, pkt.source, dst.advertisement.source);
+                            //     if dst.advertisement.source == pkt.source {
+                            //         continue;
+                            //     }
+                            //     send_to_destination(dst.channel.clone(), pkt.clone()).await;s
+                            // }
                         }
                         None => {
                             info!("{:} is not there, broadcasting...", pkt.gdpname);
-                            for dst in coonection_rib_table.values(){
-                                dst.send(pkt.clone()).await.expect("RIB: remote connection closed");
+                            for routing_dsts in coonection_rib_table.values(){
+                                send_to_destination(routing_dsts.clone(), pkt.clone()).await;
                             }
                         }
                     }
@@ -45,14 +85,46 @@ pub async fn connection_router(
                 // connection rib advertisement received
                 Some(channel) = channel_rx.recv() => {
                     info!("channel registry received {:}", channel.gdpname);
-                    coonection_rib_table.insert(
-                        channel.gdpname,
-                        channel.channel
-                    );
+
+                    
+                    info!("broadcasting...");
+                    // broadcast_advertisement(&channel, &coonection_rib_table).await;
+
+
+                    // coonection_rib_table.insert(
+                    //     channel.gdpname,
+                    //     channel.channel
+                    // );
+                    match  coonection_rib_table.get_mut(&channel.gdpname) {
+                        Some(v) => {
+                            info!("adding to connection rib vec");
+                            v.push(channel)
+                        }
+                        None =>{
+                            info!("Creating a new vec of gdp name");
+                            coonection_rib_table.insert(
+                                channel.gdpname,
+                                vec!(channel),
+                            );
+                        }
+                    };
+                    
                 },
 
                 Some(update) = stat_rs.recv() => {
-                    //TODO: update rib here
+                    // Note: incomplete implementation, only support flushing advertisement 
+                    let dst = update.sink;
+                    for (name, _) in &coonection_rib_table {
+                        info!("flushing advertisement for {} to {:?}", name, dst);
+                        let packet = construct_gdp_advertisement_from_bytes(*name, *name);
+                        let result = dst.send(packet.clone());
+                        match result {
+                            Ok(_) => {}
+                            Err(_) => {
+                                warn!("Send Failure: channel sent to destination is closed");
+                            }
+                        }
+                    }
                 }
             }
         }

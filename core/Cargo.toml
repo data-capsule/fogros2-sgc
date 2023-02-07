@@ -6,7 +6,7 @@ description = "The application core code"
 edition = "2021"
 
 [features]
-default = []
+default = ["ros"]
 ros = ["dep:r2r"]
 
 [dependencies]
@@ -32,9 +32,9 @@ tokio = { version = "1.21.2", features = ["full"] }
 tokio-core = "0.1"
 futures = "0.3.19"
 tokio-openssl = '0.6'
-
 tonic = "0.8"
 prost = "0.11"
+sha2 = "0.10.6"
 
 [dependencies.r2r]
 r2r = "0.6.2"

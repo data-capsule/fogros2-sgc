@@ -1,15 +1,12 @@
-use std::net::SocketAddr;
-
 use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
-use crate::gdp_proto::globaldataplane_server::{Globaldataplane, GlobaldataplaneServer};
+use crate::gdp_proto::globaldataplane_server::Globaldataplane;
 use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
 use crate::pipeline::populate_gdp_struct_from_proto;
 use crate::structs::GDPPacket;
 use futures::future;
-use tokio::sync::mpsc::{self, Receiver, Sender};
-use tokio::task::JoinHandle;
-use tonic::transport::Error;
-use tonic::{transport::Server, Request, Response, Status};
+use tokio::sync::mpsc::Sender;
+
+use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct GDPService {

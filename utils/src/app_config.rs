@@ -20,6 +20,14 @@ pub struct Database {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ROS {
+    pub local: String,
+    pub node_name: String,
+    pub topic_name: String,
+    pub topic_type: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
@@ -27,7 +35,9 @@ pub struct AppConfig {
     pub tcp_port: String,
     pub dtls_port: String,
     pub grpc_port: String,
+    pub peer_with_gateway: bool,
     pub default_gateway: String,
+    pub ros: Vec<ROS>,
 }
 
 impl AppConfig {

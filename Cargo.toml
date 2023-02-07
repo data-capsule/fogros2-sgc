@@ -30,7 +30,7 @@ cli = { path = "cli"}
 core = { path = "core" }
 human-panic = "1.0.3"
 better-panic = "0.3.0"
-log = "0.4.14"
+log = { version = "0.4.14", features = ["release_max_level_off"] }
 env_logger = "0.10.0"
 
 [dev-dependencies]

@@ -34,9 +34,13 @@ fn main() -> Result<()> {
     // Initialize Configuration
     let include_path = match env::var_os("GDP_CONFIG") {
         Some(config_file) => {
-            format!("{}{:?}", "./src/resources/", config_file)
+            format!(
+                "{}{}",
+                "./src/resources/",
+                config_file.into_string().unwrap()
+            )
         }
-        None => "./src/resources/default_config.toml".to_owned(),
+        None => "./src/resources/demo_robot.toml".to_owned(),
     };
     println!("Using config file : {}", include_path);
     let config_contents = fs::read_to_string(include_path).expect("config file not found!");
