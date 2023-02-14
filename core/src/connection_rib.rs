@@ -84,10 +84,7 @@ pub async fn connection_router(
 
                 // connection rib advertisement received
                 Some(channel) = channel_rx.recv() => {
-                    info!("channel registry received {:}", channel.gdpname);
-
-                    
-                    info!("broadcasting...");
+                    info!("channel registry received {:?}", channel);
                     // broadcast_advertisement(&channel, &coonection_rib_table).await;
 
 

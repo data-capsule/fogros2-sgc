@@ -11,7 +11,7 @@ default_gateway = "128.32.37.48"
 local = "pub"
 node_name = "benchmark_talker"
 topic_name = "/benchmark"
-topic_type = "sensor_msgs/msg/CompressedImage"
+topic_type = "std_msgs/msg/String"
 [[ros]]
 local = "sub"
 node_name = "benchmark_listener"
