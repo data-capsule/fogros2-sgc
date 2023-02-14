@@ -1,6 +1,7 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
 use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet, construct_gdp_advertisement_from_bytes};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
+use std::fs;
 use tokio_openssl::SslStream;
 use openssl::{
     pkey::PKey,
@@ -81,21 +82,26 @@ fn parse_header_payload_pairs(
 
 static SERVER_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
 static SERVER_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
-const SERVER_DOMAIN: &'static str = "pourali.com";
-fn get_epoch_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos()
-}
+static CLIENT_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
+static CLIENT_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
+const SERVER_DOMAIN: &'static str = "not.verified";
+
 /// helper function of SSL
 fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslContext> {
     let mut acceptor_builder = SslAcceptor::mozilla_intermediate(SslMethod::dtls())?;
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
+    acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
     Ok(acceptor.into_context())
+}
+
+fn get_epoch_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos()
 }
 
 /// handle one single session of dtls
@@ -248,9 +254,15 @@ pub async fn dtls_to_peer(
     println!("{:?}", stream);
 
     // setup ssl
+    let client_cert = X509::from_pem(CLIENT_CERT).unwrap();
+    let client_key = PKey::private_key_from_pem(CLIENT_KEY).unwrap();
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
-    connector_builder.set_verify(SslVerifyMode::NONE);
-    let connector = connector_builder.build().configure().unwrap();
+    connector_builder.set_certificate(&client_cert).unwrap();
+    connector_builder.set_private_key(&client_key).unwrap();
+    connector_builder.set_ca_file("/home/azureuser/gdp-router/core/resources/ca-root.pem").unwrap();
+    connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    let mut connector = connector_builder.build().configure().unwrap();
+    connector.set_verify_hostname(false);
     let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
     let mut stream = tokio_openssl::SslStream::new(ssl, stream).unwrap();
     println!("{:?}", stream);
@@ -290,9 +302,15 @@ pub async fn dtls_to_peer_direct(
     println!("{:?}", stream);
 
     // setup ssl
+    let client_cert = X509::from_pem(CLIENT_CERT).unwrap();
+    let client_key = PKey::private_key_from_pem(CLIENT_KEY).unwrap();
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
-    connector_builder.set_verify(SslVerifyMode::NONE);
-    let connector = connector_builder.build().configure().unwrap();
+    connector_builder.set_certificate(&client_cert).unwrap();
+    connector_builder.set_private_key(&client_key).unwrap();
+    connector_builder.set_ca_file("/home/azureuser/gdp-router/core/resources/ca-root.pem").unwrap();
+    connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    let mut connector = connector_builder.build().configure().unwrap();
+    connector.set_verify_hostname(false);
     let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
     let mut stream = tokio_openssl::SslStream::new(ssl, stream).unwrap();
     println!("{:?}", stream);
