@@ -8,6 +8,7 @@ use openssl::{
     ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
     x509::X509,
 };
+use utils::app_config::AppConfig;
 
 
 use crate::structs::GDPName;
@@ -78,19 +79,17 @@ fn parse_header_payload_pairs(
     }
 }
 
-
-static CA_CERT: &str = "./core/resources/ca-root.pem";
-static MY_CERT: &str = "./scripts/crypto/router.pem";
-static MY_KEY: &str = "./scripts/crypto/router-private.pem";
 const SERVER_DOMAIN: &'static str = "not.verified";
 
 /// helper function of SSL
 fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslContext> {
+    let config = AppConfig::fetch().unwrap();
+    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+
     let mut acceptor_builder = SslAcceptor::mozilla_intermediate(SslMethod::dtls())?;
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
     acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
-    acceptor_builder.set_ca_file(CA_CERT)?;
     acceptor_builder.set_ca_file(CA_CERT)?;
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
@@ -253,6 +252,11 @@ pub async fn dtls_to_peer(
     .unwrap();
     println!("{:?}", stream);
 
+    let config = AppConfig::fetch().unwrap();
+    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let MY_CERT= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
+    let MY_KEY= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
+    
     // setup ssl
     let client_cert = X509::from_pem(&fs::read(MY_CERT).expect("file does not exist")).unwrap();
     let client_key = PKey::private_key_from_pem(&fs::read(MY_KEY).expect("file does not exist")).unwrap();
@@ -302,6 +306,11 @@ pub async fn dtls_to_peer_direct(
     println!("{:?}", stream);
 
     // setup ssl
+    let config = AppConfig::fetch().unwrap();
+    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let MY_CERT= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
+    let MY_KEY= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
+    
     let client_cert = X509::from_pem(&fs::read(MY_CERT).expect("file does not exist")).unwrap();
     let client_key = PKey::private_key_from_pem(&fs::read(MY_KEY).expect("file does not exist")).unwrap();
 
@@ -330,6 +339,12 @@ pub async fn dtls_to_peer_direct(
 pub async fn dtls_listener(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) {
+    let config = AppConfig::fetch().unwrap();
+    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let MY_CERT= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
+    let MY_KEY= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
+    
+
     let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
         .unwrap();

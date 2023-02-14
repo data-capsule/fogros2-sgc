@@ -36,6 +36,7 @@ pub struct AppConfig {
     pub dtls_port: String,
     pub grpc_port: String,
     pub ros_protocol: String, 
+    pub crypto_name: String,
     pub peer_with_gateway: bool,
     pub default_gateway: String,
     pub ros: Vec<ROS>,
