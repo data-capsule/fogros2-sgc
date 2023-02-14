@@ -9,7 +9,7 @@
   - [Install Rust](#install-rust)
   - [(Optional) ROS](#optional-ros)
 - [Build the repo](#build-the-repo)
-- [Run DAgger Demo](#run-dagger-demo)
+  - [Certificate Generation](#certificate-generation)
 - [Known issues](#known-issues)
 - [Run Demo Image Transport](#run-demo-image-transport)
 
