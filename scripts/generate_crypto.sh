@@ -1,0 +1,36 @@
+
+# configure environment variables
+export CA_NAME=ca
+export NUM_KEY=3
+
+# remove the previous crypto material 
+rm -r crypto 
+
+# generate the crypto material
+mkdir crypto 
+cd crypto 
+
+# generate the crypto material for the orderer
+openssl genrsa -out $CA_NAME-private.pem 2048
+openssl rsa -in $CA_NAME-private.pem -out $CA_NAME-public.pem
+openssl req -x509 -sha256 -new -nodes -key $CA_NAME-private.pem -days 3650 -out $CA_NAME-root.pem -subj "/O=GDP Root CA"
+
+echo "Generated the crypto key for the root CA"
+
+
+for (( i=1; i<=$NUM_KEY; i++ ))
+do 
+    echo $i
+    export CERT_GDP_NAME=`cat /dev/urandom | tr -cd 'a-f0-9' | head -c 32`
+    export CERT_NAME=${CERT_GDP_NAME:0:5} 
+    echo "Generating the crypto keys for "$CERT_NAME
+    openssl genrsa -out $CERT_NAME-private.pem 2048
+    openssl rsa -in $CERT_NAME-private.pem -out $CERT_NAME-public.pem
+    openssl req -sha256 -new -key $CERT_NAME-private.pem -out $CERT_NAME.csr -subj /O=$CERT_GDP_NAME
+    openssl x509 -req -sha256 -days 365 -in $CERT_NAME.csr -CA $CA_NAME-root.pem -CAkey $CA_NAME-private.pem -CAcreateserial -out $CERT_NAME.pem
+    cat ca-root.pem >> $CERT_NAME.pem 
+done 
+
+
+# cleaning up 
+rm *.csr *.srl 
