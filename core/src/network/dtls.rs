@@ -18,7 +18,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
-const UDP_BUFFER_SIZE: usize = 1024; // 17kb
+const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 
 fn generate_random_gdp_name_for_thread() -> GDPName {
     // u8:4
@@ -29,7 +29,6 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
         rand::thread_rng().gen(),
     ])
 }
-
 /// parse the header of the packet using the first null byte as delimiter
 /// return a vector of (header, payload) pairs if the header is complete
 /// return the remaining (header, payload) pairs if the header is incomplete
@@ -133,7 +132,6 @@ async fn handle_dtls_stream(
                 // let receiving_buf_size = receiving_buf.len();
                 let mut receiving_buf = receiving_buf[..receiving_buf_size].to_vec();
                 info!("read {} bytes", receiving_buf_size);
-                info!("read {:?}", receiving_buf);
 
                 let mut header_payload_pair = vec!();
 
@@ -227,9 +225,10 @@ async fn handle_dtls_stream(
                 header_string.push(0u8 as char);
                 let header_string_payload = header_string.as_bytes();
                 stream.write_all(&header_string_payload[..header_string_payload.len()]).await.unwrap();
-
+                
                 // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
                 if let Some(payload) = pkt_to_forward.payload {
+                    info!("the payload length is {}", payload.len());
                     stream.write_all(&payload[..payload.len()]).await.unwrap();
                 }
             }
@@ -258,7 +257,7 @@ pub async fn dtls_to_peer(
     Pin::new(&mut stream).connect().await.unwrap();
 
     let m_gdp_name = generate_random_gdp_name_for_thread();
-    info!("TCP takes gdp name {:?}", m_gdp_name);
+    info!("DTLS takes gdp name {:?}", m_gdp_name);
 
     
     let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
@@ -327,10 +326,12 @@ pub async fn dtls_listener(
                 let (m_tx, mut m_rx) = mpsc::unbounded_channel();
                 let ssl = Ssl::new(&acceptor).unwrap();
                 let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
-                Pin::new(&mut stream).accept().await.unwrap();            
+                Pin::new(&mut stream).accept().await.unwrap();   
+                let m_gdp_name = generate_random_gdp_name_for_thread();         
+                info!("DTLS listener takes gdp name {:?}", m_gdp_name);
                 handle_dtls_stream(stream, &rib_tx, 
                     &channel_tx, 
-                    m_tx, m_rx, generate_random_gdp_name_for_thread()).await 
+                    m_tx, m_rx, m_gdp_name).await 
             },
         );
     }
