@@ -4,8 +4,9 @@ channel_size = 100
 tcp_port = "9997"
 dtls_port = "9232"
 grpc_port = "50051"
+ros_protocol="tcp"
 peer_with_gateway = true
-default_gateway = "128.32.37.48:9997"
+default_gateway = "128.32.37.48"
 [[ros]]
 local = "pub"
 node_name = "demo_image_1"
