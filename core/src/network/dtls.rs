@@ -91,6 +91,7 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
     acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     acceptor_builder.set_ca_file(CA_CERT)?;
+    acceptor_builder.set_ca_file(CA_CERT)?;
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
     Ok(acceptor.into_context())
