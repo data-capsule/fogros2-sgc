@@ -35,6 +35,12 @@ async fn router_async_loop() {
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
     let tcp_bind_addr = format!("{}:{}", all_addr, config.tcp_port);
     let dtls_bind_addr = format!("{}:{}", all_addr, config.dtls_port);
+
+    let default_gateway_addr = match config.ros_protocol.as_str() {
+        "dtls" => format!("{}:{}", config.default_gateway, config.dtls_port),
+        "tcp" => format!("{}:{}", config.default_gateway, config.tcp_port),
+        _ => panic!("Unknown protocol"),
+    };
     // let grpc_bind_addr = format!("{}:{}", all_addr, config.grpc_port);
 
     // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib
@@ -89,21 +95,32 @@ async fn router_async_loop() {
         // this is used to diffentiate different channels in ROS topics
         let (mut m_tx, mut m_rx) = mpsc::unbounded_channel();
         if config.peer_with_gateway {
-            let ros_peer = tokio::spawn(tcp_to_peer_direct(
-                config.default_gateway.clone().into(),
-                rib_tx.clone(),
-                channel_tx.clone(),
-                m_tx.clone(),
-                m_rx,
-            ));
-            future_handles.push(ros_peer);
+            if config.ros_protocol == "dtls" {
+                let ros_peer = tokio::spawn(dtls_to_peer_direct(
+                    default_gateway_addr.clone().into(),
+                    rib_tx.clone(),
+                    channel_tx.clone(),
+                    m_tx.clone(),
+                    m_rx,
+                ));
+                future_handles.push(ros_peer);
+            } else if config.ros_protocol == "tcp" {
+                let ros_peer = tokio::spawn(tcp_to_peer_direct(
+                    default_gateway_addr.clone().into(),
+                    rib_tx.clone(),
+                    channel_tx.clone(),
+                    m_tx.clone(),
+                    m_rx,
+                ));
+                future_handles.push(ros_peer);
+            }
         } else {
-            // reasoning here: 
-            // m_tx is the next hop that the ros sends messages 
+            // reasoning here:
+            // m_tx is the next hop that the ros sends messages
             // if we don't peer with another router directly
             // we just forward to rib
-            m_tx = rib_tx.clone(); 
-        }   
+            m_tx = rib_tx.clone();
+        }
 
         let ros_handle = match ros_config.local.as_str() {
             "pub" => match ros_config.topic_type.as_str() {
@@ -140,26 +157,35 @@ async fn router_async_loop() {
         future_handles.push(ros_handle);
     }
 
-
-
     if config.peer_with_gateway {
         let (m_tx, m_rx) = mpsc::unbounded_channel();
-        let peer_advertisement = tokio::spawn(tcp_to_peer(
-            config.default_gateway.clone().into(),
-            rib_tx.clone(),
-            channel_tx.clone(),
-            m_tx.clone(),
-            m_rx,
-        ));
-        future_handles.push(peer_advertisement);
+        if config.ros_protocol == "dtls" {
+            let peer_advertisement = tokio::spawn(dtls_to_peer(
+                default_gateway_addr.clone().into(),
+                rib_tx.clone(),
+                channel_tx.clone(),
+                m_tx.clone(),
+                m_rx,
+            ));
+            future_handles.push(peer_advertisement);
+        } else if config.ros_protocol == "tcp" {
+            let peer_advertisement = tokio::spawn(tcp_to_peer(
+                default_gateway_addr.clone().into(),
+                rib_tx.clone(),
+                channel_tx.clone(),
+                m_tx.clone(),
+                m_rx,
+            ));
+            future_handles.push(peer_advertisement);
+        }
 
-        // only non-gateway proxy needs to advertise themselves 
-        // it needs the connection to be settled first, otherwise the advertisement is lost 
+        // only non-gateway proxy needs to advertise themselves
+        // it needs the connection to be settled first, otherwise the advertisement is lost
         sleep(Duration::from_millis(1000)).await;
         info!("Flushing the RIB....");
-        stat_tx.send(GDPStatus{
-            sink: m_tx,
-        }).expect("Flush the RIB Failure");
+        stat_tx
+            .send(GDPStatus { sink: m_tx })
+            .expect("Flush the RIB Failure");
     }
 
     future::join_all(future_handles).await;
