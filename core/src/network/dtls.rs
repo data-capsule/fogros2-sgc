@@ -12,7 +12,6 @@ use openssl::{
 
 use crate::structs::GDPName;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
-use std::io;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -80,10 +79,9 @@ fn parse_header_payload_pairs(
 }
 
 
-static SERVER_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
-static SERVER_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
-static CLIENT_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
-static CLIENT_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
+static CA_CERT: &str = "./core/resources/ca-root.pem";
+static MY_CERT: &str = "./scripts/crypto/router.pem";
+static MY_KEY: &str = "./scripts/crypto/router-private.pem";
 const SERVER_DOMAIN: &'static str = "not.verified";
 
 /// helper function of SSL
@@ -92,6 +90,7 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
     acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    acceptor_builder.set_ca_file(CA_CERT)?;
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
     Ok(acceptor.into_context())
@@ -254,12 +253,12 @@ pub async fn dtls_to_peer(
     println!("{:?}", stream);
 
     // setup ssl
-    let client_cert = X509::from_pem(CLIENT_CERT).unwrap();
-    let client_key = PKey::private_key_from_pem(CLIENT_KEY).unwrap();
+    let client_cert = X509::from_pem(&fs::read(MY_CERT).expect("file does not exist")).unwrap();
+    let client_key = PKey::private_key_from_pem(&fs::read(MY_KEY).expect("file does not exist")).unwrap();
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
-    connector_builder.set_ca_file("/home/azureuser/gdp-router/core/resources/ca-root.pem").unwrap();
+    connector_builder.set_ca_file(CA_CERT).unwrap();
     connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
@@ -302,12 +301,13 @@ pub async fn dtls_to_peer_direct(
     println!("{:?}", stream);
 
     // setup ssl
-    let client_cert = X509::from_pem(CLIENT_CERT).unwrap();
-    let client_key = PKey::private_key_from_pem(CLIENT_KEY).unwrap();
+    let client_cert = X509::from_pem(&fs::read(MY_CERT).expect("file does not exist")).unwrap();
+    let client_key = PKey::private_key_from_pem(&fs::read(MY_KEY).expect("file does not exist")).unwrap();
+
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
-    connector_builder.set_ca_file("/home/azureuser/gdp-router/core/resources/ca-root.pem").unwrap();
+    connector_builder.set_ca_file(CA_CERT).unwrap();
     connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
@@ -332,7 +332,10 @@ pub async fn dtls_listener(
     let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
         .unwrap();
-    let acceptor = ssl_acceptor(SERVER_CERT, SERVER_KEY).unwrap();
+    let acceptor = ssl_acceptor(
+        &fs::read(MY_CERT).expect("file does not exist")
+        , &fs::read(MY_KEY).expect("file does not exist")
+    ).unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let rib_tx = rib_tx.clone();
