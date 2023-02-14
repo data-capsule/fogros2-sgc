@@ -84,6 +84,7 @@ static SERVER_CERT: &'static [u8] = include_bytes!("../../resources/router.pem")
 static SERVER_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
 static CLIENT_CERT: &'static [u8] = include_bytes!("../../resources/router.pem");
 static CLIENT_KEY: &'static [u8] = include_bytes!("../../resources/router-private.pem");
+static CA_CERT: &str = "/home/gdpmobile8/gdp-router/core/resources/ca-root.pem";
 const SERVER_DOMAIN: &'static str = "not.verified";
 
 /// helper function of SSL
@@ -92,6 +93,7 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
     acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    acceptor_builder.set_ca_file(CA_CERT)?;
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
     Ok(acceptor.into_context())
@@ -259,7 +261,7 @@ pub async fn dtls_to_peer(
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
-    connector_builder.set_ca_file("/home/azureuser/gdp-router/core/resources/ca-root.pem").unwrap();
+    connector_builder.set_ca_file(CA_CERT).unwrap();
     connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
@@ -307,7 +309,7 @@ pub async fn dtls_to_peer_direct(
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
-    connector_builder.set_ca_file("/home/azureuser/gdp-router/core/resources/ca-root.pem").unwrap();
+    connector_builder.set_ca_file(CA_CERT).unwrap();
     connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
