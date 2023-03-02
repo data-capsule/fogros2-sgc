@@ -263,16 +263,22 @@ async fn handle_tcp_stream(
                     }
                 }
                 if let Some(payload) = pkt_to_forward.payload {
-                    match stream.try_write(&payload) {
-                        Ok(n) => {
-                            println!("payload with size {}: write {} bytes", payload.len(), n);
-                        }
-                        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                            continue
-                        }
-                        Err(_e) => {
-                            println!("Err of other kind");
-                            continue
+                    let mut bytes_written = 0;
+                    let bytes_read = payload.len();
+                    while bytes_written < bytes_read {
+                        match stream.try_write(&payload[bytes_written..bytes_read]) {
+                            Ok(n) => {
+                                info!("payload with size {}: write {} bytes", payload.len(), n);
+                                bytes_written += n;
+                            }
+                            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                                info!("would block");
+                                stream.writable().await.expect("TCP stream is closed");
+                            }
+                            Err(_e) => {
+                                info!("Err of other kind");
+                                break
+                            }
                         }
                     }
                 }
