@@ -1,0 +1,41 @@
+version: "3"
+
+services:
+    listener:
+        restart: always
+        build: 
+          context: ./
+          dockerfile: ./Dockerfile-dev
+        volumes:
+          - "./src:/src" 
+          - "./scripts:/scripts" 
+        networks:
+          vpcbr:
+            ipv4_address: 10.5.0.6
+        environment:
+          GDP_CONFIG: "docker_listener.toml"
+
+    talker:
+        restart: always
+        build: 
+          context: ./
+          dockerfile: ./Dockerfile-dev
+        volumes:
+          - "./src:/src" 
+          - "./scripts:/scripts" 
+        networks:
+          vpcbr:
+            ipv4_address: 10.5.0.5
+        environment:
+          GDP_CONFIG: "docker_talker.toml"
+        # depending on listener is not requierd but it makes sure that 
+        # the listener is up and running before the talker starts
+        depends_on:
+          - listener
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1

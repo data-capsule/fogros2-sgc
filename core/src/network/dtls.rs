@@ -349,9 +349,9 @@ pub async fn dtls_listener(
         .await
         .unwrap();
     let acceptor = ssl_acceptor(
-        &fs::read(MY_CERT).expect("file does not exist")
-        , &fs::read(MY_KEY).expect("file does not exist")
-    ).unwrap();
+        &fs::read(MY_CERT).expect("file does not exist"),
+        &fs::read(MY_KEY).expect("file does not exist")
+    ).expect("ssl acceptor failed");
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let rib_tx = rib_tx.clone();

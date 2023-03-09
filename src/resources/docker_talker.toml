@@ -5,9 +5,9 @@ tcp_port = "9997"
 dtls_port = "9232"
 grpc_port = "50051"
 ros_protocol="tcp"
-crypto_name="77a3e"
+crypto_name="test_cert"
 peer_with_gateway = true
-default_gateway = "20.84.87.187"
+default_gateway = "10.5.0.6"
 [[ros]]
 local = "pub"
 node_name = "benchmark_talker"
