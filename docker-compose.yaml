@@ -14,7 +14,12 @@ services:
             ipv4_address: 10.5.0.6
         environment:
           GDP_CONFIG: "docker_listener.toml"
-
+        command: >
+          bash -c "source /opt/ros/humble/setup.bash; 
+          export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp ;
+          export CYCLONEDDS_URI=file:///fog_ws/cyclonedds.ubuntu.2204.xml ;
+          ros2 run demo_nodes_py listener & 
+          /gdp-router router"
     talker:
         restart: always
         build: 
@@ -32,6 +37,13 @@ services:
         # the listener is up and running before the talker starts
         depends_on:
           - listener
+        command: >
+          bash -c "source /opt/ros/humble/setup.bash; 
+          export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp; 
+          export CYCLONEDDS_URI=file:///fog_ws/cyclonedds.ubuntu.2204.xml ;
+          ros2 run demo_nodes_py talker & 
+          /gdp-router router"
+
 networks:
   vpcbr:
     driver: bridge

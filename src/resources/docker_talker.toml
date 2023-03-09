@@ -10,13 +10,8 @@ peer_with_gateway = true
 default_gateway = "10.5.0.6"
 [[ros]]
 local = "pub"
-node_name = "benchmark_talker"
-topic_name = "/benchmark"
-topic_type = "sensor_msgs/msg/CompressedImage"
-[[ros]]
-local = "sub"
-node_name = "benchmark_listener"
-topic_name = "/benchmark_echo"
+node_name = "talker"
+topic_name = "/chatter"
 topic_type = "std_msgs/msg/String"
 [database]
 url = "custom database url"
