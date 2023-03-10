@@ -12,7 +12,8 @@
   - [Build the repo](#build-the-repo)
 - [Run with Different Machines](#run-with-different-machines)
     - [Certificate Generation](#certificate-generation)
-    - [Modify Configuration File](#modify-configuration-file)
+    - [Run with Environment Variables](#run-with-environment-variables)
+    - [Run ROS2 talker and listener](#run-ros2-talker-and-listener)
   - [Known issues](#known-issues)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
