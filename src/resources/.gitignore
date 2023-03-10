@@ -3,6 +3,7 @@
 
 # But not these files...
 !.gitignore
+!README.md
 !talker.toml
 !listener.toml
 !experiment_talker.toml

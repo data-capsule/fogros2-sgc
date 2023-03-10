@@ -19,19 +19,22 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
-### Local Demo 
+## Local Demo 
 If you want to get a taste of FogROS2 SGC without setting up the environment, just run 
 ```
 docker compose build && docker compose up 
 ```
-with docker([Install](https://docs.docker.com/get-docker/)) and docker compose([Install](https://docs.docker.com/compose/install/linux/)). 
+with docker([install](https://docs.docker.com/get-docker/)) and docker compose([install](https://docs.docker.com/compose/install/linux/)). 
 It takes some time to build. You will see two docker containers running `talker` and `listener` are connected by FogROS2-SGC.
 
-### Installation 
+## Build FogROS2 SGC 
+The following are instructions of building FogROS2 SGC. 
 
 ### Install dependencies 
+```
 sudo apt update
 sudo apt install build-essential curl pkg-config libssl-dev protobuf-compiler clang
+```
 
 #### Install Rust 
 ```
@@ -44,25 +47,20 @@ source "$HOME/.cargo/env"
 to configure the environment variables. 
 
 #### Install ROS 
-If you only use the machine as a router or proxy, you need 
-to change the `default = ["ros"]` to `default = []` in `./core/Cargo.toml`. 
+ROS2 ~Dashing~ ~Eloquent~ Foxy Galactic Humble Rolling should work fine with FogROS2 SGC. 
 
-Currently we use ROS2 rolling for development. 
-```
-sudo apt update && sudo apt install curl
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-sudo apt update
-sudo apt install ros-rolling-desktop
-```
-Then use 
+Here we show the instruction of installing ROS2 rolling with Debian packages. 
+
+First, install ROS2 from binaries with [these instructions](https://docs.ros.org/en/rolling/Installation/Ubuntu-Install-Debians.html).
+
+Setup your environment with [these instructions](https://docs.ros.org/en/rolling/Installation/Ubuntu-Install-Debians.html#environment-setup).
+
+Every terminal should be configured with 
 ```
 source /opt/ros/rolling/setup.bash
-```
-whenever you launch a new terminal. 
+````
 
-
-### Build the repo 
+#### Build the repo 
 
 The repo is built with 
 ```
@@ -92,7 +90,7 @@ export SGC_CONFIG=listener.toml
 export GATEWAY_IP=MACHINE_A_IP
 cargo run 
 ```
-Replace `MACHINE_A_IP` with the IP address of Machine A. Note that A and B can configure with some intermediate machine C if they are not able to directly connect. Then configure `GATEWAY_IP` on both machines with machine C's ip address. 
+Replace `MACHINE_A_IP` with the IP address of Machine A. Note that A and B can configure with some intermediate machine C if they are not able to directly connect. Then configure `GATEWAY_IP` on both machines with machine C's ip address. The talker and listener toml configuration file can be found [here](./src/resources/README.md).
 
 
 To disable the logs and run the benchmark, run with `release` option by 
@@ -112,5 +110,6 @@ and
 ros2 run demo_nodes_cpp listener
 ```
 
-### Known issues 
-1. segmentation fault / node creation failure: not caused by our project but our underlying framework or ROS rcl itself. Restart the program and the problem should be fixed. The hypothesis is asynchronous error when the nodes are created too fast in parallel. 
+### TODOs and Known issues 
+1. automatic topic discovery
+2. segmentation fault / node creation failure: not caused by our project but our underlying framework or ROS rcl itself. Restart the program and the problem should be fixed. The hypothesis is asynchronous error when the nodes are created too fast in parallel. 

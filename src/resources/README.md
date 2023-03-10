@@ -1,3 +1,7 @@
+# Guide for Writing Configuration File
+
+The following is a talker example of the configuration file. The listener example simply flips the `local` to `sub` to subscribe to the local chatter topic and to publish to the remote topic.
+```toml
 # FogROS2-SGC configuration file
 # debug = true | false 
 # setting up debug to true will print out debug messages
@@ -34,3 +38,4 @@ node_name = "talker"
 topic_name = "/chatter"
 # topic type of fogros2-sgc node that will publish/subscribe to
 topic_type = "std_msgs/msg/String"
+```
