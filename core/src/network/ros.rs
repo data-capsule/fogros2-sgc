@@ -13,7 +13,6 @@ use r2r::QosProfile;
 use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
 
 use serde_json;
-use sha2::Digest;
 
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;

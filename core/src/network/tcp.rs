@@ -32,7 +32,7 @@ fn parse_header_payload_pairs(
 -> (Vec<(GDPPacketInTransit, Vec<u8>)>, Option<(GDPPacketInTransit, Vec<u8>)>) {
     let mut header_payload_pairs: Vec<(GDPPacketInTransit, Vec<u8>)> = Vec::new();
     //TODO: get it to default trace later
-    let mut default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
+    let default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
         length: 0, //doesn't have any payload
@@ -57,10 +57,10 @@ fn parse_header_payload_pairs(
         let gdp_header = gdp_header_parsed.unwrap();
         let remaining = header_and_remaining[1];
 
-        if (gdp_header.length > remaining.len()) {
+        if gdp_header.length > remaining.len() {
             // if the payload is not complete, return the remaining
             return (header_payload_pairs, Some((gdp_header, remaining.to_vec())));
-        } else if (gdp_header.length == remaining.len()) {
+        } else if gdp_header.length == remaining.len() {
             // if the payload is complete, return the pair
             header_payload_pairs.push((gdp_header, remaining.to_vec()));
             return (header_payload_pairs, None);
@@ -317,7 +317,7 @@ pub async fn tcp_listener(
 
 pub async fn tcp_to_peer(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>
+    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => s,

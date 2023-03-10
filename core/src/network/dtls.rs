@@ -39,7 +39,7 @@ fn parse_header_payload_pairs(
 -> (Vec<(GDPPacketInTransit, Vec<u8>)>, Option<(GDPPacketInTransit, Vec<u8>)>) {
     let mut header_payload_pairs: Vec<(GDPPacketInTransit, Vec<u8>)> = Vec::new();
     //TODO: get it to default trace later
-    let mut default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
+    let default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
         length: 0, //doesn't have any payload
@@ -84,13 +84,13 @@ const SERVER_DOMAIN: &'static str = "not.verified";
 /// helper function of SSL
 fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslContext> {
     let config = AppConfig::fetch().unwrap();
-    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
 
     let mut acceptor_builder = SslAcceptor::mozilla_intermediate(SslMethod::dtls())?;
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
     acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
-    acceptor_builder.set_ca_file(CA_CERT)?;
+    acceptor_builder.set_ca_file(ca_cert)?;
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
     Ok(acceptor.into_context())
@@ -108,6 +108,7 @@ fn get_epoch_ms() -> u128 {
 /// 2. select between
 ///         incoming dtls packets -> receive and send to rib
 ///         incomine packets from rib -> send to the tcp session
+#[allow(unused_assignments)]
 async fn handle_dtls_stream(
     mut stream: SslStream<UdpStream>, rib_tx: &UnboundedSender<GDPPacket>,
     channel_tx: &UnboundedSender<GDPChannel>,
@@ -245,7 +246,7 @@ async fn handle_dtls_stream(
 
 pub async fn dtls_to_peer(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>
+    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>
 ) {
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
     .await
@@ -253,17 +254,17 @@ pub async fn dtls_to_peer(
     println!("{:?}", stream);
 
     let config = AppConfig::fetch().unwrap();
-    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
-    let MY_CERT= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
-    let MY_KEY= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
+    let ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
+    let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
     
     // setup ssl
-    let client_cert = X509::from_pem(&fs::read(MY_CERT).expect("file does not exist")).unwrap();
-    let client_key = PKey::private_key_from_pem(&fs::read(MY_KEY).expect("file does not exist")).unwrap();
+    let client_cert = X509::from_pem(&fs::read(my_cert).expect("file does not exist")).unwrap();
+    let client_key = PKey::private_key_from_pem(&fs::read(my_key).expect("file does not exist")).unwrap();
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
-    connector_builder.set_ca_file(CA_CERT).unwrap();
+    connector_builder.set_ca_file(ca_cert).unwrap();
     connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
@@ -307,17 +308,17 @@ pub async fn dtls_to_peer_direct(
 
     // setup ssl
     let config = AppConfig::fetch().unwrap();
-    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
-    let MY_CERT= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
-    let MY_KEY= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
+    let ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
+    let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
     
-    let client_cert = X509::from_pem(&fs::read(MY_CERT).expect("file does not exist")).unwrap();
-    let client_key = PKey::private_key_from_pem(&fs::read(MY_KEY).expect("file does not exist")).unwrap();
+    let client_cert = X509::from_pem(&fs::read(my_cert).expect("file does not exist")).unwrap();
+    let client_key = PKey::private_key_from_pem(&fs::read(my_key).expect("file does not exist")).unwrap();
 
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
-    connector_builder.set_ca_file(CA_CERT).unwrap();
+    connector_builder.set_ca_file(ca_cert).unwrap();
     connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
@@ -340,7 +341,7 @@ pub async fn dtls_listener(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) {
     let config = AppConfig::fetch().unwrap();
-    let _CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let _ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
     let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
     let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
     
@@ -360,7 +361,7 @@ pub async fn dtls_listener(
         //TODO: loop here is not correct
         tokio::spawn(
             async move { 
-                let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+                let (m_tx, m_rx) = mpsc::unbounded_channel();
                 let ssl = Ssl::new(&acceptor).unwrap();
                 let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
                 Pin::new(&mut stream).accept().await.unwrap();   

@@ -1,6 +1,6 @@
 use crate::{structs::{GDPChannel, GDPName, GDPPacket, GDPStatus}, pipeline::construct_gdp_advertisement_from_bytes};
 use std::collections::HashMap;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedReceiver};
 
 async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     for dst in destinations {
@@ -19,6 +19,7 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     }
 }
 
+#[allow(dead_code)]
 async fn broadcast_advertisement(
     channel: &GDPChannel,
     coonection_rib_table: &HashMap<GDPName, Vec<GDPChannel>>){

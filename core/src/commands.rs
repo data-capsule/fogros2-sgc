@@ -1,13 +1,13 @@
 extern crate tokio;
 extern crate tokio_core;
-use std::{thread, env};
+use std::{env};
 use std::time::Duration;
 
 use crate::connection_rib::connection_router;
-use crate::gdp_proto::GdpUpdate;
+
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer, dtls_to_peer_direct};
 use crate::network::tcp::{tcp_listener, tcp_to_peer, tcp_to_peer_direct};
-use crate::structs::{GDPName, GDPStatus};
+use crate::structs::{GDPStatus};
 use futures::future;
 use tokio::sync::mpsc::{self};
 
@@ -16,7 +16,7 @@ use utils::app_config::AppConfig;
 use utils::error::Result;
 
 #[cfg(feature = "ros")]
-use crate::network::ros::{ros_publisher, ros_sample, ros_subscriber};
+use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 
@@ -100,7 +100,7 @@ async fn router_async_loop() {
     for ros_config in config.ros {
         // This sender handle is a specific connection for ROS
         // this is used to diffentiate different channels in ROS topics
-        let (mut m_tx, mut m_rx) = mpsc::unbounded_channel();
+        let (mut m_tx, m_rx) = mpsc::unbounded_channel();
         if  peer_with_gateway {
             if config.ros_protocol == "dtls" {
                 let ros_peer = tokio::spawn(dtls_to_peer_direct(
