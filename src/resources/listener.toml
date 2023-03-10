@@ -6,12 +6,10 @@ dtls_port = "9232"
 grpc_port = "50051"
 ros_protocol="tcp"
 crypto_name="test_cert"
-peer_with_gateway = true
+peer_with_gateway = false
 default_gateway = "10.5.0.6"
 [[ros]]
-local = "pub"
+local = "sub"
 node_name = "talker"
 topic_name = "/chatter"
 topic_type = "std_msgs/msg/String"
-[database]
-url = "custom database url"
