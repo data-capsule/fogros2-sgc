@@ -39,12 +39,8 @@ sudo apt install build-essential curl pkg-config libssl-dev protobuf-compiler cl
 #### Install Rust 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
-```
-and run 
-```
 source "$HOME/.cargo/env"
 ```
-to configure the environment variables. 
 
 #### Install ROS 
 ROS2 ~Dashing~ ~Eloquent~ Foxy Galactic Humble Rolling should work fine with FogROS2 SGC. 
@@ -80,21 +76,24 @@ Every directory in `./scripts/crypto` contains the cryptographic secrets needed 
 
 Distribute the `crypto` directory by from machine A and machine B. Here is an example with `scp`: 
 ```
-scp -r crypto USER@MACHINE_B_IP_ADDR:/SGC_PATH/scripts/crypto.
+scp -r crypto USER@MACHINE_B_IP_ADDR:/SGC_PATH/scripts/
 ```
 replace `USER`, `MACHINE_B_IP_ADDR`, `SGC_PATH` with the actual paths.
 
+After the crypto secrets are delivered, go back to project main directory. 
+
 #### Run with Environment Variables 
+Run FogROS2-SGC routers on the root project directory. 
 On the machine A
 ```
 export SGC_CONFIG=talker.toml
-cargo run 
+cargo run router
 ```
 On the machine B
 ```
 export SGC_CONFIG=listener.toml
 export GATEWAY_IP=MACHINE_A_IP
-cargo run 
+cargo run router
 ```
 Replace `MACHINE_A_IP` with the IP address of Machine A. 
 
