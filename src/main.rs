@@ -31,8 +31,7 @@ fn main() -> Result<()> {
     env_logger::init();
 
     // Initialize Configuration
-    // Initialize Configuration
-    let include_path = match env::var_os("GDP_CONFIG") {
+    let include_path = match env::var_os("SGC_CONFIG") {
         Some(config_file) => {
             format!(
                 "{}{}",

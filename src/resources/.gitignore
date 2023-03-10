@@ -3,9 +3,8 @@
 
 # But not these files...
 !.gitignore
-!default_config.toml
-!demo_cloud.toml
-!demo_robot.toml
+!talker.toml
+!listener.toml
 !experiment_talker.toml
 !experiment_listener.toml
 !docker_talker.toml

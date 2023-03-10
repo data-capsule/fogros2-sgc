@@ -1,6 +1,6 @@
 extern crate tokio;
 extern crate tokio_core;
-use std::thread;
+use std::{thread, env};
 use std::time::Duration;
 
 use crate::connection_rib::connection_router;
@@ -19,9 +19,6 @@ use utils::error::Result;
 use crate::network::ros::{ros_publisher, ros_sample, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
-// const TCP_ADDR: &'static str = "127.0.0.1:9997";
-// const DTLS_ADDR: &'static str = "127.0.0.1:9232";
-// const GRPC_ADDR: &'static str = "0.0.0.0:50001";
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -31,17 +28,27 @@ async fn router_async_loop() {
     info!("{:#?}", config);
     let mut future_handles = Vec::new();
 
+    let mut peer_with_gateway = config.peer_with_gateway;
+    let default_gateway_ip = match env::var_os("GATEWAY_IP") {
+        Some(gateway_ip) => {
+            info!("override to connect gateway to be true");
+            info!("Replace Gateway IP with {}", gateway_ip.to_string_lossy());
+            peer_with_gateway = true;
+            gateway_ip.into_string().expect("Gateway IP is not a valid string")
+        },
+        None => config.default_gateway,
+    };
+
     // initialize the address binding
     let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
     let tcp_bind_addr = format!("{}:{}", all_addr, config.tcp_port);
     let dtls_bind_addr = format!("{}:{}", all_addr, config.dtls_port);
 
     let default_gateway_addr = match config.ros_protocol.as_str() {
-        "dtls" => format!("{}:{}", config.default_gateway, config.dtls_port),
-        "tcp" => format!("{}:{}", config.default_gateway, config.tcp_port),
+        "dtls" => format!("{}:{}", default_gateway_ip, config.dtls_port),
+        "tcp" => format!("{}:{}", default_gateway_ip, config.tcp_port),
         _ => panic!("Unknown protocol"),
     };
-    // let grpc_bind_addr = format!("{}:{}", all_addr, config.grpc_port);
 
     // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib
     let (rib_tx, rib_rx) = mpsc::unbounded_channel();
@@ -94,7 +101,7 @@ async fn router_async_loop() {
         // This sender handle is a specific connection for ROS
         // this is used to diffentiate different channels in ROS topics
         let (mut m_tx, mut m_rx) = mpsc::unbounded_channel();
-        if config.peer_with_gateway {
+        if  peer_with_gateway {
             if config.ros_protocol == "dtls" {
                 let ros_peer = tokio::spawn(dtls_to_peer_direct(
                     default_gateway_addr.clone().into(),
@@ -157,7 +164,7 @@ async fn router_async_loop() {
         future_handles.push(ros_handle);
     }
 
-    if config.peer_with_gateway {
+    if peer_with_gateway {
         let (m_tx, m_rx) = mpsc::unbounded_channel();
         if config.ros_protocol == "dtls" {
             let peer_advertisement = tokio::spawn(dtls_to_peer(
