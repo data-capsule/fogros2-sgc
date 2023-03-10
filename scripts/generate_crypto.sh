@@ -49,7 +49,3 @@ do
     cp ca-root.pem $CERT_NAME/ca-root.pem
     rm $CERT_NAME-private.pem $CERT_NAME-public.pem $CERT_NAME.csr $CERT_NAME.pem
 done 
-
-
-# cleaning up 
-rm ca-root.srl 
