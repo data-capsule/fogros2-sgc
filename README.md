@@ -1,5 +1,9 @@
 # FogROS2 SGC 
 
+FogROS2-SGC is a cloud robotics platform for connecting robot systems across different physical locations, networks, and Data Distribution Services (DDS). 
+
+\[[Website](https://sites.google.com/view/fogros2-sgc)\] \[[Video](https://youtu.be/hVVFVGLcK0c)\] \[[Arxiv](https://arxiv.org/abs/2210.11691)\] (TODO: arxiv link)
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
@@ -25,7 +29,7 @@ If you want to get a taste of FogROS2 SGC without setting up the environment, ju
 docker compose build && docker compose up 
 ```
 with docker([install](https://docs.docker.com/get-docker/)) and docker compose([install](https://docs.docker.com/compose/install/linux/)). 
-It takes some time to build. You will see two docker containers running `talker` and `listener` are connected by FogROS2-SGC.
+It takes some time to build. You will see two docker containers running `talker` and `listener` are connected securely with FogROS2-SGC.
 
 ## Build FogROS2 SGC 
 The following are instructions of building FogROS2 SGC. 
