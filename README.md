@@ -4,14 +4,16 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [Installation](#installation)
-- [Install dependencies](#install-dependencies)
-  - [Install Rust](#install-rust)
-  - [(Optional) ROS](#optional-ros)
-- [Build the repo](#build-the-repo)
-  - [Certificate Generation](#certificate-generation)
-- [Known issues](#known-issues)
-- [Run Demo Image Transport](#run-demo-image-transport)
+  - [Local Demo](#local-demo)
+  - [Installation](#installation)
+  - [Install dependencies](#install-dependencies)
+    - [Install Rust](#install-rust)
+    - [Install ROS](#install-ros)
+  - [Build the repo](#build-the-repo)
+- [Run with Different Machines](#run-with-different-machines)
+    - [Certificate Generation](#certificate-generation)
+    - [Modify Configuration File](#modify-configuration-file)
+  - [Known issues](#known-issues)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
