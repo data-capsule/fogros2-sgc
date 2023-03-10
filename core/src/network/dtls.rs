@@ -1,5 +1,5 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::{populate_gdp_struct_from_bytes, proc_gdp_packet, construct_gdp_advertisement_from_bytes};
+use crate::pipeline::{proc_gdp_packet, construct_gdp_advertisement_from_bytes};
 use std::{net::SocketAddr, pin::Pin, str::FromStr};
 use std::fs;
 use tokio_openssl::SslStream;
@@ -64,10 +64,10 @@ fn parse_header_payload_pairs(
         let gdp_header = gdp_header_parsed.unwrap();
         let remaining = header_and_remaining[1];
 
-        if (gdp_header.length > remaining.len()) {
+        if gdp_header.length > remaining.len() {
             // if the payload is not complete, return the remaining
             return (header_payload_pairs, Some((gdp_header, remaining.to_vec())));
-        } else if (gdp_header.length == remaining.len()) {
+        } else if gdp_header.length == remaining.len() {
             // if the payload is complete, return the pair
             header_payload_pairs.push((gdp_header, remaining.to_vec()));
             return (header_payload_pairs, None);
@@ -340,17 +340,17 @@ pub async fn dtls_listener(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) {
     let config = AppConfig::fetch().unwrap();
-    let CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
-    let MY_CERT= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
-    let MY_KEY= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
+    let _CA_CERT = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
+    let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
+    let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
     
 
     let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
         .unwrap();
     let acceptor = ssl_acceptor(
-        &fs::read(MY_CERT).expect("file does not exist"),
-        &fs::read(MY_KEY).expect("file does not exist")
+        &fs::read(my_cert).expect("file does not exist"),
+        &fs::read(my_key).expect("file does not exist")
     ).expect("ssl acceptor failed");
     loop {
         let (socket, _) = listener.accept().await.unwrap();

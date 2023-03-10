@@ -224,8 +224,7 @@ pub fn simulate_error() -> Result<()> {
     // test_cert();
     // get address from default gateway
 
-    #[cfg(feature = "ros")]
-    ros_sample();
+    // ros_sample();
     // TODO: uncomment them
     let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
     println!("{}", test_router_addr);

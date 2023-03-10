@@ -29,7 +29,7 @@ impl Globaldataplane for GDPService {
 
         let packet = populate_gdp_struct_from_proto(request_body);
 
-        self.rib_tx.send(packet).await;
+        self.rib_tx.send(packet).await.expect("send packet failed");
 
         // TODO: a more meaningful ack?
         let forward_response = "ACK";
@@ -54,7 +54,7 @@ impl Globaldataplane for GDPService {
 
         let update = update_request.into_inner();
 
-        self.status_tx.send(update).await;
+        self.status_tx.send(update).await.expect("send update failed");
 
         let reply = GdpResponse {
             // We must use .into_inner() as the fields of gRPC requests and responses are private
