@@ -22,7 +22,7 @@ from glob import glob
 
 from setuptools import setup
 
-package_name = "fogros2_examples"
+package_name = "fogros2_sgc_examples"
 
 setup(
     name=package_name,
@@ -38,8 +38,8 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    author="Kaiyuan (Eric) Chen, Víctor Mayoral-Vilches",
-    author_email="kych@berkeley.edu, v.mayoralv@gmail.com",
+    author="Kaiyuan (Eric) Chen",
+    author_email="kych@berkeley.edu",
     maintainer="Kaiyuan (Eric) Chen",
     maintainer_email="kych@berkeley.edu",
     description="TODO: Package description",
