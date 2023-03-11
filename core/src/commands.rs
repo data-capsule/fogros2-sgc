@@ -8,6 +8,7 @@ use crate::connection_rib::connection_router;
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer, dtls_to_peer_direct};
 use crate::network::tcp::{tcp_listener, tcp_to_peer, tcp_to_peer_direct};
 use crate::structs::{GDPStatus};
+use crate::topic_manager::ros_topic_manager;
 use futures::future;
 use tokio::sync::mpsc::{self};
 
@@ -15,10 +16,6 @@ use tokio::time::sleep;
 use utils::app_config::AppConfig;
 use utils::error::Result;
 
-#[cfg(feature = "ros")]
-use crate::network::ros::{ros_publisher, ros_subscriber};
-#[cfg(feature = "ros")]
-use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -96,74 +93,17 @@ async fn router_async_loop() {
     ));
     future_handles.push(rib_handle);
 
-    #[cfg(feature = "ros")]
-    for ros_config in config.ros {
-        // This sender handle is a specific connection for ROS
-        // this is used to diffentiate different channels in ROS topics
-        let (mut m_tx, m_rx) = mpsc::unbounded_channel();
-        if  peer_with_gateway {
-            if config.ros_protocol == "dtls" {
-                let ros_peer = tokio::spawn(dtls_to_peer_direct(
-                    default_gateway_addr.clone().into(),
-                    rib_tx.clone(),
-                    channel_tx.clone(),
-                    m_tx.clone(),
-                    m_rx,
-                ));
-                future_handles.push(ros_peer);
-            } else if config.ros_protocol == "tcp" {
-                let ros_peer = tokio::spawn(tcp_to_peer_direct(
-                    default_gateway_addr.clone().into(),
-                    rib_tx.clone(),
-                    channel_tx.clone(),
-                    m_tx.clone(),
-                    m_rx,
-                ));
-                future_handles.push(ros_peer);
-            }
-        } else {
-            // reasoning here:
-            // m_tx is the next hop that the ros sends messages
-            // if we don't peer with another router directly
-            // we just forward to rib
-            m_tx = rib_tx.clone();
-        }
+    let ros_topic_manager_handle = tokio::spawn(ros_topic_manager(
+        peer_with_gateway, 
+        default_gateway_addr.clone(), 
+        rib_tx.clone(),
+        channel_tx.clone(),
+    ));
+    future_handles.push(ros_topic_manager_handle);
 
-        let ros_handle = match ros_config.local.as_str() {
-            "pub" => match ros_config.topic_type.as_str() {
-                "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
-                    m_tx.clone(),
-                    channel_tx.clone(),
-                    ros_config.node_name,
-                    ros_config.topic_name,
-                )),
-                _ => tokio::spawn(ros_subscriber(
-                    m_tx.clone(),
-                    channel_tx.clone(),
-                    ros_config.node_name,
-                    ros_config.topic_name,
-                    ros_config.topic_type,
-                )),
-            },
-            _ => match ros_config.topic_type.as_str() {
-                "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
-                    m_tx.clone(),
-                    channel_tx.clone(),
-                    ros_config.node_name,
-                    ros_config.topic_name,
-                )),
-                _ => tokio::spawn(ros_publisher(
-                    m_tx.clone(),
-                    channel_tx.clone(),
-                    ros_config.node_name,
-                    ros_config.topic_name,
-                    ros_config.topic_type,
-                )),
-            },
-        };
-        future_handles.push(ros_handle);
-    }
-
+    // This connection is only used to advertise the routing information 
+    // to the gateway. It is not used to forward any packets.
+    // the packets are forwarded by direct peer connections in ros_topic_manager
     if peer_with_gateway {
         let (m_tx, m_rx) = mpsc::unbounded_channel();
         if config.ros_protocol == "dtls" {

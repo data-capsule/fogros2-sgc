@@ -13,6 +13,7 @@ pub mod connection_rib;
 pub mod pipeline;
 // util
 pub mod commands;
+pub mod topic_manager;
 
 use utils::error::Result;
 
