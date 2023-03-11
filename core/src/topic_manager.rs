@@ -204,8 +204,8 @@ pub async fn ros_topic_manager(
             } else {
                 existing_topics.push(topic.0.clone());   
             }
-            info!("automatic new topic discovery: topics already exist {:?}", existing_topics);
         }
+        info!("automatic new topic discovery: topics already exist {:?}", existing_topics);
         sleep(Duration::from_millis(5000)).await;
     }
 
