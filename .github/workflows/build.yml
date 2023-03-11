@@ -11,25 +11,7 @@ jobs:
     - name: Checkout Source
       id: checkout-source
       uses: actions/checkout@v2
-    - name: Install Protoc
-      uses: arduino/setup-protoc@v1
-    - name: Set variables
-      id: vars
-      run: |
-           echo "::set-output name=package_name::$(sed -En 's/name[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)"      
-           echo "::set-output name=package_version::$(sed -En 's/version[[:space:]]*=[[:space:]]*"([^"]+)"/\1/p' Cargo.toml | head -1)"
-    - run: |
-           echo "${{steps.vars.outputs.package_name}}"
-           echo "${{steps.vars.outputs.package_version}}"
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-  
     - name: Build
       id: build-release
-      run: cargo build 
+      run: docker compose build 
       
