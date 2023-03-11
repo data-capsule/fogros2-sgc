@@ -39,6 +39,7 @@ pub struct AppConfig {
     pub crypto_name: String,
     pub peer_with_gateway: bool,
     pub default_gateway: String,
+    pub automatic_topic_discovery: bool,
     pub ros: Vec<ROS>,
 }
 

@@ -23,6 +23,10 @@ crypto_name="test_cert"
 peer_with_gateway = false
 # default_gateway ip address
 default_gateway = "10.5.0.6"
+# automatic_topic_discovery = true | false
+# if true, FogROS2-SGC will try to discover all topics
+# if false, FogROS2-SGC will only discover topics defined in [[ros]] section
+automatic_topic_discovery = false
 # There can be multiple [[ros]] sections
 # each section defines a ROS node name and its topic
 [[ros]]

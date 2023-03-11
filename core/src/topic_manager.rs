@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::time::sleep;
 use tokio::time::Duration;
 use futures::future;
@@ -164,12 +165,21 @@ pub async fn ros_topic_manager(
         topic_status.insert(topic_name, RosTopicStatus{action:action.clone()});
     }
 
+    // if automatic topic discovery is disabled, return
+    if ! config.automatic_topic_discovery {
+        info!("automatic topic discovery is disabled, return");
+        return;
+    } else {
+        info!("automatic topic discovery is enabled. May be unstable!");
+    }
+
     let ctx = r2r::Context::create().expect("failed to create context");
     let node = r2r::Node::create(ctx, "ros_manager", "namespace").expect("failed to create node");
     // when a new topic is detected, create a new thread 
     // to handle the topic
     loop {
         let current_topics = node.get_topic_names_and_types().unwrap();
+        let mut existing_topics = vec![];
         // check if there is a new topic by comparing current topics with 
         // the bookkeeping topics
         for topic in current_topics {
@@ -192,8 +202,9 @@ pub async fn ros_topic_manager(
                 topic_status.insert(topic_name.clone(), 
                         RosTopicStatus{action:action});
             } else {
-                info!("automatic new topic checker: topic already exists {:?}", topic);
+                existing_topics.push(topic.0.clone());   
             }
+            info!("automatic new topic discovery: topics already exist {:?}", existing_topics);
         }
         sleep(Duration::from_millis(5000)).await;
     }
