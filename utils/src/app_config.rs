@@ -22,6 +22,7 @@ pub struct Database {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ROS {
     pub local: String,
+    pub protocol: String, 
     pub node_name: String,
     pub topic_name: String,
     pub topic_type: String,

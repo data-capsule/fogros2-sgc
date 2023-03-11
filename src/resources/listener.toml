@@ -10,6 +10,9 @@ tcp_port = "9997"
 dtls_port = "9232"
 grpc_port = "50051"
 # ros_protocol = "tcp" | "dtls" | "grpc"
+# this is overriden by the [[ros]] section
+# this is used when no [[ros]] section is defined (auto mode)
+# or routing infomation advertisement
 ros_protocol="dtls"
 # crypto_name = "test_cert" | ..." in /src/scripts/crypto
 crypto_name="test_cert"
@@ -27,6 +30,9 @@ default_gateway = "10.5.0.6"
 # sub = subscribe to local topic and publish to remote topic
 # pub = publish to local topic and subscribe to remote topic
 local = "sub"
+# this protocol will be used to communicate with the gateway
+# this overrides 
+protocol="dtls"
 # node_name of fogros2-sgc node that will be created
 # doesn't quite matter what you put here as long as no name collision
 node_name = "talker"
