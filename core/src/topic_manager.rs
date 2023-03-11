@@ -1,17 +1,17 @@
-use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer, dtls_to_peer_direct};
+use crate::network::dtls::{dtls_to_peer_direct};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
 use crate::structs::{GDPChannel, GDPPacket};
-use futures::executor::LocalPool;
-use futures::future;
-use futures::stream::{self, StreamExt};
-use r2r::QosProfile;
+
+
+
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use tokio::process::Command;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tokio::time::sleep;
@@ -154,7 +154,7 @@ pub async fn ros_topic_manager(
         let topic_name = topic.topic_name;
         let topic_type = topic.topic_type;
         let action = topic.action;
-        let ros_handle = topic_creator(
+        let _ros_handle = topic_creator(
             peer_with_gateway,
             default_gateway_addr.clone(),
             node_name,

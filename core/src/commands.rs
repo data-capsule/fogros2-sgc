@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use crate::connection_rib::connection_router;
 
-use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer, dtls_to_peer_direct};
-use crate::network::tcp::{tcp_listener, tcp_to_peer, tcp_to_peer_direct};
+use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
+use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use crate::structs::GDPStatus;
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
