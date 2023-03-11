@@ -27,9 +27,11 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
 /// return a vector of (header, payload) pairs if the header is complete
 /// return the remaining (header, payload) pairs if the header is incomplete
 fn parse_header_payload_pairs(
-    mut buffer: Vec<u8>, 
-)
--> (Vec<(GDPPacketInTransit, Vec<u8>)>, Option<(GDPPacketInTransit, Vec<u8>)>) {
+    mut buffer: Vec<u8>,
+) -> (
+    Vec<(GDPPacketInTransit, Vec<u8>)>,
+    Option<(GDPPacketInTransit, Vec<u8>)>,
+) {
     let mut header_payload_pairs: Vec<(GDPPacketInTransit, Vec<u8>)> = Vec::new();
     //TODO: get it to default trace later
     let default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
@@ -46,13 +48,16 @@ fn parse_header_payload_pairs(
         // split to the first \0 as delimiter
         let header_and_remaining = buffer.splitn(2, |c| c == &0).collect::<Vec<_>>();
         let header_buf = header_and_remaining[0];
-        let header:&str = std::str::from_utf8(header_buf).unwrap();
+        let header: &str = std::str::from_utf8(header_buf).unwrap();
         info!("received header json string: {:?}", header);
         let gdp_header_parsed = serde_json::from_str::<GDPPacketInTransit>(header);
         if gdp_header_parsed.is_err() {
             // if the header is not complete, return the remaining
             warn!("header is not complete, return the remaining");
-            return (header_payload_pairs, Some((default_gdp_header, header_buf.to_vec())));
+            return (
+                header_payload_pairs,
+                Some((default_gdp_header, header_buf.to_vec())),
+            );
         }
         let gdp_header = gdp_header_parsed.unwrap();
         let remaining = header_and_remaining[1];
@@ -115,16 +120,16 @@ async fn handle_tcp_stream(
 
                         // match need_more_data_for_previous_header {
                         //     true => { // last time it has incomplete buffer to complete
-                        //         read_payload_size += receiving_buf_size; 
+                        //         read_payload_size += receiving_buf_size;
                         //         if read_payload_size < gdp_header.length { //still need more things to read!
                         //             info!("more data to read");
                         //             gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                         //             continue;
-                        //         } 
+                        //         }
                         //         else if read_payload_size == gdp_header.length { // match the end of the packet
                         //             info!("match and this is the end of buffer");
                         //             payload_need_to_process.push(gdp_payload.clone());
-                        //         } 
+                        //         }
                         //         else{ //overflow!!
                         //             error!("Bytes are extra!!! {}", read_payload_size - gdp_header.length);
                         //         }
@@ -153,7 +158,7 @@ async fn handle_tcp_stream(
                         let mut header_payload_pair = vec!();
 
                         // last time it has incomplete buffer to complete
-                        if need_more_data_for_previous_header { 
+                        if need_more_data_for_previous_header {
                             let read_payload_size = remaining_gdp_payload.len() + receiving_buf_size;
                             if remaining_gdp_header.action == GdpAction::Noop {
                                 warn!("last time it has incomplete buffer to complete, the action is Noop.");
@@ -165,12 +170,12 @@ async fn handle_tcp_stream(
                                 info!("more data to read. Current {}, need {}, expect {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_header.length - read_payload_size);
                                 remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 continue;
-                            } 
+                            }
                             else if read_payload_size == remaining_gdp_header.length { // match the end of the packet
                                 remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                                 header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
                                 receiving_buf = vec!();
-                            } 
+                            }
                             else{ //overflow!!
                                 // only get what's needed
                                 warn!("The packet is overflowed!!! read_payload_size {}, remaining_gdp_header.length {}, remaining_gdp_payload.len() {}, receiving_buf_size {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_payload.len(), receiving_buf_size);
@@ -178,7 +183,7 @@ async fn handle_tcp_stream(
                                 remaining_gdp_payload.append(&mut receiving_buf[..num_remaining].to_vec());
                                 header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
                                 // info!("remaining_gdp_payload {:?}", remaining_gdp_payload);
-                                
+
                                 receiving_buf = receiving_buf[num_remaining..].to_vec();
                             }
                         }
@@ -187,7 +192,7 @@ async fn handle_tcp_stream(
                         header_payload_pair.append(&mut processed_gdp_packets);
                         for (header, payload) in header_payload_pair {
                             let deserialized = header; //TODO: change the var name here
-        
+
                             info!("the total received payload with size {:} with gdp header length {}",  payload.len(), header.length);
 
                             if deserialized.action == GdpAction::Forward {
@@ -222,7 +227,7 @@ async fn handle_tcp_stream(
                                 remaining_gdp_payload = vec!();
                             }
                         }
-                        
+
                     },
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         continue;
@@ -317,7 +322,7 @@ pub async fn tcp_listener(
 
 pub async fn tcp_to_peer(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>
+    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => s,
@@ -332,7 +337,6 @@ pub async fn tcp_to_peer(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("TCP takes gdp name {:?}", m_gdp_name);
 
-    
     let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet

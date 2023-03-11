@@ -1,13 +1,13 @@
 extern crate tokio;
 extern crate tokio_core;
-use std::{env};
+use std::env;
 use std::time::Duration;
 
 use crate::connection_rib::connection_router;
 
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer, dtls_to_peer_direct};
 use crate::network::tcp::{tcp_listener, tcp_to_peer, tcp_to_peer_direct};
-use crate::structs::{GDPStatus};
+use crate::structs::GDPStatus;
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
 use tokio::sync::mpsc::{self};
@@ -15,7 +15,6 @@ use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use utils::app_config::AppConfig;
 use utils::error::Result;
-
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -31,8 +30,10 @@ async fn router_async_loop() {
             info!("override to connect gateway to be true");
             info!("Replace Gateway IP with {}", gateway_ip.to_string_lossy());
             peer_with_gateway = true;
-            gateway_ip.into_string().expect("Gateway IP is not a valid string")
-        },
+            gateway_ip
+                .into_string()
+                .expect("Gateway IP is not a valid string")
+        }
         None => config.default_gateway,
     };
 
@@ -94,14 +95,14 @@ async fn router_async_loop() {
     future_handles.push(rib_handle);
 
     let ros_topic_manager_handle = tokio::spawn(ros_topic_manager(
-        peer_with_gateway, 
-        default_gateway_addr.clone(), 
+        peer_with_gateway,
+        default_gateway_addr.clone(),
         rib_tx.clone(),
         channel_tx.clone(),
     ));
     future_handles.push(ros_topic_manager_handle);
 
-    // This connection is only used to advertise the routing information 
+    // This connection is only used to advertise the routing information
     // to the gateway. It is not used to forward any packets.
     // the packets are forwarded by direct peer connections in ros_topic_manager
     if peer_with_gateway {

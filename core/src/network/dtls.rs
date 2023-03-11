@@ -1,24 +1,23 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::{proc_gdp_packet, construct_gdp_advertisement_from_bytes};
-use std::{net::SocketAddr, pin::Pin, str::FromStr};
-use std::fs;
-use tokio_openssl::SslStream;
+use crate::pipeline::{construct_gdp_advertisement_from_bytes, proc_gdp_packet};
 use openssl::{
     pkey::PKey,
     ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
     x509::X509,
 };
+use std::fs;
+use std::{net::SocketAddr, pin::Pin, str::FromStr};
+use tokio_openssl::SslStream;
 use utils::app_config::AppConfig;
 
-
+use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPName;
+use crate::structs::GDPPacketInTransit;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use rand::Rng;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use crate::pipeline::construct_gdp_forward_from_bytes;
-use crate::structs::GDPPacketInTransit;
-use rand::Rng;
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 
 fn generate_random_gdp_name_for_thread() -> GDPName {
@@ -34,9 +33,11 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
 /// return a vector of (header, payload) pairs if the header is complete
 /// return the remaining (header, payload) pairs if the header is incomplete
 fn parse_header_payload_pairs(
-    mut buffer: Vec<u8>, 
-)
--> (Vec<(GDPPacketInTransit, Vec<u8>)>, Option<(GDPPacketInTransit, Vec<u8>)>) {
+    mut buffer: Vec<u8>,
+) -> (
+    Vec<(GDPPacketInTransit, Vec<u8>)>,
+    Option<(GDPPacketInTransit, Vec<u8>)>,
+) {
     let mut header_payload_pairs: Vec<(GDPPacketInTransit, Vec<u8>)> = Vec::new();
     //TODO: get it to default trace later
     let default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
@@ -53,13 +54,16 @@ fn parse_header_payload_pairs(
         // split to the first \0 as delimiter
         let header_and_remaining = buffer.splitn(2, |c| c == &0).collect::<Vec<_>>();
         let header_buf = header_and_remaining[0];
-        let header:&str = std::str::from_utf8(header_buf).unwrap();
+        let header: &str = std::str::from_utf8(header_buf).unwrap();
         info!("received header json string: {:?}", header);
         let gdp_header_parsed = serde_json::from_str::<GDPPacketInTransit>(header);
         if gdp_header_parsed.is_err() {
             // if the header is not complete, return the remaining
             warn!("header is not complete, return the remaining");
-            return (header_payload_pairs, Some((default_gdp_header, header_buf.to_vec())));
+            return (
+                header_payload_pairs,
+                Some((default_gdp_header, header_buf.to_vec())),
+            );
         }
         let gdp_header = gdp_header_parsed.unwrap();
         let remaining = header_and_remaining[1];
@@ -89,7 +93,9 @@ fn ssl_acceptor(certificate: &[u8], private_key: &[u8]) -> std::io::Result<SslCo
     let mut acceptor_builder = SslAcceptor::mozilla_intermediate(SslMethod::dtls())?;
     acceptor_builder.set_certificate(&&X509::from_pem(certificate)?)?;
     acceptor_builder.set_private_key(&&PKey::private_key_from_pem(private_key)?)?;
-    acceptor_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    acceptor_builder.set_verify(
+        openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
+    );
     acceptor_builder.set_ca_file(ca_cert)?;
     acceptor_builder.check_private_key()?;
     let acceptor = acceptor_builder.build();
@@ -111,12 +117,9 @@ fn get_epoch_ms() -> u128 {
 #[allow(unused_assignments)]
 async fn handle_dtls_stream(
     mut stream: SslStream<UdpStream>, rib_tx: &UnboundedSender<GDPPacket>,
-    channel_tx: &UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>,
-    mut m_rx: UnboundedReceiver<GDPPacket>, 
-    thread_name: GDPName,
+    channel_tx: &UnboundedSender<GDPChannel>, m_tx: UnboundedSender<GDPPacket>,
+    mut m_rx: UnboundedReceiver<GDPPacket>, thread_name: GDPName,
 ) {
-
     let mut need_more_data_for_previous_header = false;
     let mut remaining_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
@@ -127,7 +130,6 @@ async fn handle_dtls_stream(
     let mut reset_counter = 0; // TODO: a temporary counter to reset the connection
 
     loop {
-
         let mut receiving_buf = vec![0u8; UDP_BUFFER_SIZE];
         // Wait for the UDP socket to be readable
         // or new data to be sent
@@ -142,7 +144,7 @@ async fn handle_dtls_stream(
                 let mut header_payload_pair = vec!();
 
                 // last time it has incomplete buffer to complete
-                if need_more_data_for_previous_header { 
+                if need_more_data_for_previous_header {
                     let read_payload_size = remaining_gdp_payload.len() + receiving_buf_size;
                     if remaining_gdp_header.action == GdpAction::Noop {
                         warn!("last time it has incomplete buffer to complete, the action is Noop.");
@@ -161,12 +163,12 @@ async fn handle_dtls_stream(
                         info!("more data to read. Current {}, need {}, expect {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_header.length - read_payload_size);
                         remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                         continue;
-                    } 
+                    }
                     else if read_payload_size == remaining_gdp_header.length { // match the end of the packet
                         remaining_gdp_payload.append(&mut receiving_buf[..receiving_buf_size].to_vec());
                         header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
                         receiving_buf = vec!();
-                    } 
+                    }
                     else{ //overflow!!
                         // only get what's needed
                         warn!("The packet is overflowed!!! read_payload_size {}, remaining_gdp_header.length {}, remaining_gdp_payload.len() {}, receiving_buf_size {}", read_payload_size, remaining_gdp_header.length, remaining_gdp_payload.len(), receiving_buf_size);
@@ -174,7 +176,7 @@ async fn handle_dtls_stream(
                         remaining_gdp_payload.append(&mut receiving_buf[..num_remaining].to_vec());
                         header_payload_pair.push((remaining_gdp_header, remaining_gdp_payload.clone()));
                         // info!("remaining_gdp_payload {:?}", remaining_gdp_payload);
-                        
+
                         receiving_buf = receiving_buf[num_remaining..].to_vec();
                     }
                 }
@@ -231,7 +233,7 @@ async fn handle_dtls_stream(
                 header_string.push(0u8 as char);
                 let header_string_payload = header_string.as_bytes();
                 stream.write_all(&header_string_payload[..header_string_payload.len()]).await.unwrap();
-                
+
                 // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
                 if let Some(payload) = pkt_to_forward.payload {
                     info!("the payload length is {}", payload.len());
@@ -242,30 +244,37 @@ async fn handle_dtls_stream(
     }
 }
 
-
-
 pub async fn dtls_to_peer(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>
+    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,
 ) {
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
-    .await
-    .unwrap();
+        .await
+        .unwrap();
     println!("{:?}", stream);
 
     let config = AppConfig::fetch().unwrap();
     let ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
-    let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
-    let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
-    
+    let my_cert = format!(
+        "./scripts/crypto/{}/{}.pem",
+        config.crypto_name, config.crypto_name
+    );
+    let my_key = format!(
+        "./scripts/crypto/{}/{}-private.pem",
+        config.crypto_name, config.crypto_name
+    );
+
     // setup ssl
     let client_cert = X509::from_pem(&fs::read(my_cert).expect("file does not exist")).unwrap();
-    let client_key = PKey::private_key_from_pem(&fs::read(my_key).expect("file does not exist")).unwrap();
+    let client_key =
+        PKey::private_key_from_pem(&fs::read(my_key).expect("file does not exist")).unwrap();
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
     connector_builder.set_ca_file(ca_cert).unwrap();
-    connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    connector_builder.set_verify(
+        openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
+    );
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
     let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
@@ -276,7 +285,6 @@ pub async fn dtls_to_peer(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("DTLS takes gdp name {:?}", m_gdp_name);
 
-    
     let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
@@ -285,12 +293,8 @@ pub async fn dtls_to_peer(
         &m_tx,              //the sending handle of this connection
     )
     .await;
-    handle_dtls_stream(stream,
-        &rib_tx, 
-        &channel_tx, m_tx, m_rx, m_gdp_name).await;
+    handle_dtls_stream(stream, &rib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
 }
-
-
 
 /// does not go to rib when peering
 pub async fn dtls_to_peer_direct(
@@ -300,26 +304,34 @@ pub async fn dtls_to_peer_direct(
     peer_tx: UnboundedSender<GDPPacket>,   // used
     peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network
 ) {
-
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
-    .await
-    .unwrap();
+        .await
+        .unwrap();
     println!("{:?}", stream);
 
     // setup ssl
     let config = AppConfig::fetch().unwrap();
     let ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
-    let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
-    let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
-    
+    let my_cert = format!(
+        "./scripts/crypto/{}/{}.pem",
+        config.crypto_name, config.crypto_name
+    );
+    let my_key = format!(
+        "./scripts/crypto/{}/{}-private.pem",
+        config.crypto_name, config.crypto_name
+    );
+
     let client_cert = X509::from_pem(&fs::read(my_cert).expect("file does not exist")).unwrap();
-    let client_key = PKey::private_key_from_pem(&fs::read(my_key).expect("file does not exist")).unwrap();
+    let client_key =
+        PKey::private_key_from_pem(&fs::read(my_key).expect("file does not exist")).unwrap();
 
     let mut connector_builder = SslConnector::builder(SslMethod::dtls()).unwrap();
     connector_builder.set_certificate(&client_cert).unwrap();
     connector_builder.set_private_key(&client_key).unwrap();
     connector_builder.set_ca_file(ca_cert).unwrap();
-    connector_builder.set_verify(openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
+    connector_builder.set_verify(
+        openssl::ssl::SslVerifyMode::PEER | openssl::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
+    );
     let mut connector = connector_builder.build().configure().unwrap();
     connector.set_verify_hostname(false);
     let ssl = connector.into_ssl(SERVER_DOMAIN).unwrap();
@@ -327,54 +339,51 @@ pub async fn dtls_to_peer_direct(
     println!("{:?}", stream);
     Pin::new(&mut stream).connect().await.unwrap();
 
-
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("dTLS connection takes gdp name {:?}", m_gdp_name);
 
-    handle_dtls_stream(stream, 
-        &rib_tx, 
-        &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
+    handle_dtls_stream(stream, &rib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
 }
-
 
 pub async fn dtls_listener(
     addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) {
     let config = AppConfig::fetch().unwrap();
     let _ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
-    let my_cert= format!("./scripts/crypto/{}/{}.pem", config.crypto_name, config.crypto_name);
-    let my_key= format!("./scripts/crypto/{}/{}-private.pem", config.crypto_name, config.crypto_name);
-    
+    let my_cert = format!(
+        "./scripts/crypto/{}/{}.pem",
+        config.crypto_name, config.crypto_name
+    );
+    let my_key = format!(
+        "./scripts/crypto/{}/{}-private.pem",
+        config.crypto_name, config.crypto_name
+    );
 
     let listener = UdpListener::bind(SocketAddr::from_str(&addr).unwrap())
         .await
         .unwrap();
     let acceptor = ssl_acceptor(
         &fs::read(my_cert).expect("file does not exist"),
-        &fs::read(my_key).expect("file does not exist")
-    ).expect("ssl acceptor failed");
+        &fs::read(my_key).expect("file does not exist"),
+    )
+    .expect("ssl acceptor failed");
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let rib_tx = rib_tx.clone();
         let channel_tx = channel_tx.clone();
         let acceptor = acceptor.clone();
         //TODO: loop here is not correct
-        tokio::spawn(
-            async move { 
-                let (m_tx, m_rx) = mpsc::unbounded_channel();
-                let ssl = Ssl::new(&acceptor).unwrap();
-                let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
-                Pin::new(&mut stream).accept().await.unwrap();   
-                let m_gdp_name = generate_random_gdp_name_for_thread();         
-                info!("DTLS listener takes gdp name {:?}", m_gdp_name);
-                handle_dtls_stream(stream, &rib_tx, 
-                    &channel_tx, 
-                    m_tx, m_rx, m_gdp_name).await 
-            },
-        );
+        tokio::spawn(async move {
+            let (m_tx, m_rx) = mpsc::unbounded_channel();
+            let ssl = Ssl::new(&acceptor).unwrap();
+            let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
+            Pin::new(&mut stream).accept().await.unwrap();
+            let m_gdp_name = generate_random_gdp_name_for_thread();
+            info!("DTLS listener takes gdp name {:?}", m_gdp_name);
+            handle_dtls_stream(stream, &rib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await
+        });
     }
 }
-
 
 #[tokio::main]
 pub async fn dtls_test_client(addr: String) -> std::io::Result<SslContext> {

@@ -54,7 +54,10 @@ impl Globaldataplane for GDPService {
 
         let update = update_request.into_inner();
 
-        self.status_tx.send(update).await.expect("send update failed");
+        self.status_tx
+            .send(update)
+            .await
+            .expect("send update failed");
 
         let reply = GdpResponse {
             // We must use .into_inner() as the fields of gRPC requests and responses are private
