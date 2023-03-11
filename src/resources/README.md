@@ -30,11 +30,11 @@ default_gateway = "10.5.0.6"
 # There can be multiple [[ros]] sections
 # each section defines a ROS node name and its topic
 [[ros]]
-# local = "sub" | "pub | "noop"
-# sub = subscribe to local topic and publish to remote topic
-# pub = publish to local topic and subscribe to remote topic
+# action = "sub" | "pub | "noop"
+# pub = subscribe to local topic and publish to remote topic
+# sub = publish to local topic and subscribe to remote topic
 # noop = do nothing, used to exclude certain topics in auto mode
-local = "pub"
+action = "sub"
 # node_name of fogros2-sgc node that will be created
 # doesn't quite matter what you put here as long as no name collision
 node_name = "talker"

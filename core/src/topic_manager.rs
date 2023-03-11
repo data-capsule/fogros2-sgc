@@ -143,14 +143,13 @@ pub async fn ros_topic_manager(
     // bookkeeping the status of ros topics
     let mut topic_status = HashMap::new();
 
-
     for topic in config.ros {
         let node_name = topic.node_name;
         let protocol = topic.protocol;
         let topic_name = topic.topic_name;
         let topic_type = topic.topic_type;
-        let action = topic.local;
-        topic_creator(
+        let action = topic.action;
+        let ros_handle = topic_creator(
             peer_with_gateway, 
             default_gateway_addr.clone(), 
             node_name,
@@ -167,8 +166,13 @@ pub async fn ros_topic_manager(
 
     // if automatic topic discovery is disabled, return
     if ! config.automatic_topic_discovery {
-        info!("automatic topic discovery is disabled, return");
-        return;
+        info!("automatic topic discovery is disabled");
+        loop {
+            // workaround to prevent the ros topic manager from returning
+            // thus cleaning up the stack, etc.
+            // TODO: is there any better way to do this?
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
     } else {
         info!("automatic topic discovery is enabled. May be unstable!");
     }
