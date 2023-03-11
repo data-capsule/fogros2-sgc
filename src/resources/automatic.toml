@@ -30,14 +30,30 @@ default_gateway = "10.5.0.6"
 # sub = subscribe to local topic and publish to remote topic
 # pub = publish to local topic and subscribe to remote topic
 # noop = do nothing, used to exclude certain topics in auto mode
-local = "pub"
+local = "noop"
 # node_name of fogros2-sgc node that will be created
 # doesn't quite matter what you put here as long as no name collision
-node_name = "talker"
+node_name = "rosout"
 # this protocol will be used to communicate with the gateway
 # this overrides 
 protocol="dtls"
 # topic_name of fogros2-sgc node that will publish/subscribe to
-topic_name = "/chatter"
+topic_name = "/rosout"
 # topic type of fogros2-sgc node that will publish/subscribe to
-topic_type = "std_msgs/msg/String"
+topic_type = "rcl_interfaces/msg/Log"
+[[ros]]
+# local = "sub" | "pub | "noop"
+# sub = subscribe to local topic and publish to remote topic
+# pub = publish to local topic and subscribe to remote topic
+# noop = do nothing, used to exclude certain topics in auto mode
+local = "noop"
+# node_name of fogros2-sgc node that will be created
+# doesn't quite matter what you put here as long as no name collision
+node_name = "parameter_events"
+# this protocol will be used to communicate with the gateway
+# this overrides 
+protocol="dtls"
+# topic_name of fogros2-sgc node that will publish/subscribe to
+topic_name = "/parameter_events"
+# topic type of fogros2-sgc node that will publish/subscribe to
+topic_type = "rcl_interfaces/msg/ParameterEvent"

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-
+use tokio::time::sleep;
+use tokio::time::Duration;
 use futures::future;
 use futures::executor::LocalPool;
 use r2r::QosProfile;
@@ -29,6 +30,10 @@ pub async fn topic_creator(
     rib_tx: UnboundedSender<GDPPacket>, 
     channel_tx: UnboundedSender<GDPChannel>,
 ){
+    if publish_or_subscribe == "noop" {
+        info!("noop for topic {}", topic_name);
+        return;
+    }
 
     // This sender handle is a specific connection for ROS
     // this is used to diffentiate different channels in ROS topics
@@ -75,7 +80,7 @@ pub async fn topic_creator(
                 topic_type,
             )),
         },
-        _ => match topic_type.as_str() {
+        "sub" => match topic_type.as_str() {
             "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
                 m_tx.clone(),
                 channel_tx.clone(),
@@ -90,6 +95,7 @@ pub async fn topic_creator(
                 topic_type,
             )),
         },
+        _ => panic!("unknown action"),
     };
 
 }
@@ -139,49 +145,55 @@ pub async fn ros_topic_manager(
         topic_status.insert(topic_name, RosTopicStatus{action:action.clone()});
     }
 
+    let ctx = r2r::Context::create().expect("failed to create context");
+    let node = r2r::Node::create(ctx, "ros_manager", "namespace").expect("failed to create node");
     // when a new topic is detected, create a new thread 
     // to handle the topic
-    // detect a new ros topic 
+    loop {
+        let current_topics = node.get_topic_names_and_types().unwrap();
+        // check if there is a new topic by comparing current topics with 
+        // the bookkeeping topics
+        for topic in current_topics {
+            if !topic_status.contains_key(&topic.0) {
+                let topic_name = topic.0.clone();
+                let action = determine_topic_action(topic_name.clone()).await;
+                info!("detect a new topic {:?}", topic);
+                topic_creator(
+                    peer_with_gateway, 
+                    default_gateway_addr.clone(), 
+                    format!("{}_{}", "ros_manager", topic.0),
+                    config.ros_protocol.clone(),
+                    topic_name.clone(),
+                    topic.1[0].clone(),
+                    action.clone(), 
+                    rib_tx.clone(), 
+                    channel_tx.clone(),
+                ).await;
+                topic_status.insert(topic_name.clone(), 
+                        RosTopicStatus{action:action});
+            } else {
+                info!("automatic new topic checker: topic already exists {:?}", topic);
+            }
+        }
+        sleep(Duration::from_millis(2000)).await;
+    }
 
     // TODO: a better way to detect new ros topic is needed
-    // this is a temporary solution
+    // the following is an intuition that doesn't work
     // we subscribe to /parameter_events, whenever a new node joins
     // it will publish some message to this topic, but it doesn't have 
     // the topic information, so we run a topic detection 
-    let ctx = r2r::Context::create().expect("failed to create context");
-    let mut node = r2r::Node::create(ctx, "ros_manager", "namespace").expect("failed to create node");
-    let mut param_subscriber = node.subscribe::<r2r::std_msgs::msg::String>("/parameter_events", QosProfile::default()).expect("subscribe failed");
-    loop {
-        tokio::select! {
-            Some(packet) = param_subscriber.next() => {
-                info!("detect a new node {:?}", packet);
-                let current_topics = node.get_topic_names_and_types().unwrap();
-                // check if there is a new topic by comparing current topics with 
-                // the bookkeeping topics
-                for topic in current_topics {
-                    if !topic_status.contains_key(&topic.0) {
-                        let topic_name = topic.0.clone();
-                        let action = determine_topic_action(topic_name.clone()).await;
-                        info!("detect a new topic {:?}", topic);
-                        topic_creator(
-                            peer_with_gateway, 
-                            default_gateway_addr.clone(), 
-                            format!("{}_{}", "ros_manager", topic.0),
-                            config.ros_protocol.clone(),
-                            topic_name.clone(),
-                            topic.1[0].clone(),
-                            action.clone(), 
-                            rib_tx.clone(), 
-                            channel_tx.clone(),
-                        ).await;
-                        topic_status.insert(topic_name.clone(), 
-                                RosTopicStatus{action:action});
-                    } else {
-                        info!("topic already exists {:?}", topic);
-                    }
-                }
-            }
-        }
-    }
+    // let mut param_subscriber = node.
+    // subscribe_untyped("/parameter_events", "rcl_interfaces/msg/ParameterEvent", QosProfile::default())
+    // .expect("subscribe failed");
+    // loop {
+    //     info!("in the loop!");
+    //     tokio::select! {
+    //         Some(packet) = param_subscriber.next() => {
+    //             info!("detect a new node {:?}", packet);
+    //             
+    //         }
+    //     }
+    // }
 }
 
