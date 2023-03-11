@@ -99,7 +99,7 @@ pub async fn connection_router(
                             v.push(channel)
                         }
                         None =>{
-                            info!("Creating a new vec of gdp name");
+                            info!("Creating a new entry of gdp name");
                             coonection_rib_table.insert(
                                 channel.gdpname,
                                 vec!(channel),

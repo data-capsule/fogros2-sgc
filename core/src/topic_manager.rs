@@ -67,7 +67,7 @@ pub async fn topic_creator(
     }
 
     let _ros_handle = match action.as_str() {
-        "pub" => match topic_type.as_str() {
+        "sub" => match topic_type.as_str() {
             "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
                 m_tx.clone(),
                 channel_tx.clone(),
@@ -82,7 +82,7 @@ pub async fn topic_creator(
                 topic_type,
             )),
         },
-        "sub" => match topic_type.as_str() {
+        "pub" => match topic_type.as_str() {
             "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
                 m_tx.clone(),
                 channel_tx.clone(),
