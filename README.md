@@ -123,8 +123,7 @@ and
 ros2 run demo_nodes_cpp listener
 ```
 
-
-
 ### TODOs and Known issues 
 1. automatic topic discovery
 2. segmentation fault / node creation failure: not caused by our project but our underlying framework or ROS rcl itself. Restart the program and the problem should be fixed. The hypothesis is asynchronous error when the nodes are created too fast in parallel. 
+

@@ -14,7 +14,10 @@ tcp_port = "9997"
 dtls_port = "9232"
 grpc_port = "50051"
 # ros_protocol = "tcp" | "dtls" | "grpc"
-ros_protocol="tcp"
+# this is overriden by the [[ros]] section
+# this is used when no [[ros]] section is defined (auto mode)
+# or routing infomation advertisement
+ros_protocol="dtls"
 # crypto_name = "test_cert" | ..." in /src/scripts/crypto
 crypto_name="test_cert"
 # peer_with_gateway = true | false
@@ -27,15 +30,26 @@ default_gateway = "10.5.0.6"
 # There can be multiple [[ros]] sections
 # each section defines a ROS node name and its topic
 [[ros]]
-# local = "sub" | "pub"
+# local = "sub" | "pub | "noop"
 # sub = subscribe to local topic and publish to remote topic
 # pub = publish to local topic and subscribe to remote topic
+# noop = do nothing, used to exclude certain topics in auto mode
 local = "pub"
 # node_name of fogros2-sgc node that will be created
 # doesn't quite matter what you put here as long as no name collision
 node_name = "talker"
+# this protocol will be used to communicate with the gateway
+# this overrides 
+protocol="dtls"
 # topic_name of fogros2-sgc node that will publish/subscribe to
 topic_name = "/chatter"
 # topic type of fogros2-sgc node that will publish/subscribe to
 topic_type = "std_msgs/msg/String"
 ```
+
+### (Unstable) Automatic Topic Discovery
+Use `automatic.toml` for automatic topic discovery. 
+
+We note that this is not part of the FogROS2 SGC design, because this potentially 
+exposes all the topics to other authorized machines and may create a lot of unnecessary traffic. FogROS2 SGC is designed to expose a limited number of public 
+interfaces and keep the private topic to the robots. 
