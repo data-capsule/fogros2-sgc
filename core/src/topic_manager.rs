@@ -4,6 +4,7 @@ use tokio::time::Duration;
 use futures::future;
 use futures::executor::LocalPool;
 use r2r::QosProfile;
+use tokio::process::Command;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, UnboundedSender};
 use utils::app_config::AppConfig;
@@ -26,14 +27,15 @@ pub async fn topic_creator(
     protocol : String,
     topic_name: String,
     topic_type: String,
-    publish_or_subscribe: String, 
+    action: String, 
     rib_tx: UnboundedSender<GDPPacket>, 
     channel_tx: UnboundedSender<GDPChannel>,
 ){
-    if publish_or_subscribe == "noop" {
+    if action == "noop" {
         info!("noop for topic {}", topic_name);
         return;
     }
+    info!("topic creator for topic {}, type {}, action {}", topic_name, topic_type, action);
 
     // This sender handle is a specific connection for ROS
     // this is used to diffentiate different channels in ROS topics
@@ -64,7 +66,7 @@ pub async fn topic_creator(
         m_tx = rib_tx.clone();
     }
 
-    let _ros_handle = match publish_or_subscribe.as_str() {
+    let _ros_handle = match action.as_str() {
         "pub" => match topic_type.as_str() {
             "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
                 m_tx.clone(),
@@ -102,9 +104,26 @@ pub async fn topic_creator(
 
 /// determine the action of a new topic 
 /// pub/sub/noop
-/// TODO: this is a temporary placeholder
+/// Currently it uses cli to get the information
+/// TODO: use r2r/rcl to get the information
 async fn determine_topic_action(topic_name: String) -> String {
-    "noop".to_string()
+    let output = Command::new("ros2")
+        .arg("topic")
+        .arg("info")
+        .arg(topic_name.as_str())
+        .output().await.unwrap();
+    let output_str = String::from_utf8(output.stdout).unwrap();
+    info!("topic info of topic {}: {}", topic_name, output_str);
+    if output_str.contains("Publisher count: 0") {
+        info!("topic {} has no local publisher, mark as remote topic publisher", topic_name);
+        return "pub".to_string();
+    } else if output_str.contains("Subscription count: 0") {
+        info!("topic {} has no local subscriber, mark as remote topic subscriber", topic_name);
+        return "sub".to_string();
+    }else {
+        info!("topic {} has local publishers and subscribers, mark as noop", topic_name);
+        return "noop".to_string();
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -161,7 +180,8 @@ pub async fn ros_topic_manager(
                 topic_creator(
                     peer_with_gateway, 
                     default_gateway_addr.clone(), 
-                    format!("{}_{}", "ros_manager", topic.0),
+                    // TODO: currently we use a fixed node name with a random integer
+                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
                     config.ros_protocol.clone(),
                     topic_name.clone(),
                     topic.1[0].clone(),
@@ -175,7 +195,7 @@ pub async fn ros_topic_manager(
                 info!("automatic new topic checker: topic already exists {:?}", topic);
             }
         }
-        sleep(Duration::from_millis(2000)).await;
+        sleep(Duration::from_millis(5000)).await;
     }
 
     // TODO: a better way to detect new ros topic is needed
