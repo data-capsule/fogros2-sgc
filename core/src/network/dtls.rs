@@ -39,11 +39,11 @@ fn parse_header_payload_pairs(
     Option<(GDPPacketInTransit, Vec<u8>)>,
 ) {
     let mut header_payload_pairs: Vec<(GDPPacketInTransit, Vec<u8>)> = Vec::new();
-    //TODO: get it to default trace later
+    // TODO: get it to default trace later
     let default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
-        length: 0, //doesn't have any payload
+        length: 0, // doesn't have any payload
     };
     if buffer.len() == 0 {
         return (header_payload_pairs, None);
@@ -124,7 +124,7 @@ async fn handle_dtls_stream(
     let mut remaining_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
-        length: 0, //doesn't have any payload
+        length: 0, // doesn't have any payload
     };
     let mut remaining_gdp_payload: Vec<u8> = vec![];
     let mut reset_counter = 0; // TODO: a temporary counter to reset the connection
@@ -288,9 +288,9 @@ pub async fn dtls_to_peer(
     let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
-        &rib_tx,            //used to send packet to rib
+        &rib_tx,            // used to send packet to rib
         &channel_tx,        // used to send GDPChannel to rib
-        &m_tx,              //the sending handle of this connection
+        &m_tx,              // the sending handle of this connection
     )
     .await;
     handle_dtls_stream(stream, &rib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
@@ -372,7 +372,7 @@ pub async fn dtls_listener(
         let rib_tx = rib_tx.clone();
         let channel_tx = channel_tx.clone();
         let acceptor = acceptor.clone();
-        //TODO: loop here is not correct
+        // TODO: loop here is not correct
         tokio::spawn(async move {
             let (m_tx, m_rx) = mpsc::unbounded_channel();
             let ssl = Ssl::new(&acceptor).unwrap();

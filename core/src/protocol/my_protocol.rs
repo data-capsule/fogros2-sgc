@@ -14,6 +14,7 @@ impl MyProtocolField {
 
 impl PrimitiveValues for MyProtocolField {
     type T = (u8,);
+
     fn to_primitive_values(&self) -> (u8,) {
         (self.0,)
     }

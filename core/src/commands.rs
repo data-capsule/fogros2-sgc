@@ -38,7 +38,7 @@ async fn router_async_loop() {
     };
 
     // initialize the address binding
-    let all_addr = "0.0.0.0"; //optionally use [::0] for ipv6 address
+    let all_addr = "0.0.0.0"; // optionally use [::0] for ipv6 address
     let tcp_bind_addr = format!("{}:{}", all_addr, config.tcp_port);
     let dtls_bind_addr = format!("{}:{}", all_addr, config.dtls_port);
 

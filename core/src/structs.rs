@@ -57,7 +57,7 @@ impl From<u16be> for u16 {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, Hash, Default)]
-pub struct GDPName(pub [u8; 4]); //256 bit destination
+pub struct GDPName(pub [u8; 4]); // 256 bit destination
 impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
@@ -98,15 +98,17 @@ impl Packet for GDPPacket {
     fn get_proto(&self) -> Option<&GdpPacket> {
         match &self.proto {
             Some(p) => Some(p),
-            None => None, //TODO
+            None => None, // TODO
         }
     }
+
     fn get_byte_payload(&self) -> Option<&Vec<u8>> {
         match &self.payload {
             Some(p) => Some(p),
-            None => None, //TODO
+            None => None, // TODO
         }
     }
+
     fn get_header(&self) -> GDPPacketInTransit {
         let transit_packet = match &self.payload {
             Some(payload) => GDPPacketInTransit {
@@ -118,7 +120,7 @@ impl Packet for GDPPacket {
                 GDPPacketInTransit {
                     action: self.action,
                     destination: self.gdpname,
-                    length: 0, //doesn't have any payload
+                    length: 0, // doesn't have any payload
                 }
             }
         };
@@ -161,7 +163,10 @@ pub fn get_gdp_name_from_topic(topic_name: &str, topic_type: &str, cert: &[u8]) 
     // create a Sha256 object
     let mut hasher = Sha256::new();
 
-    info!("Name is generated from topic_name: {}, topic_type: {}, cert: {:?}", topic_name, topic_type, cert);
+    info!(
+        "Name is generated from topic_name: {}, topic_type: {}, cert: {:?}",
+        topic_name, topic_type, cert
+    );
     // hash with name, type and certificate
     hasher.update(topic_name);
     hasher.update(topic_type);

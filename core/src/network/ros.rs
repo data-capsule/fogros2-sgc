@@ -5,8 +5,7 @@ use crate::structs::get_gdp_name_from_topic;
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;
 
-#[cfg(feature = "ros")]
-use r2r::QosProfile;
+#[cfg(feature = "ros")] use r2r::QosProfile;
 use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
 
 use serde_json;
@@ -20,10 +19,18 @@ pub async fn ros_publisher(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
     topic_name: String, topic_type: String, certificate: Vec<u8>,
 ) {
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(
+        &node_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(
+        &topic_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, mut m_rx) = unbounded_channel::<GDPPacket>();
@@ -42,9 +49,9 @@ pub async fn ros_publisher(
     let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
-        &rib_tx,            //used to send packet to rib
+        &rib_tx,            // used to send packet to rib
         &channel_tx,        // used to send GDPChannel to rib
-        &m_tx,              //the sending handle of this connection
+        &m_tx,              // the sending handle of this connection
     )
     .await;
 
@@ -72,10 +79,18 @@ pub async fn ros_subscriber(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
     topic_name: String, topic_type: String, certificate: Vec<u8>,
 ) {
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(
+        &node_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(
+        &topic_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, _m_rx) = unbounded_channel::<GDPPacket>();
@@ -93,9 +108,9 @@ pub async fn ros_subscriber(
     let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
-        &rib_tx,            //used to send packet to rib
+        &rib_tx,            // used to send packet to rib
         &channel_tx,        // used to send GDPChannel to rib
-        &m_tx,              //the sending handle of this connection
+        &m_tx,              // the sending handle of this connection
     )
     .await;
 
@@ -123,10 +138,18 @@ pub async fn ros_subscriber_image(
     topic_name: String, certificate: Vec<u8>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(
+        &node_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(
+        &topic_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, _m_rx) = unbounded_channel::<GDPPacket>();
@@ -144,9 +167,9 @@ pub async fn ros_subscriber_image(
     let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
-        &rib_tx,            //used to send packet to rib
+        &rib_tx,            // used to send packet to rib
         &channel_tx,        // used to send GDPChannel to rib
-        &m_tx,              //the sending handle of this connection
+        &m_tx,              // the sending handle of this connection
     )
     .await;
 
@@ -172,13 +195,21 @@ pub async fn ros_subscriber_image(
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String,  certificate: Vec<u8>,
+    topic_name: String, certificate: Vec<u8>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(
+        &node_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(
+        &topic_name,
+        &topic_type,
+        &certificate,
+    ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, mut m_rx) = unbounded_channel::<GDPPacket>();
@@ -200,9 +231,9 @@ pub async fn ros_publisher_image(
     let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
     proc_gdp_packet(
         node_advertisement, // packet
-        &rib_tx,            //used to send packet to rib
+        &rib_tx,            // used to send packet to rib
         &channel_tx,        // used to send GDPChannel to rib
-        &m_tx,              //the sending handle of this connection
+        &m_tx,              // the sending handle of this connection
     )
     .await;
 

@@ -52,7 +52,7 @@ impl AppConfig {
         // This macro will embed the configuration file into the
         // executable. Check include_str! for more info.
         if let Some(config_contents) = default_config {
-            //let contents = include_str!(config_file_path);
+            // let contents = include_str!(config_file_path);
             settings.merge(config::File::from_str(
                 config_contents,
                 config::FileFormat::Toml,
@@ -109,9 +109,7 @@ impl AppConfig {
 
     // Get a single value
     pub fn get<'de, T>(key: &'de str) -> Result<T>
-    where
-        T: serde::Deserialize<'de>,
-    {
+    where T: serde::Deserialize<'de> {
         Ok(CONFIG.read()?.get::<T>(key)?)
     }
 

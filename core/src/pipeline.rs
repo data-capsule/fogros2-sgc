@@ -79,12 +79,11 @@ pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
 ///               channel_tx.clone(), // used to send GDPChannel to rib
 ///               m_tx.clone() //the sending handle of this connection
 ///  );
-///
 pub async fn proc_gdp_packet(
     gdp_packet: GDPPacket,
-    rib_tx: &UnboundedSender<GDPPacket>, //used to send packet to rib
+    rib_tx: &UnboundedSender<GDPPacket>, // used to send packet to rib
     channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to rib
-    m_tx: &UnboundedSender<GDPPacket>,   //the sending handle of this connection
+    m_tx: &UnboundedSender<GDPPacket>,   // the sending handle of this connection
 ) {
     // Vec<u8> to GDP Packet
     // let gdp_packet = populate_gdp_struct(packet);
@@ -93,7 +92,7 @@ pub async fn proc_gdp_packet(
 
     match action {
         GdpAction::Advertise => {
-            //construct and send channel to RIB
+            // construct and send channel to RIB
             let channel = GDPChannel {
                 gdpname: gdp_name,
                 channel: m_tx.clone(),
@@ -104,7 +103,7 @@ pub async fn proc_gdp_packet(
                 .expect("channel_tx channel closed!");
         }
         GdpAction::Forward => {
-            //send the packet to RIB
+            // send the packet to RIB
             match rib_tx.send(gdp_packet) {
                 Ok(_) => {}
                 Err(_) => error!(

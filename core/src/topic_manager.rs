@@ -21,7 +21,7 @@ use utils::app_config::AppConfig;
 pub async fn topic_creator(
     peer_with_gateway: bool, default_gateway_addr: String, node_name: String, protocol: String,
     topic_name: String, topic_type: String, action: String, rib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>
+    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,
 ) {
     if action == "noop" {
         info!("noop for topic {}", topic_name);
@@ -68,7 +68,7 @@ pub async fn topic_creator(
                 channel_tx.clone(),
                 node_name,
                 topic_name,
-                certificate
+                certificate,
             )),
             _ => tokio::spawn(ros_subscriber(
                 m_tx.clone(),
@@ -76,7 +76,7 @@ pub async fn topic_creator(
                 node_name,
                 topic_name,
                 topic_type,
-                certificate
+                certificate,
             )),
         },
         "pub" => match topic_type.as_str() {
@@ -85,7 +85,7 @@ pub async fn topic_creator(
                 channel_tx.clone(),
                 node_name,
                 topic_name,
-                certificate
+                certificate,
             )),
             _ => tokio::spawn(ros_publisher(
                 m_tx.clone(),
@@ -93,7 +93,7 @@ pub async fn topic_creator(
                 node_name,
                 topic_name,
                 topic_type,
-                certificate
+                certificate,
             )),
         },
         _ => panic!("unknown action"),
@@ -149,11 +149,12 @@ pub async fn ros_topic_manager(
     // bookkeeping the status of ros topics
     let mut topic_status = HashMap::new();
 
-    // read certificate from file in config 
+    // read certificate from file in config
     let certificate = std::fs::read(format!(
         "./scripts/crypto/{}/{}-private.pem",
         config.crypto_name, config.crypto_name
-    )).expect("crypto file not found!");
+    ))
+    .expect("crypto file not found!");
 
     for topic in config.ros {
         let node_name = topic.node_name;
@@ -171,16 +172,13 @@ pub async fn ros_topic_manager(
             action.clone(),
             rib_tx.clone(),
             channel_tx.clone(),
-            certificate.clone()
+            certificate.clone(),
         )
         .await;
 
-        topic_status.insert(
-            topic_name,
-            RosTopicStatus {
-                action: action.clone(),
-            },
-        );
+        topic_status.insert(topic_name, RosTopicStatus {
+            action: action.clone(),
+        });
     }
 
     // if automatic topic discovery is disabled, return

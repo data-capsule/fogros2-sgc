@@ -3,7 +3,6 @@ use std::future::Future;
 /// https://github.com/SajjadPourali/udp-stream
 /// udp-stream == 0.3.0
 ///
-///
 use std::{
     collections::HashMap,
     io::{self},
@@ -127,7 +126,7 @@ impl UdpListener {
                         }
                     }
                 }
-                //error?
+                // error?
             }
         });
         Ok(Self {
@@ -136,10 +135,12 @@ impl UdpListener {
             local_addr,
         })
     }
-    ///Returns the local address that this socket is bound to.
+
+    /// Returns the local address that this socket is bound to.
     pub fn local_addr(&self) -> io::Result<SocketAddr> {
         Ok(self.local_addr.clone())
     }
+
     pub async fn accept(&self) -> io::Result<(UdpStream, SocketAddr)> {
         (&self.receiver)
             .lock()
@@ -223,14 +224,17 @@ impl UdpStream {
             drop: drop,
         })
     }
+
     #[allow(unused)]
     pub fn peer_addr(&self) -> std::io::Result<SocketAddr> {
         Ok(self.peer_addr)
     }
+
     #[allow(unused)]
     pub fn local_addr(&self) -> std::io::Result<SocketAddr> {
         Ok(self.local_addr)
     }
+
     #[allow(unused)]
     pub fn shutdown(&self) {
         if let Ok(mut drop) = (&self.drop).lock() {
@@ -279,9 +283,11 @@ impl AsyncWrite for UdpStream {
             }
         })
     }
+
     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<io::Result<()>> {
         Poll::Ready(Ok(()))
     }
+
     fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<io::Result<()>> {
         Poll::Ready(Ok(()))
     }

@@ -42,6 +42,7 @@ impl Error {
             source: None,
         }
     }
+
     /// Create a new Error instance with a source error.
     pub fn with_source(msg: &str, source: Box<dyn std::error::Error + Send + Sync>) -> Self {
         Error {
