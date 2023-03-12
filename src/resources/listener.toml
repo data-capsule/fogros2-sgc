@@ -39,7 +39,7 @@ action = "pub"
 # doesn't quite matter what you put here as long as no name collision
 node_name = "talker"
 # this protocol will be used to communicate with the gateway
-# this overrides 
+# this overrides ros_protocol
 protocol="dtls"
 # topic_name of fogros2-sgc node that will publish/subscribe to
 topic_name = "/chatter"

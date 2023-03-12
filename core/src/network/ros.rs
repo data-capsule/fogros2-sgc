@@ -18,12 +18,12 @@ use tokio::sync::mpsc::UnboundedSender;
 #[cfg(feature = "ros")]
 pub async fn ros_publisher(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, topic_type: String,
+    topic_name: String, topic_type: String, certificate: Vec<u8>,
 ) {
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, mut m_rx) = unbounded_channel::<GDPPacket>();
@@ -70,12 +70,12 @@ pub async fn ros_publisher(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, topic_type: String,
+    topic_name: String, topic_type: String, certificate: Vec<u8>,
 ) {
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, _m_rx) = unbounded_channel::<GDPPacket>();
@@ -120,12 +120,13 @@ pub async fn ros_subscriber(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String,
+    topic_name: String, certificate: Vec<u8>,
 ) {
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
+    let topic_type = "sensor_msgs/CompressedImage".to_string();
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, _m_rx) = unbounded_channel::<GDPPacket>();
@@ -171,12 +172,13 @@ pub async fn ros_subscriber_image(
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String,
+    topic_name: String,  certificate: Vec<u8>,
 ) {
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name));
+    let topic_type = "sensor_msgs/CompressedImage".to_string();
+    let node_gdp_name = GDPName(get_gdp_name_from_topic(&node_name, &topic_type, &certificate));
     info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
 
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name));
+    let topic_gdp_name = GDPName(get_gdp_name_from_topic(&topic_name, &topic_type, &certificate));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
     let (m_tx, mut m_rx) = unbounded_channel::<GDPPacket>();

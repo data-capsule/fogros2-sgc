@@ -157,12 +157,15 @@ pub struct GDPChannel {
 
 use sha2::Digest;
 use sha2::Sha256;
-pub fn get_gdp_name_from_topic(topic_name: &str) -> [u8; 4] {
+pub fn get_gdp_name_from_topic(topic_name: &str, topic_type: &str, cert: &[u8]) -> [u8; 4] {
     // create a Sha256 object
     let mut hasher = Sha256::new();
 
-    // write input message
+    info!("Name is generated from topic_name: {}, topic_type: {}, cert: {:?}", topic_name, topic_type, cert);
+    // hash with name, type and certificate
     hasher.update(topic_name);
+    hasher.update(topic_type);
+    hasher.update(cert);
     let result = hasher.finalize();
     // Get the first 4 bytes of the digest
     let mut bytes = [0u8; 4];
