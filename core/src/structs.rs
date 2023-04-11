@@ -67,14 +67,13 @@ impl fmt::Display for GDPName {
 use crate::gdp_proto::GdpPacket;
 pub(crate) trait Packet {
     /// get protobuf object of the packet
-    fn get_proto(&self) -> Option<&GdpPacket>;
     /// get serialized byte array of the packet
     fn get_byte_payload(&self) -> Option<&Vec<u8>>;
 
     fn get_header(&self) -> GDPPacketInTransit;
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct GDPPacket {
     pub action: GdpAction,
     pub gdpname: GDPName,
@@ -83,7 +82,6 @@ pub struct GDPPacket {
     // converting back and forth between proto and u8 is expensive
     // preferably forward directly without conversion
     pub payload: Option<Vec<u8>>,
-    pub proto: Option<GdpPacket>,
     pub source: GDPName,
 }
 
@@ -95,12 +93,6 @@ pub struct GDPPacketInTransit {
 }
 
 impl Packet for GDPPacket {
-    fn get_proto(&self) -> Option<&GdpPacket> {
-        match &self.proto {
-            Some(p) => Some(p),
-            None => None, // TODO
-        }
-    }
 
     fn get_byte_payload(&self) -> Option<&Vec<u8>> {
         match &self.payload {
@@ -142,8 +134,6 @@ impl fmt::Display for GDPPacket {
                 Err(_) => "unable to render",
             };
             write!(f, "{:?}: {:?}", self.gdpname, ret)
-        } else if let Some(payload) = &self.proto {
-            write!(f, "{:?}: {:?}", self.gdpname, payload)
         } else {
             write!(f, "{:?}: packet do not exist", self.gdpname)
         }

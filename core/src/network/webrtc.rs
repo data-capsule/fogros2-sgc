@@ -31,11 +31,22 @@ use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
 
+fn generate_random_gdp_name_for_thread() -> GDPName {
+    // u8:4
+    GDPName([
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+    ])
+}
 
 pub async fn webrtc_listener(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) -> Result<()> {
 
+    let (m_tx, m_rx) = mpsc::unbounded_channel();
+    let m_gdp_name = generate_random_gdp_name_for_thread();
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -118,6 +129,13 @@ pub async fn webrtc_listener(
     data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
         println!("Message from DataChannel '{d_label}': '{msg_str}'");
+        let mut gdp_packet: GDPPacket = serde_json::from_str(&msg_str).unwrap();
+        gdp_packet.source = m_gdp_name;
+        proc_gdp_packet(gdp_packet,  // packet
+            &rib_tx,  //used to send packet to rib
+            &channel_tx, // used to send GDPChannel to rib
+            &m_tx //the sending handle of this connection
+        );
         Box::pin(async {})
     }));
 

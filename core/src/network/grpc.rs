@@ -1,7 +1,6 @@
 use crate::gdp_proto::globaldataplane_client::GlobaldataplaneClient;
 use crate::gdp_proto::globaldataplane_server::Globaldataplane;
 use crate::gdp_proto::{GdpPacket, GdpResponse, GdpUpdate};
-use crate::pipeline::populate_gdp_struct_from_proto;
 use crate::structs::GDPPacket;
 use futures::future;
 use tokio::sync::mpsc::Sender;

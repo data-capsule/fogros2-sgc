@@ -10,7 +10,6 @@ pub fn construct_gdp_forward_from_bytes(
         action: GdpAction::Forward,
         gdpname: destination,
         payload: Some(buffer),
-        proto: None,
         source: source,
     }
 }
@@ -22,7 +21,6 @@ pub fn construct_gdp_advertisement_from_bytes(destination: GDPName, source: GDPN
         action: GdpAction::Advertise,
         gdpname: destination,
         payload: None,
-        proto: None,
         source: source,
     }
 }
@@ -52,24 +50,12 @@ pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
         action: m_gdp_action,
         gdpname: m_gdp_name,
         payload: Some(buffer),
-        proto: None,
         source: GDPName([0, 0, 0, 0]),
     }
 }
 
 use crate::gdp_proto::GdpPacket;
 
-pub fn populate_gdp_struct_from_proto(proto: GdpPacket) -> GDPPacket {
-    // GDPPacket {
-    //     action: GdpAction::try_from(proto.action as u8).unwrap(),
-    //     gdpname: proto.receiver,
-    //     payload: Some(buffer),
-    //     proto: None,
-    // }
-
-    // TODO: currently, populate directly from payload as placeholder
-    populate_gdp_struct_from_bytes(proto.payload)
-}
 
 /// parses the processsing received GDP packets
 /// match GDP action and send the packets with corresponding actual actions
