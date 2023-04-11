@@ -1,4 +1,5 @@
 use anyhow::Result;
+use futures::executor::block_on;
 use webrtc::data_channel::RTCDataChannel;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::peer_connection::math_rand_alpha;
@@ -127,16 +128,23 @@ pub async fn webrtc_listener(
     // Register text message handling
     let d_label = data_channel.label().to_owned();
     data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
+
+        let rib_tx_clone = rib_tx.clone();
+        let m_tx_clone = m_tx.clone();
+        let channel_tx_clone = channel_tx.clone();
         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
         println!("Message from DataChannel '{d_label}': '{msg_str}'");
         let mut gdp_packet: GDPPacket = serde_json::from_str(&msg_str).unwrap();
         gdp_packet.source = m_gdp_name;
-        proc_gdp_packet(gdp_packet,  // packet
-            &rib_tx,  //used to send packet to rib
-            &channel_tx, // used to send GDPChannel to rib
-            &m_tx //the sending handle of this connection
-        );
-        Box::pin(async {})
+
+        Box::pin(async move {
+            proc_gdp_packet(gdp_packet,  // packet
+                &rib_tx_clone,  //used to send packet to rib
+                &channel_tx_clone, // used to send GDPChannel to rib
+                &m_tx_clone //the sending handle of this connection
+            ).await;
+        })
+        // block_on(send_handle); // call the handle
     }));
 
     // Create an offer to send to the browser
