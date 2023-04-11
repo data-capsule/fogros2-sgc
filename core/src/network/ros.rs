@@ -46,7 +46,7 @@ pub async fn ros_publisher(
     });
 
     // note that different from other connection ribs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
+    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None, );
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            // used to send packet to rib
@@ -105,7 +105,7 @@ pub async fn ros_subscriber(
     });
 
     // note that different from other connection ribs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
+    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None,);
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            // used to send packet to rib
@@ -164,7 +164,7 @@ pub async fn ros_subscriber_image(
     });
 
     // note that different from other connection ribs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
+    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None,);
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            // used to send packet to rib
@@ -228,7 +228,7 @@ pub async fn ros_publisher_image(
     });
 
     // note that different from other connection ribs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name);
+    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None,);
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            // used to send packet to rib

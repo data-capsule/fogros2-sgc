@@ -16,46 +16,18 @@ pub fn construct_gdp_forward_from_bytes(
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
-pub fn construct_gdp_advertisement_from_bytes(destination: GDPName, source: GDPName) -> GDPPacket {
+pub fn construct_gdp_advertisement_from_bytes(
+    destination: GDPName, 
+    source: GDPName,
+    advertisement: Option<Vec<u8>>
+) -> GDPPacket {
     GDPPacket {
         action: GdpAction::Advertise,
         gdpname: destination,
-        payload: None,
         source: source,
+        payload: advertisement,
     }
 }
-
-/// construct a gdp packet struct
-/// we may want to use protobuf later
-/// this part is facilitate testing only
-pub fn populate_gdp_struct_from_bytes(buffer: Vec<u8>) -> GDPPacket {
-    let received_str: Vec<&str> = std::str::from_utf8(&buffer)
-        .unwrap()
-        .trim()
-        .split(",")
-        .collect();
-    let m_gdp_action = match received_str[0] {
-        "ADV" => GdpAction::Advertise,
-        "FWD" => GdpAction::Forward,
-        _ => GdpAction::Noop,
-    };
-
-    let m_gdp_name = match &received_str[1][0..1] {
-        "1" => GDPName([1, 1, 1, 1]),
-        "2" => GDPName([2, 2, 2, 2]),
-        _ => GDPName([0, 0, 0, 0]),
-    };
-
-    GDPPacket {
-        action: m_gdp_action,
-        gdpname: m_gdp_name,
-        payload: Some(buffer),
-        source: GDPName([0, 0, 0, 0]),
-    }
-}
-
-use crate::gdp_proto::GdpPacket;
-
 
 /// parses the processsing received GDP packets
 /// match GDP action and send the packets with corresponding actual actions

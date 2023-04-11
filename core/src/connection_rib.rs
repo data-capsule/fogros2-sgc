@@ -128,7 +128,11 @@ pub async fn connection_router(
                     let dst = update.sink;
                     for (name, _) in &coonection_rib_table {
                         info!("flushing advertisement for {} to {:?}", name, dst);
-                        let packet = construct_gdp_advertisement_from_bytes(*name, *name);
+                        let packet = construct_gdp_advertisement_from_bytes(
+                            *name, 
+                            *name,
+                            None, // TODO: not none here
+                        );
                         let result = dst.send(packet.clone());
                         match result {
                             Ok(_) => {}

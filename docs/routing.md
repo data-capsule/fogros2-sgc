@@ -9,7 +9,7 @@ There are four types of peering relationship in FogROS SGC.
 4. RIB: no data is sent to the RIB, only `GDPAction::Advertisement`, `GDPAction::RibGet` and `GDPAction::RibReply` are sent/received 
 
 ### Design Considerations 
-1. separate routing information management with data routing (e.g. announcing a ROS topic does not directly subscribe to the topic, the topic is subscribed only if there is an active subscriber in the network)
+1. separate routing information management with data routing (e.g. announcing a ROS topic does not directly subscribe to the topic, the topic is subscribed only if there is an active subscriber in the network). This derives a design philosophy: one can arbitrarily connect and advertise the names; the data is only exchanges conservatively and securely. 
 2. Use queries instead of flushing. 
 3. Smooth Node shutdown 
 
@@ -51,6 +51,8 @@ match GDPAction with
                     inform ros topic manager
             Peer: add peer to rib
             RIB: (a new RIB!) register the routing information with the RIB
+    AdvertisementResponse: 
+        route the query to the corresponding protocol handler
     RibGet: 
         search in RIB and get the IP address/port 
     RibResponse

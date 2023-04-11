@@ -197,7 +197,7 @@ async fn handle_dtls_stream(
                         ).await;
                     }
                     else if deserialized.action == GdpAction::Advertise {
-                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name);
+                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, None,);
                         proc_gdp_packet(packet,  // packet
                             rib_tx,  //used to send packet to rib
                             channel_tx, // used to send GDPChannel to rib
@@ -285,7 +285,7 @@ pub async fn dtls_to_peer(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("DTLS takes gdp name {:?}", m_gdp_name);
 
-    let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name);
+    let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name, None,);
     proc_gdp_packet(
         node_advertisement, // packet
         &rib_tx,            // used to send packet to rib

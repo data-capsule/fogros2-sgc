@@ -47,6 +47,9 @@ pub async fn webrtc_listener(
 ) -> Result<()> {
 
     let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+    let m_tx_clone = m_tx.clone();
+    let channel_tx_clone = channel_tx.clone();
+    let rib_tx_clone = rib_tx.clone();
     let m_gdp_name = generate_random_gdp_name_for_thread();
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -136,6 +139,7 @@ pub async fn webrtc_listener(
         gdp_packet.source = m_gdp_name;
 
         Box::pin(async move {
+            //TODO: ignore advertisement message? 
             proc_gdp_packet(gdp_packet,  // packet
                 &rib_tx_clone,  //used to send packet to rib
                 &channel_tx_clone, // used to send GDPChannel to rib
@@ -164,6 +168,18 @@ pub async fn webrtc_listener(
         let json_str = serde_json::to_string(&local_desc)?;
         let b64 = signal::encode(&json_str);
         println!("{b64}");
+        let node_advertisement = construct_gdp_advertisement_from_bytes(
+            m_gdp_name, 
+            m_gdp_name,
+            Some(serde_json::to_string(&local_desc)?.as_bytes().to_vec()),
+        );
+        proc_gdp_packet(
+            node_advertisement, // packet
+            &rib_tx_clone,            // used to send packet to rib
+            &channel_tx_clone,        // used to send GDPChannel to rib
+            &m_tx_clone,              // the sending handle of this connection
+        )
+        .await;
     } else {
         println!("generate local_description failed!");
     }
