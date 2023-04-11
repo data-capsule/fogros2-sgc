@@ -6,6 +6,8 @@ SGC publishes a node; advertises the mapping of 256 bit name with the Offer toke
 
 RIB: stores ROS node <-> token mapping. 
 
+One publisher, Multiple subscribers: every topic has an offer, subscriber supplies with the answer. create a separate peer to peer relationship by exchanging the offer and answer. 
+
 ### Q&A
 > What is the tradeoff between this and the direct DTLS approach? 
 
