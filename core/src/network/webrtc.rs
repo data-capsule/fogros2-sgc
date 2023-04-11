@@ -20,6 +20,7 @@ use webrtc::track::track_local::{TrackLocal, TrackLocalWriter};
 use webrtc::Error;
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
 use crate::pipeline::proc_gdp_packet;
+use crate::signal;
 use crate::structs::GDPName;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
 use std::io;
@@ -169,12 +170,12 @@ pub async fn webrtc_listener(
 
 
 
-pub async fn webrtc_peer() {
+pub async fn webrtc_peer() -> Result<()>{
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
     // Register default codecs
-    m.register_default_codecs().expect("Failed to register default codecs");
+    m.register_default_codecs()?;
 
     // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
     // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
@@ -183,7 +184,7 @@ pub async fn webrtc_peer() {
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m).expect("register_default_interceptors_error");
+    registry = register_default_interceptors(registry, &mut m)?;
 
     // Create the API object with the MediaEngine
     let api = APIBuilder::new()
@@ -201,7 +202,7 @@ pub async fn webrtc_peer() {
     };
 
     // Create a new RTCPeerConnection
-    let peer_connection = Arc::new(api.new_peer_connection(config).await.expect("Failed to create PeerConnection"));
+    let peer_connection = Arc::new(api.new_peer_connection(config).await?);
 
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
 
@@ -263,24 +264,21 @@ pub async fn webrtc_peer() {
         }));
 
     // Wait for the offer to be pasted
-    // Wait for the answer to be pasted
-    let mut line = String::new();
-    std::io::stdin().read_line(&mut line).expect("read answer failed");
-    line = line.trim().to_owned();
-    let desc_data = String::from_utf8(base64::decode(line.as_str()).expect("decode failed")).expect("Failed to decode answer");
-    let offer = serde_json::from_str::<RTCSessionDescription>(&desc_data).expect("msg_deserialize_error");
+    let line = signal::must_read_stdin()?;
+    let desc_data = signal::decode(line.as_str())?;
+    let offer = serde_json::from_str::<RTCSessionDescription>(&desc_data)?;
 
     // Set the remote SessionDescription
-    peer_connection.set_remote_description(offer).await.expect("Failed to set remote description");
+    peer_connection.set_remote_description(offer).await?;
 
     // Create an answer
-    let answer = peer_connection.create_answer(None).await.expect("Failed to create answer");
+    let answer = peer_connection.create_answer(None).await?;
 
     // Create channel that is blocked until ICE Gathering is complete
     let mut gather_complete = peer_connection.gathering_complete_promise().await;
 
     // Sets the LocalDescription, and starts our UDP listeners
-    peer_connection.set_local_description(answer).await.expect("Failed to set local description");
+    peer_connection.set_local_description(answer).await?;
 
     // Block until ICE Gathering is complete, disabling trickle ICE
     // we do this because we only can exchange one signaling message
@@ -289,8 +287,8 @@ pub async fn webrtc_peer() {
 
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
-        let json_str = serde_json::to_string(&local_desc).expect("msg_serialize_error");
-        let b64 = base64::encode(&json_str);
+        let json_str = serde_json::to_string(&local_desc)?;
+        let b64 = signal::encode(&json_str);
         println!("{b64}");
     } else {
         println!("generate local_description failed!");
@@ -306,6 +304,7 @@ pub async fn webrtc_peer() {
         }
     };
 
-    peer_connection.close().await.expect("peer_connection_close_error");
+    peer_connection.close().await?;
 
+    Ok(())
 }

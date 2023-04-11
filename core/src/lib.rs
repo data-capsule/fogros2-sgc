@@ -13,7 +13,7 @@ pub mod pipeline;
 // util
 pub mod commands;
 pub mod topic_manager;
-
+pub mod signal;
 use utils::error::Result;
 
 pub mod gdp_proto {
