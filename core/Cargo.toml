@@ -36,7 +36,7 @@ tonic = "0.8"
 prost = "0.11"
 sha2 = "0.10.6"
 webrtc = "0.7.1"
-base64="0.21.0"
+base64="0.13.0"
 lazy_static = "1.4"
 hyper = { version = "0.14.16", features = ["full"] }
 

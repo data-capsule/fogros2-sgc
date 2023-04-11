@@ -34,21 +34,22 @@ use rand::Rng;
 
 pub async fn webrtc_listener(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-){
+) -> Result<()> {
+
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
     // Register default codecs
-    m.register_default_codecs().expect("Register default codecs failed");
+    m.register_default_codecs()?;
 
-        // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
+    // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
     // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
     // this is enabled by default. If you are manually managing You MUST create a InterceptorRegistry
     // for each PeerConnection.
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m).unwrap();
+    registry = register_default_interceptors(registry, &mut m)?;
 
     // Create the API object with the MediaEngine
     let api = APIBuilder::new()
@@ -59,37 +60,37 @@ pub async fn webrtc_listener(
     // Prepare the configuration
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned(), 
-            "stun:stun2.l.google.com:19305".to_owned()],
+            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
             ..Default::default()
         }],
         ..Default::default()
     };
 
     // Create a new RTCPeerConnection
-    let peer_connection = Arc::new(api.new_peer_connection(config).await.unwrap());
+    let peer_connection = Arc::new(api.new_peer_connection(config).await?);
+
+    // Create a datachannel with label 'data'
+    let data_channel = peer_connection.create_data_channel("data", None).await?;
+
+    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+
     // Set the handler for Peer connection state
     // This will notify you when the peer has connected/disconnected
     peer_connection.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
         println!("Peer Connection State has changed: {s}");
 
-        // if s == RTCPeerConnectionState::Failed {
-        //     // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-        //     // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-        //     // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-        //     println!("Peer Connection has gone to failed exiting");
-        //     let _ = done_tx.try_send(());
-        // }
+        if s == RTCPeerConnectionState::Failed {
+            // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
+            // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
+            // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
+            println!("Peer Connection has gone to failed exiting");
+            let _ = done_tx.try_send(());
+        }
 
         Box::pin(async {})
     }));
 
-    // Create a datachannel with label 'data'
-    let data_channel = peer_connection.create_data_channel("data", None).await.expect("channel creation failed");
-
-
     // Register channel opening handling
-    // on open we will send a random message to the DataChannel every 5 seconds
     let d1 = Arc::clone(&data_channel);
     data_channel.on_open(Box::new(move || {
         println!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
@@ -113,7 +114,6 @@ pub async fn webrtc_listener(
     }));
 
     // Register text message handling
-    // on message we will print out the message
     let d_label = data_channel.label().to_owned();
     data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
@@ -122,13 +122,13 @@ pub async fn webrtc_listener(
     }));
 
     // Create an offer to send to the browser
-    let offer = peer_connection.create_offer(None).await.expect("Failed to create offer");
+    let offer = peer_connection.create_offer(None).await?;
 
     // Create channel that is blocked until ICE Gathering is complete
     let mut gather_complete = peer_connection.gathering_complete_promise().await;
 
     // Sets the LocalDescription, and starts our UDP listeners
-    peer_connection.set_local_description(offer).await.expect("Failed to set local description");
+    peer_connection.set_local_description(offer).await?;
 
     // Block until ICE Gathering is complete, disabling trickle ICE
     // we do this because we only can exchange one signaling message
@@ -137,33 +137,35 @@ pub async fn webrtc_listener(
 
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
-        let json_str = serde_json::to_string(&local_desc).unwrap();
-        let b64 = base64::encode(&json_str);
+        let json_str = serde_json::to_string(&local_desc)?;
+        let b64 = signal::encode(&json_str);
         println!("{b64}");
     } else {
         println!("generate local_description failed!");
     }
 
     // Wait for the answer to be pasted
-    let mut line = String::new();
-    std::io::stdin().read_line(&mut line).expect("read answer failed");
-    line = line.trim().to_owned();
-    let desc_data = String::from_utf8(
-        base64::decode(line.as_str()).expect("decode failed")
-    ).expect("Failed to decode answer");
-    let answer = serde_json::from_str::<RTCSessionDescription>(&desc_data).expect("Failed to deserialize answer");
+    let line = signal::must_read_stdin()?;
+    let desc_data = signal::decode(line.as_str())?;
+    let answer = serde_json::from_str::<RTCSessionDescription>(&desc_data)?;
 
     // Apply the answer as the remote description
-    peer_connection.set_remote_description(answer).await.expect("Failed to set remote description");
+    peer_connection.set_remote_description(answer).await?;
 
     println!("Press ctrl-c to stop");
     tokio::select! {
+        _ = done_rx.recv() => {
+            println!("received done signal!");
+        }
         _ = tokio::signal::ctrl_c() => {
             println!();
         }
     };
 
-    peer_connection.close().await.expect("Failed to close PeerConnection");
+    peer_connection.close().await?;
+
+    Ok(())
+
 }
 
 
@@ -304,7 +306,7 @@ pub async fn webrtc_peer() -> Result<()>{
         }
     };
 
-    peer_connection.close().await?;
+    // peer_connection.close().await?;
 
     Ok(())
 }
