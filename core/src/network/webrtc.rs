@@ -46,7 +46,7 @@ pub async fn webrtc_listener(
     rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) -> Result<()> {
 
-    let (m_tx, m_rx) = mpsc::unbounded_channel();
+    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
     let m_gdp_name = generate_random_gdp_name_for_thread();
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -111,12 +111,10 @@ pub async fn webrtc_listener(
         Box::pin(async move {
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
-                let timeout = tokio::time::sleep(Duration::from_secs(5));
-                tokio::pin!(timeout);
 
                 tokio::select! {
-                    _ = timeout.as_mut() =>{
-                        let message = math_rand_alpha(15);
+                    Some(pkt_to_forward) = m_rx.recv() => {
+                        let message = serde_json::to_string(&pkt_to_forward).unwrap();
                         println!("Sending '{message}'");
                         result = d2.send_text(message).await.map_err(Into::into);
                     }
