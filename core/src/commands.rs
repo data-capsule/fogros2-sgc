@@ -7,9 +7,11 @@ use crate::connection_rib::connection_router;
 
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
+use crate::network::webrtc::{webrtc_listener, webrtc_peer};
 use crate::structs::GDPStatus;
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
+use futures::stream::FuturesUnordered;
 use tokio::sync::mpsc::{self};
 
 use tokio::time::sleep;
@@ -61,6 +63,12 @@ async fn router_async_loop() {
         channel_tx.clone(),
     ));
     future_handles.push(tcp_sender_handle);
+
+    let webrtc_listener_handle = webrtc_listener(
+        rib_tx.clone(),
+        channel_tx.clone(),
+    );
+    // future_handles.push(webrtc_sender_handle);
 
     let dtls_sender_handle = tokio::spawn(dtls_listener(
         dtls_bind_addr,
@@ -136,7 +144,16 @@ async fn router_async_loop() {
             .expect("Flush the RIB Failure");
     }
 
+    // let join_handles = future::join_all(future_handles);
+    // let futures: FuturesUnordered<_> = future_handles
+    // .into_iter()
+    // .collect();
+    // futures.push(join_handles);
+    // futures.push(webrtc_listener_handle);
+    // futures.collect().await;
+    webrtc_listener_handle.await;
     future::join_all(future_handles).await;
+
 }
 
 /// Show the configuration file
@@ -157,9 +174,9 @@ pub fn config() -> Result<()> {
 
     Ok(())
 }
-
+#[tokio::main]
 /// Simulate an error
-pub fn simulate_error() -> Result<()> {
+pub async fn simulate_error() -> Result<()> {
     let config = AppConfig::fetch().expect("App config unable to load");
     info!("{:#?}", config);
     // test_cert();
@@ -167,8 +184,6 @@ pub fn simulate_error() -> Result<()> {
 
     // ros_sample();
     // TODO: uncomment them
-    let test_router_addr = format!("{}:{}", config.default_gateway, config.dtls_port);
-    println!("{}", test_router_addr);
-    dtls_test_client("128.32.37.48:9232".into()).expect("DLTS Client error");
+    webrtc_peer().await;
     Ok(())
 }

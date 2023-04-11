@@ -4,9 +4,11 @@ As mentioned in the routing document, supporting a directory of routing rules wi
 
 SGC publishes a node; advertises the mapping of 256 bit name with the Offer token of the node. The nodes in the middle can facilitate propagation of the 256 bit names. SGC needs to route the Answer token back. 
 
-RIB: stores ROS node <-> token mapping. 
+RIB: stores ROS node hosted machine <-> token mapping. 
 
 One publisher, Multiple subscribers: every topic has an offer, subscriber supplies with the answer. create a separate peer to peer relationship by exchanging the offer and answer. 
+
+On node create, create a RTC listener; advertise the node name with the RTC listener whenever there is a node.
 
 ### Q&A
 > What is the tradeoff between this and the direct DTLS approach? 
