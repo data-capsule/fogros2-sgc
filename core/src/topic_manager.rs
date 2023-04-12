@@ -33,7 +33,7 @@ pub async fn topic_creator(
     );
 
     // This sender handle is a specific connection for ROS
-    // this is used to diffentiate different channels in ROS topics
+    // this is used to differentiate different channels in ROS topics
     let (mut m_tx, m_rx) = mpsc::unbounded_channel();
     if peer_with_gateway {
         if protocol == "dtls" {

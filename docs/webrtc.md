@@ -6,7 +6,7 @@ SGC publishes a node; advertises the mapping of 256 bit name with the Offer toke
 
 RIB: stores ROS node hosted machine <-> token mapping. 
 
-One publisher, Multiple subscribers: every topic has an offer, subscriber supplies with the answer. create a separate peer to peer relationship by exchanging the offer and answer. 
+One publisher, Multiple subscribers: every topic has an offer, subscriber supplies with the answer. create a separate peer to peer relationship by exchanging the offer and answer. To break the tie, we use publisher as the entity that issues and publishes offers, the subscriber poll/query the offers. 
 
 On node create, create a RTC listener; advertise the node name with the RTC listener whenever there is a node.
 
