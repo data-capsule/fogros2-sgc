@@ -9,24 +9,23 @@ There are four types of peering relationship in FogROS SGC.
 4. RIB: no data is sent to the RIB, only `GDPAction::Advertisement`, `GDPAction::RibGet` and `GDPAction::RibReply` are sent/received 
 
 ### Design Considerations 
-1. separate routing information management with data routing (e.g. announcing a ROS topic does not directly subscribe to the topic, the topic is subscribed only if there is an active subscriber in the network). This derives a design philosophy: one can arbitrarily connect and advertise the names; the data is only exchanges conservatively and securely. 
+1. separate routing information management with data routing (e.g. announcing a ROS topic does not directly subscribe to the topic, the topic is subscribed only if there is an active subscriber in the network). This derives a design philosophy: *one can arbitrarily connect and advertise the names; the data is only exchanges conservatively and securely.* 
 2. Use queries instead of flushing. 
 3. Smooth Node shutdown 
 
 ### Workflow
 ```
 On a new ROS topic (publisher):
-    (ROS Topic Manager): advertise the name, register its status handle with RIB
+    (ROS Topic Manager): creates routing information struct for the name, advertise the name, register its status handle with RIB
     If status handle receives subscribe request:
         create a thread that subscribes to the topic
-        (Note: we don't need to remove the old record because Source does not generate additional routing information)
 
 On a new ROS topic (subscriber):
-    (ROS Topic Manager): advertise the name, register its status handle with RIB
+    (ROS Topic Manager): advertise the name request and querying the RIB, register its status handle with RIB
     If status handle receives publish advertisement:
-        create a thread that publishes to the topic
+        create a thread that publishes to the ROS topic
         manager removes itself from subscribing request
-        advertises the new thread that with subscribing request
+        advertises the new thread that with name advertisement request
 
 
 RIB: 
@@ -37,6 +36,8 @@ match GDPAction with
         If name not found, 
             mark name as in query, drop the messages (or buffer) 
             send query to its own RIB and peers
+            create a connection if the routing information is found
+            (in this case, the original entity does not have access to the endpoint, so we need the router and establish peer-to-peer and hop-by-hop connection)
             (TODO: send Nack that RIB cannot find the name)
         If name is found and sink/peer is not empty, 
             forward the packet 
