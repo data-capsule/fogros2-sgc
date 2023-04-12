@@ -10,6 +10,10 @@ One publisher, Multiple subscribers: every topic has an offer, subscriber suppli
 
 On node create, create a RTC listener; advertise the node name with the RTC listener whenever there is a node.
 
+
+### Gateways 
+Having gateways is still in scope. FogROS robot and cloud needs to connect without knowing each other's IP address. What we do is that having robots to map the offer token to the cloud (FogROS) without knowing the IP address of the robot. Then we don't need to know the IP address of the robot and cloud. 
+
 ### Q&A
 > What is the tradeoff between this and the direct DTLS approach? 
 
