@@ -293,10 +293,27 @@ pub async fn ros_topic_manager(
                                 .await;
                             }
                             "pub" => {
-                                
-
+                                // a new local topic is present
+                                // advertise the topic 
+                                let node_advertisement = 
+                                    construct_gdp_advertisement_from_structs(
+                                        topic_gdp_name, topic_gdp_name, crate::structs::GDPNameRecord{
+                                        record_type: crate::structs::GDPNameRecordType::QUERY,
+                                        gdpname: topic_gdp_name, 
+                                        webrtc_offer: None, 
+                                        ip_address:  None, 
+                                        indirect: None, 
+                                        ros: Some((topic_name.clone(), topic_type.clone())),
+                                });
+                                proc_gdp_packet(
+                                    node_advertisement, // packet
+                                    &fib_tx,            // used to send packet to fib
+                                    &channel_tx,        // used to send GDPChannel to fib
+                                    &m_tx,              // the sending handle of this connection
+                                    &rib_query_tx,       // used to send GDPNameRecord to rib
+                                )
+                                .await;
                             }
-                            "noop" => {}
                             _ => {
                                 warn!("unknown action {}", action);
                             }
