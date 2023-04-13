@@ -55,7 +55,6 @@ pub async fn proc_gdp_packet(
                 gdpname: gdp_name,
                 source: gdp_packet.source,
                 channel: m_tx.clone(),
-                name_record: gdp_packet, // TODO: what to put here
             };
             channel_tx
                 .send(channel)

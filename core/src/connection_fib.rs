@@ -103,6 +103,7 @@ pub async fn connection_router(
 
                 },
 
+                // TODO: update rib here, instead of fib
                 Some(update) = stat_rs.recv() => {
                     // Note: incomplete implementation, only support flushing advertisement
                     let dst = update.sink;
@@ -111,7 +112,7 @@ pub async fn connection_router(
                         let packet = construct_gdp_advertisement_from_bytes(
                             *name, 
                             *name,
-                            m_webrtc_offer.clone(), // TODO: not none here
+                            None 
                         );
 
                         let result = dst.send(packet.clone());

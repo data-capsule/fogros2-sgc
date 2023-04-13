@@ -145,7 +145,6 @@ pub struct GDPChannel {
     pub gdpname: GDPName,
     pub source: GDPName,
     pub channel: UnboundedSender<GDPPacket>,
-    pub name_record: GDPNameRecord,
 }
 
 // name record is what being stored in RIB and used for routing
