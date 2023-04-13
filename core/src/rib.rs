@@ -76,9 +76,9 @@ pub async fn local_rib_handler(
                                 }
                             }
                         },
-                        MERGE => {},
-                        UPDATE => {},
-                        DELETE => {},
+                        _ => {
+                            warn!("received RIB query with unknown record type {:?}", query.record_type);
+                        }
                     }
                 }
             }

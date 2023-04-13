@@ -74,6 +74,7 @@ pub async fn proc_gdp_packet(
     fib_tx: &UnboundedSender<GDPPacket>, // used to send packet to fib
     channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to fib
     m_tx: &UnboundedSender<GDPPacket>,   // the sending handle of this connection
+    rib_tx: &UnboundedSender<GDPNameRecord>, // used to send packet to rib
 ) {
     // Vec<u8> to GDP Packet
     // let gdp_packet = populate_gdp_struct(packet);

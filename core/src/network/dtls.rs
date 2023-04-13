@@ -11,7 +11,7 @@ use tokio_openssl::SslStream;
 use utils::app_config::AppConfig;
 
 use crate::pipeline::construct_gdp_forward_from_bytes;
-use crate::structs::GDPName;
+use crate::structs::{GDPName, GDPNameRecord};
 use crate::structs::GDPPacketInTransit;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
 use rand::Rng;
@@ -119,6 +119,7 @@ async fn handle_dtls_stream(
     mut stream: SslStream<UdpStream>, fib_tx: &UnboundedSender<GDPPacket>,
     channel_tx: &UnboundedSender<GDPChannel>, m_tx: UnboundedSender<GDPPacket>,
     mut m_rx: UnboundedReceiver<GDPPacket>, thread_name: GDPName,
+    rib_query_tx: &UnboundedSender<GDPNameRecord>,
 ) {
     let mut need_more_data_for_previous_header = false;
     let mut remaining_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
@@ -193,7 +194,8 @@ async fn handle_dtls_stream(
                         proc_gdp_packet(packet,  // packet
                             fib_tx,  //used to send packet tofib
                             channel_tx, // used to send GDPChannel tofib
-                            &m_tx //the sending handle of this connection
+                            &m_tx, //the sending handle of this connection
+                            &rib_query_tx,
                         ).await;
                     }
                     else if deserialized.action == GdpAction::Advertise {
@@ -201,7 +203,8 @@ async fn handle_dtls_stream(
                         proc_gdp_packet(packet,  // packet
                             fib_tx,  //used to send packet tofib
                             channel_tx, // used to send GDPChannel tofib
-                            &m_tx //the sending handle of this connection
+                            &m_tx, //the sending handle of this connection
+                            &rib_query_tx,
                         ).await;
                     }
                     else{
@@ -246,7 +249,7 @@ async fn handle_dtls_stream(
 
 pub async fn dtls_to_peer(
     addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,
+    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
         .await
@@ -300,9 +303,10 @@ pub async fn dtls_to_peer(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
+        &rib_query_tx,
     )
     .await;
-    handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
+    handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await;
 }
 
 /// does not go to fib when peering
@@ -312,6 +316,7 @@ pub async fn dtls_to_peer_direct(
     channel_tx: UnboundedSender<GDPChannel>,
     peer_tx: UnboundedSender<GDPPacket>,   // used
     peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
         .await
@@ -351,11 +356,12 @@ pub async fn dtls_to_peer_direct(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("dTLS connection takes gdp name {:?}", m_gdp_name);
 
-    handle_dtls_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
+    handle_dtls_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name, &rib_query_tx).await;
 }
 
 pub async fn dtls_listener(
     addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let config = AppConfig::fetch().unwrap();
     let _ca_cert = format!("./scripts/crypto/{}/ca-root.pem", config.crypto_name);
@@ -380,6 +386,7 @@ pub async fn dtls_listener(
         let (socket, _) = listener.accept().await.unwrap();
         let fib_tx = fib_tx.clone();
         let channel_tx = channel_tx.clone();
+        let rib_query_tx = rib_query_tx.clone();
         let acceptor = acceptor.clone();
         // TODO: loop here is not correct
         tokio::spawn(async move {
@@ -389,7 +396,7 @@ pub async fn dtls_listener(
             Pin::new(&mut stream).accept().await.unwrap();
             let m_gdp_name = generate_random_gdp_name_for_thread();
             info!("DTLS listener takes gdp name {:?}", m_gdp_name);
-            handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await
+            handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await
         });
     }
 }

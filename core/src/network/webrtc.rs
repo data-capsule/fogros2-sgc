@@ -44,6 +44,7 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
 
 pub async fn webrtc_listener(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) -> Result<()> {
 
     let (m_tx, mut m_rx) = mpsc::unbounded_channel();
@@ -125,6 +126,7 @@ pub async fn webrtc_listener(
             }
         })
     }));
+    let rib_query_tx2 = rib_query_tx.clone();
 
     // Register text message handling
     let d_label = data_channel.label().to_owned();
@@ -134,6 +136,7 @@ pub async fn webrtc_listener(
         let m_tx_clone = m_tx.clone();
         let channel_tx_clone = channel_tx.clone();
         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
+        let rib_query_tx_clone = rib_query_tx.clone();
         println!("Message from DataChannel '{d_label}': '{msg_str}'");
         let mut gdp_packet: GDPPacket = serde_json::from_str(&msg_str).unwrap();
         gdp_packet.source = m_gdp_name;
@@ -143,7 +146,8 @@ pub async fn webrtc_listener(
             proc_gdp_packet(gdp_packet,  // packet
                 &fib_tx_clone,  //used to send packet tofib
                 &channel_tx_clone, // used to send GDPChannel tofib
-                &m_tx_clone //the sending handle of this connection
+                &m_tx_clone, //the sending handle of this connection
+                &rib_query_tx_clone
             ).await;
         })
         // block_on(send_handle); // call the handle
@@ -185,6 +189,7 @@ pub async fn webrtc_listener(
             &fib_tx_clone,            // used to send packet tofib
             &channel_tx_clone,        // used to send GDPChannel tofib
             &m_tx_clone,              // the sending handle of this connection
+            &rib_query_tx2.clone()
         )
         .await;
     } else {

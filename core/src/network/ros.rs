@@ -13,11 +13,12 @@ use serde_json;
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::sync::mpsc::UnboundedSender;
+use crate::structs::GDPNameRecord;
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, topic_type: String, certificate: Vec<u8>,
+    topic_name: String, topic_type: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -59,6 +60,7 @@ pub async fn ros_publisher(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
+        &rib_query_tx,      // used to send GDPNameRecord to rib
     )
     .await;
 
@@ -84,7 +86,7 @@ pub async fn ros_publisher(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, topic_type: String, certificate: Vec<u8>,
+    topic_name: String, topic_type: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -125,6 +127,7 @@ pub async fn ros_subscriber(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
+        &rib_query_tx,      // used to send GDPNameRecord to rib
     )
     .await;
 
@@ -138,7 +141,8 @@ pub async fn ros_subscriber(
                 proc_gdp_packet(packet,  // packet
                     &fib_tx,  //used to send packet to fib
                     &channel_tx, // used to send GDPChannel to fib
-                    &m_tx //the sending handle of this connection
+                    &m_tx, //the sending handle of this connection
+                    &rib_query_tx, // used to send GDPNameRecord to rib
                 ).await;
 
             }
@@ -149,8 +153,10 @@ pub async fn ros_subscriber(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, certificate: Vec<u8>,
+    topic_name: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
+  
+
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -191,6 +197,7 @@ pub async fn ros_subscriber_image(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
+        &rib_query_tx
     )
     .await;
 
@@ -205,7 +212,8 @@ pub async fn ros_subscriber_image(
                 proc_gdp_packet(packet,  // packet
                     &fib_tx,  //used to send packet to fib
                     &channel_tx, // used to send GDPChannel to fib
-                    &m_tx //the sending handle of this connection
+                    &m_tx, //the sending handle of this connection
+                    &rib_query_tx
                 ).await;
 
             }
@@ -216,7 +224,7 @@ pub async fn ros_subscriber_image(
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, certificate: Vec<u8>,
+    topic_name: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
@@ -262,6 +270,7 @@ pub async fn ros_publisher_image(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
+        &rib_query_tx
     )
     .await;
 

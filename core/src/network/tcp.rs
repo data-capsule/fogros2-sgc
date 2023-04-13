@@ -13,7 +13,7 @@ const UDP_BUFFER_SIZE: usize = 17480; // 17480 17kb TODO: make it formal
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPPacketInTransit;
 use rand::Rng;
-
+use crate::structs::GDPNameRecord;
 fn generate_random_gdp_name_for_thread() -> GDPName {
     // u8:4
     GDPName([
@@ -87,6 +87,7 @@ async fn handle_tcp_stream(
     stream: TcpStream, fib_tx: &UnboundedSender<GDPPacket>,
     channel_tx: &UnboundedSender<GDPChannel>, m_tx: UnboundedSender<GDPPacket>,
     mut m_rx: UnboundedReceiver<GDPPacket>, thread_name: GDPName,
+    rib_query_tx: &UnboundedSender<GDPNameRecord>,
 ) {
     // ...
 
@@ -201,7 +202,8 @@ async fn handle_tcp_stream(
                                 proc_gdp_packet(packet,  // packet
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
-                                    &m_tx //the sending handle of this connection
+                                    &m_tx, //the sending handle of this connection
+                                    &rib_query_tx
                                 ).await;
                             }
                             else if deserialized.action == GdpAction::Advertise {
@@ -209,7 +211,8 @@ async fn handle_tcp_stream(
                                 proc_gdp_packet(packet,  // packet
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
-                                    &m_tx //the sending handle of this connection
+                                    &m_tx, //the sending handle of this connection
+                                    &rib_query_tx
                                 ).await;
                             }
                             else{
@@ -298,13 +301,14 @@ async fn handle_tcp_stream(
 ///     channel_tx: channel that advertise GDPChannel to fib
 pub async fn tcp_listener(
     addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let listener = TcpListener::bind(&addr).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
         let fib_tx = fib_tx.clone();
         let channel_tx = channel_tx.clone();
-
+        let rib_query_tx = rib_query_tx.clone();
         // Process each socket concurrently.
         tokio::spawn(async move {
             let (m_tx, m_rx) = mpsc::unbounded_channel();
@@ -315,6 +319,7 @@ pub async fn tcp_listener(
                 m_tx,
                 m_rx,
                 generate_random_gdp_name_for_thread(),
+                &rib_query_tx,
             )
             .await
         });
@@ -324,6 +329,7 @@ pub async fn tcp_listener(
 pub async fn tcp_to_peer(
     addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
     m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => s,
@@ -355,9 +361,10 @@ pub async fn tcp_to_peer(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
+        &rib_query_tx,      // used to query rib
     )
     .await;
-    handle_tcp_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
+    handle_tcp_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await;
 }
 
 /// does not go tofib when peering
@@ -367,6 +374,7 @@ pub async fn tcp_to_peer_direct(
     channel_tx: UnboundedSender<GDPChannel>,
     peer_tx: UnboundedSender<GDPPacket>,   // used
     peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
         Ok(s) => s,
@@ -381,5 +389,5 @@ pub async fn tcp_to_peer_direct(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("TCP connection takes gdp name {:?}", m_gdp_name);
 
-    handle_tcp_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
+    handle_tcp_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name, &rib_query_tx).await;
 }

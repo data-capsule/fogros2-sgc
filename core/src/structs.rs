@@ -170,9 +170,10 @@ pub struct GDPNameRecord {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum GDPNameRecordType {
     EMPTY,
+    INFO, // inform the existence of the record, does not replace if present
     QUERY, 
-    MERGE,
-    UPDATE,
+    UPDATE, // update the existing record by replacing the old one
+    MERGE, // merge-able into the existing record
     DELETE,
 }
 

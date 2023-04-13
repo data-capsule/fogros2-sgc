@@ -4,7 +4,8 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
-use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction};
+use crate::pipeline::construct_gdp_advertisement_from_structs;
+use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName};
 
 use serde::{Deserialize, Serialize};
 use tokio::select;
@@ -22,7 +23,7 @@ use utils::app_config::AppConfig;
 pub async fn topic_creator(
     peer_with_gateway: bool, default_gateway_addr: String, node_name: String, protocol: String,
     topic_name: String, topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,
+    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     if action == "noop" {
         info!("noop for topic {}", topic_name);
@@ -44,6 +45,7 @@ pub async fn topic_creator(
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
+                rib_query_tx.clone(),
             ));
         } else if protocol == "tcp" {
             let _ros_peer = tokio::spawn(tcp_to_peer_direct(
@@ -52,6 +54,7 @@ pub async fn topic_creator(
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
+                rib_query_tx.clone(),
             ));
         }
     } else {
@@ -70,6 +73,7 @@ pub async fn topic_creator(
                 node_name,
                 topic_name,
                 certificate,
+                rib_query_tx.clone(),
             )),
             _ => tokio::spawn(ros_subscriber(
                 m_tx.clone(),
@@ -78,6 +82,7 @@ pub async fn topic_creator(
                 topic_name,
                 topic_type,
                 certificate,
+                rib_query_tx.clone(),
             )),
         },
         "pub" => match topic_type.as_str() {
@@ -87,6 +92,7 @@ pub async fn topic_creator(
                 node_name,
                 topic_name,
                 certificate,
+                rib_query_tx.clone(),
             )),
             _ => tokio::spawn(ros_publisher(
                 m_tx.clone(),
@@ -95,6 +101,7 @@ pub async fn topic_creator(
                 topic_name,
                 topic_type,
                 certificate,
+                rib_query_tx.clone(),
             )),
         },
         _ => panic!("unknown action"),
@@ -147,6 +154,7 @@ pub async fn ros_topic_manager(
     fib_tx: UnboundedSender<GDPPacket>,
     mut ros_topic_manager_rx: UnboundedReceiver<GDPPacket>, // receiver of advertise-response
     channel_tx: UnboundedSender<GDPChannel>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     // get ros information from config file
     let config = AppConfig::fetch().expect("Failed to fetch config");
@@ -177,6 +185,7 @@ pub async fn ros_topic_manager(
             fib_tx.clone(),
             channel_tx.clone(),
             certificate.clone(),
+            rib_query_tx.clone(),
         )
         .await;
 
@@ -223,10 +232,11 @@ pub async fn ros_topic_manager(
                                     config.ros_protocol.clone(),
                                     topic_name,
                                     topic_type,
-                                    "pub".to_string(), // only publisher needs advertiseResponse from the subscriber
+                                    "sub".to_string(), // only remote publisher(local subscriber) needs advertiseResponse from the subscriber
                                     fib_tx.clone(),
                                     channel_tx.clone(),
                                     certificate.clone(),
+                                    rib_query_tx.clone(),
                                 )
                                 .await;
                             }, 
@@ -248,9 +258,47 @@ pub async fn ros_topic_manager(
                 for topic in current_topics {
                     if !topic_status.contains_key(&topic.0) {
                         let topic_name = topic.0.clone();
+                        let topic_type = topic.1[0].clone(); // TODO: currently, broadcast only the first topic type
                         let action = determine_topic_action(topic_name.clone()).await;
-                        info!("detect a new topic {:?}", topic);
+                        info!("detected a new topic {:?}", topic);
+                        let topic_gdp_name = GDPName(get_gdp_name_from_topic(
+                            &topic_name,
+                            &topic_type,
+                            &certificate,
+                        ));
 
+                        match action.as_str() {
+                            "sub" => {
+                                // a new local topic is present
+                                // advertise the topic 
+                                let node_advertisement = 
+                                    construct_gdp_advertisement_from_structs(
+                                        topic_gdp_name, topic_gdp_name, crate::structs::GDPNameRecord{
+                                        record_type: crate::structs::GDPNameRecordType::UPDATE,
+                                        gdpname: topic_gdp_name, 
+                                        webrtc_offer: None, 
+                                        ip_address:  None, 
+                                        indirect: None, 
+                                        ros: Some((topic_name.clone(), topic_type.clone())),
+                                });
+                                // proc_gdp_packet(
+                                //     node_advertisement, // packet
+                                //     &fib_tx,            // used to send packet to fib
+                                //     &channel_tx,        // used to send GDPChannel to fib
+                                //     &m_tx,              // the sending handle of this connection
+                                //     rib_query_tx,       // used to send GDPNameRecord to rib
+                                // )
+                                // .await;
+                            }
+                            "pub" => {
+                                // 
+
+                            }
+                            "noop" => {}
+                            _ => {
+                                warn!("unknown action {}", action);
+                            }
+                        }
                         topic_status.insert(topic_name.clone(), RosTopicStatus { action: action });
                     } else {
                         existing_topics.push(topic.0.clone());

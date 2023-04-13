@@ -70,12 +70,14 @@ async fn router_async_loop() {
         tcp_bind_addr,
         fib_tx.clone(),
         channel_tx.clone(),
+        rib_query_tx.clone(),
     ));
     future_handles.push(tcp_sender_handle);
 
     let webrtc_listener_handle = webrtc_listener(
         fib_tx.clone(),
         channel_tx.clone(),
+        rib_query_tx.clone(),
     );
     // future_handles.push(webrtc_sender_handle);
 
@@ -83,6 +85,7 @@ async fn router_async_loop() {
         dtls_bind_addr,
         fib_tx.clone(),
         channel_tx.clone(),
+        rib_query_tx.clone(),
     ));
     future_handles.push(dtls_sender_handle);
 
@@ -113,7 +116,7 @@ async fn router_async_loop() {
 
     let fib_handle = tokio::spawn(connection_fib(
         fib_rx,     // receive packets to forward
-        rib_query_tx,     // send routing queries to rib
+        rib_query_tx.clone(),     // send routing queries to rib
         rib_response_rx, // get routing queries from rib
         stat_rx,    // recevie control place info, e.g. routing
         channel_rx, // receive channel information for connection fib
@@ -126,6 +129,7 @@ async fn router_async_loop() {
         fib_tx.clone(),
         ros_manager_rx,
         channel_tx.clone(),
+        rib_query_tx.clone(),
     ));
     future_handles.push(ros_topic_manager_handle);
 
@@ -141,6 +145,7 @@ async fn router_async_loop() {
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
+                rib_query_tx.clone(),
             ));
             future_handles.push(peer_advertisement);
         } else if config.ros_protocol == "tcp" {
@@ -150,6 +155,7 @@ async fn router_async_loop() {
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
+                rib_query_tx.clone(),
             ));
             future_handles.push(peer_advertisement);
         }
