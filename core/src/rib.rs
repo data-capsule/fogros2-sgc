@@ -54,7 +54,9 @@ pub async fn local_rib_handler(
                             match rib_store.get(query.gdpname) {
                                 Some(records) => {
                                     for record in records {
-                                        rib_response_tx.send(record.clone()).unwrap();
+                                        rib_response_tx.send(record.clone()).expect(
+                                            "failed to send RIB query response"
+                                        );
                                     }
                                 },
                                 None => {
@@ -67,7 +69,9 @@ pub async fn local_rib_handler(
                                             ip_address: None, 
                                             indirect: None, 
                                         }
-                                    ).unwrap();
+                                    ).expect(
+                                        "failed to send RIB query response"
+                                    );
                                 }
                             }
                         },

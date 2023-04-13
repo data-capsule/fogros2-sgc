@@ -29,6 +29,19 @@ pub fn construct_gdp_advertisement_from_bytes(
     }
 }
 
+/// construct rib query from bytes
+pub fn construct_rib_query_from_bytes(
+    destination: GDPName, 
+    source: GDPName,
+) -> GDPPacket {
+    GDPPacket {
+        action: GdpAction::RibGet,
+        gdpname: destination,
+        source: source,
+        payload: None,
+    }
+}
+
 /// parses the processsing received GDP packets
 /// match GDP action and send the packets with corresponding actual actions
 ///

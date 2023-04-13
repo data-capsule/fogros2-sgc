@@ -1,9 +1,10 @@
 use crate::{
-    pipeline::construct_gdp_advertisement_from_bytes,
+    pipeline::{construct_gdp_advertisement_from_bytes, construct_rib_query_from_bytes},
     structs::{GDPChannel, GDPName, GDPPacket, GDPStatus, GDPNameRecord},
 };
 use std::collections::HashMap;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use crate::structs::GDPNameRecordType::*;
 
 async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     for dst in destinations {
@@ -55,42 +56,33 @@ pub async fn connection_fib(
                 Some(pkt) = fib_rx.recv() => {
                     counter += 1;
                     info!("RIB received the packet #{} with name {}", counter, &pkt.gdpname);
-
-
+                    
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
                         Some(routing_dsts) => {
                             send_to_destination(routing_dsts.clone(), pkt).await;
-                            // for dst in coonection_rib_table.values(){
-                            //     info!("data {} from {} send to {}", pkt.gdpname, pkt.source, dst.advertisement.source);
-                            //     if dst.advertisement.source == pkt.source {
-                            //         continue;
-                            //     }
-                            //     send_to_destination(dst.channel.clone(), pkt.clone()).await;s
-                            // }
                         }
                         None => {
-                            info!("{:} is not there, broadcasting...", pkt.gdpname);
-                            for routing_dsts in coonection_rib_table.values(){
-                                send_to_destination(routing_dsts.clone(), pkt.clone()).await;
-                            }
+                            warn!("{:} is not there, querying to RIB; in the meantime, packets are dropped", pkt.gdpname);
+                            rib_query_tx.send(
+                                GDPNameRecord{
+                                    record_type: QUERY,
+                                    gdpname: pkt.gdpname, 
+                                    webrtc_offer: None, 
+                                    ip_address: None, 
+                                    indirect: None, 
+                                }
+                            ).expect(
+                                "failed to send RIB query response"
+                            );
                         }
                     }
                 }
 
-                // connectionfib advertisement received
+                // connection fib advertisement received
                 Some(channel) = channel_rx.recv() => {
                     info!("channel registry received {:?}", channel);
-                    // broadcast_advertisement(&channel, &coonection_rib_table).await;
 
-
-                    // coonection_rib_table.insert(
-                    //     channel.gdpname,
-                    //     channel.channel
-                    // );
-                    // if let Some(offer) = &channel.advertisement.payload {
-                    //     m_webrtc_offer = Some(offer.clone());
-                    // }
                     match  coonection_rib_table.get_mut(&channel.gdpname) {
                         Some(v) => {
                             info!("adding to connectionfib vec");
@@ -105,6 +97,35 @@ pub async fn connection_fib(
                         }
                     };
 
+                },
+
+                Some(rib_response) = rib_response_rx.recv() => {
+                    info!("get RIB response {:?}", rib_response);
+                    match rib_response.record_type {
+                        EMPTY => {
+                            warn!("Name {:?} is not registered in RIB, flooding the query...", rib_response.gdpname);
+                            for (channel_name, channel) in &coonection_rib_table {
+                                info!("flushing advertisement for {} to {:?}", rib_response.gdpname, channel);
+                                let packet = construct_rib_query_from_bytes(
+                                    rib_response.gdpname, 
+                                    *channel_name
+                                );
+
+                                for dst in channel {
+                                    let result = dst.channel.send(packet.clone());
+                                    match result {
+                                        Ok(_) => {}
+                                        Err(_) => {
+                                            warn!("Send Failure: channel sent to destination is closed");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        _ => {
+                            info!("rib response not handled!");
+                        }
+                    }
                 },
 
                 // TODO: update rib here, instead of fib

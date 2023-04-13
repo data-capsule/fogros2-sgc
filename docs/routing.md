@@ -13,6 +13,8 @@ There are four types of peering relationship in FogROS SGC.
 2. Use queries instead of flushing. 
 3. Smooth Node shutdown 
 4. allow indirections (point to another gdp name)
+    after resolving, it will resolve to a piece of routing information or 
+    a specific channel of connection
 
 ### Workflow
 ```

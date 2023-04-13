@@ -14,10 +14,14 @@ On node create, create a RTC listener; advertise the node name with the RTC list
 ### Gateways 
 Having gateways is still in scope. FogROS robot and cloud needs to connect without knowing each other's IP address. What we do is that having robots to map the offer token to the cloud (FogROS) without knowing the IP address of the robot. Then we don't need to know the IP address of the robot and cloud. 
 
+On initialization, FogROS robot initializes webrtc data channel that includes the webrtc offer. The offer is carried over for the initialization of the rest of the robots and cloud machines. 
+
 ### Q&A
 > What is the tradeoff between this and the direct DTLS approach? 
 
 For now webRTC helps us to reduce the hops requires in the middle to communicate by NAT traversing. Currently we need a router in the middle to directly route the data, but webRTC resolve this issue. 
+
+Direct DTLS also relies on knowing the IP address. WebRTC can resolve this problem.
 
 ### Extension
 * Since webrtc is browser, potentially we can use that to render with a website visualization. 
