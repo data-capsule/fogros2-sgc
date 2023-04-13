@@ -29,7 +29,7 @@ use std::{net::SocketAddr, str::FromStr};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use crate::pipeline::construct_gdp_forward_from_bytes;
-use crate::structs::GDPPacketInTransit;
+use crate::structs::GDPHeaderInTransit;
 use rand::Rng;
 
 fn generate_random_gdp_name_for_thread() -> GDPName {

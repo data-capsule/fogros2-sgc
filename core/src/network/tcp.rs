@@ -11,7 +11,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17480 17kb TODO: make it formal
 use crate::pipeline::construct_gdp_forward_from_bytes;
-use crate::structs::GDPPacketInTransit;
+use crate::structs::GDPHeaderInTransit;
 use rand::Rng;
 use crate::structs::GDPNameRecord;
 fn generate_random_gdp_name_for_thread() -> GDPName {
@@ -30,12 +30,12 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
 fn parse_header_payload_pairs(
     mut buffer: Vec<u8>,
 ) -> (
-    Vec<(GDPPacketInTransit, Vec<u8>)>,
-    Option<(GDPPacketInTransit, Vec<u8>)>,
+    Vec<(GDPHeaderInTransit, Vec<u8>)>,
+    Option<(GDPHeaderInTransit, Vec<u8>)>,
 ) {
-    let mut header_payload_pairs: Vec<(GDPPacketInTransit, Vec<u8>)> = Vec::new();
+    let mut header_payload_pairs: Vec<(GDPHeaderInTransit, Vec<u8>)> = Vec::new();
     // TODO: get it to default trace later
-    let default_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
+    let default_gdp_header: GDPHeaderInTransit = GDPHeaderInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
         length: 0, // doesn't have any payload
@@ -51,7 +51,7 @@ fn parse_header_payload_pairs(
         let header_buf = header_and_remaining[0];
         let header: &str = std::str::from_utf8(header_buf).unwrap();
         info!("received header json string: {:?}", header);
-        let gdp_header_parsed = serde_json::from_str::<GDPPacketInTransit>(header);
+        let gdp_header_parsed = serde_json::from_str::<GDPHeaderInTransit>(header);
         if gdp_header_parsed.is_err() {
             // if the header is not complete, return the remaining
             warn!("header is not complete, return the remaining");
@@ -94,7 +94,7 @@ async fn handle_tcp_stream(
     // init variables
 
     let mut need_more_data_for_previous_header = false;
-    let mut remaining_gdp_header: GDPPacketInTransit = GDPPacketInTransit {
+    let mut remaining_gdp_header: GDPHeaderInTransit = GDPHeaderInTransit {
         action: GdpAction::Noop,
         destination: GDPName([0u8, 0, 0, 0]),
         length: 0, // doesn't have any payload

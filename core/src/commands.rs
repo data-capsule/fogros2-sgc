@@ -176,7 +176,7 @@ async fn router_async_loop() {
     // futures.push(join_handles);
     // futures.push(webrtc_listener_handle);
     // futures.collect().await;
-    webrtc_listener_handle.await;
+    // webrtc_listener_handle.await;
     future::join_all(future_handles).await;
 
 }
