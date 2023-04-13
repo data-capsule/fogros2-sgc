@@ -105,17 +105,21 @@ impl Packet for GDPPacket {
     }
 
     fn get_header(&self) -> GDPHeaderInTransit {
+        let name_record_length = match &self.name_record {
+            Some(name_record) => serde_json::to_string(&name_record).unwrap().as_bytes().len(),
+            None => 0,
+        };
         let transit_packet = match &self.payload {
             Some(payload) => GDPHeaderInTransit {
                 action: self.action,
                 destination: self.gdpname,
-                length: payload.len(),
+                length: payload.len() + name_record_length,
             },
             None => {
                 GDPHeaderInTransit {
                     action: self.action,
                     destination: self.gdpname,
-                    length: 0, // doesn't have any payload
+                    length: name_record_length, // doesn't have any payload
                 }
             }
         };

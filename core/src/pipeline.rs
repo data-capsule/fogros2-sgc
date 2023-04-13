@@ -36,12 +36,22 @@ pub fn construct_gdp_advertisement_from_bytes(
     source: GDPName,
     advertisement_packet: Vec<u8>
 ) -> GDPPacket {
+    if advertisement_packet.len() == 0 {
+        warn!("advertisement packet is empty");
+        return GDPPacket {
+            action: GdpAction::Advertise,
+            gdpname: destination,
+            source: source,
+            payload: None,
+            name_record: None,
+        }
+    }
     GDPPacket {
         action: GdpAction::Advertise,
         gdpname: destination,
         source: source,
-        payload: Some(advertisement_packet),
-        name_record: None,
+        payload: None,
+        name_record: Some(serde_json::from_str::<GDPNameRecord>(std::str::from_utf8(&advertisement_packet).unwrap()).unwrap()),
     }
 }
 

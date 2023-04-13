@@ -245,6 +245,13 @@ async fn handle_dtls_stream(
                     info!("the payload length is {}", payload.len());
                     stream.write_all(&payload[..payload.len()]).await.unwrap();
                 }
+
+                if let Some(name_record) = pkt_to_forward.name_record {
+                    let name_record_string = serde_json::to_string(&name_record).unwrap();
+                    let name_record_buffer = name_record_string.as_bytes();
+                    info!("the name record length is {}", name_record_buffer.len());
+                    stream.write_all(&name_record_buffer[..name_record_buffer.len()]).await.unwrap();
+                }
             }
         }
     }

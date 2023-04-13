@@ -291,6 +291,26 @@ async fn handle_tcp_stream(
                         }
                     }
                 }
+
+                if let Some(name_record) = pkt_to_forward.name_record {
+                    let name_record_string = serde_json::to_string(&name_record).unwrap();
+                    let name_record_buffer = name_record_string.as_bytes();
+                    info!("the name record length is {}", name_record_buffer.len());
+                    match stream.try_write(&name_record_buffer[..name_record_buffer.len()]) {
+                        Ok(n) => {
+                            info!("advertisement with size {}", name_record_buffer.len());
+                        }
+                        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                            info!("would block");
+                            stream.writable().await.expect("TCP stream is closed");
+                        }
+                        Err(_e) => {
+                            info!("Err of other kind");
+                            break
+                        }
+                    }
+                }
+
             },
         }
     }
