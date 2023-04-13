@@ -1,9 +1,9 @@
 use crate::{
     pipeline::construct_gdp_advertisement_from_bytes,
-    structs::{GDPChannel, GDPName, GDPPacket, GDPStatus},
+    structs::{GDPChannel, GDPName, GDPPacket, GDPStatus, GDPNameRecord},
 };
 use std::collections::HashMap;
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     for dst in destinations {
@@ -32,16 +32,19 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
 ///     hash table <gdp_name, send_tx>
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
-pub async fn connection_router(
-    mut fib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GDPStatus>,
+pub async fn connection_fib(
+    mut fib_rx: UnboundedReceiver<GDPPacket>, 
+    rib_tx: UnboundedSender<GDPNameRecord>,
+    mut stat_rs: UnboundedReceiver<GDPStatus>,
     mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {
+    
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
         let mut coonection_rib_table: HashMap<GDPName, Vec<GDPChannel>> = HashMap::new();
         let mut counter = 0;
-        // let mut m_webrtc_offer:Option<Vec<u8>> = None;
+
 
         // loop polling from
         loop {

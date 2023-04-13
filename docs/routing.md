@@ -12,6 +12,7 @@ There are four types of peering relationship in FogROS SGC.
 1. separate routing information management with data routing (e.g. announcing a ROS topic does not directly subscribe to the topic, the topic is subscribed only if there is an active subscriber in the network). This derives a design philosophy: *one can arbitrarily connect and advertise the names; the data is only exchanges conservatively and securely.* 
 2. Use queries instead of flushing. 
 3. Smooth Node shutdown 
+4. allow indirections (point to another gdp name)
 
 ### Workflow
 ```

@@ -5,6 +5,8 @@ pub mod crypto;
 pub mod network;
 pub mod protocol;
 pub mod structs;
+
+pub mod rib;
 // network processing
 pub mod connection_fib;
 pub mod pipeline;

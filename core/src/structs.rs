@@ -147,17 +147,28 @@ pub struct GDPChannel {
     pub channel: UnboundedSender<GDPPacket>,
 }
 
+// union in rust is unsafe, use struct instead
 // name record is what being stored in RIB and used for routing
 // one can resolve the GDPNameRecord using RIB put and get 
 // it can be safely ported for another machine to connect
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct GDPNameRecord {
+pub struct GDPNameRecord {
+    pub record_type: GDPNameRecordType,
     pub gdpname: GDPName,
     pub webrtc_offer: Option<String>,
+    pub ip_address: Option<String>,
     // indirect to another GDPName
     // this occurs if certain gdpname is hosted on a machine;
     // then we solve the GDP name to the machine's GDPName
     pub indirect: Option<GDPName>,  
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GDPNameRecordType {
+    QUERY, 
+    MERGE,
+    UPDATE,
+    DELETE,
 }
 
 use sha2::Digest;

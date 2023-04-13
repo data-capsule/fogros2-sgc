@@ -1,39 +1,52 @@
 extern crate multimap;
 use multimap::MultiMap;
-use std::net::Ipv4Addr;
 use utils::app_config::AppConfig;
-use utils::conversion::str_to_ipv4;
 
+use crate::structs::{GDPName, GDPNameRecord};
+
+// an interface to rib
+// will support queries
+// a CRDT based RIB
 pub struct RoutingInformationBase {
-    pub routing_table: MultiMap<Vec<u8>, Ipv4Addr>,
-    pub default_route: Vec<Ipv4Addr>,
+    pub routing_table: MultiMap<GDPName, GDPNameRecord>,
 }
 
 impl RoutingInformationBase {
-    pub fn new(_config: &AppConfig) -> RoutingInformationBase {
+    pub fn new() -> RoutingInformationBase {
         // TODO: config can populate the RIB somehow
-        let m_gateway_addr = str_to_ipv4(&"localhost".to_owned());
 
         RoutingInformationBase {
-            routing_table: MultiMap::new(),
-            default_route: Vec::from([m_gateway_addr]),
+            routing_table: MultiMap::new()
         }
     }
 
-    pub fn put(&mut self, key: Vec<u8>, value: Ipv4Addr) -> Option<()> {
+    pub fn put(&mut self, key: GDPName, value: GDPNameRecord) -> Option<()> {
         self.routing_table.insert(key, value);
         Some(())
     }
 
-    // rust doesn't support default param.
-    pub fn get_no_default(&self, key: Vec<u8>) -> Option<&Vec<Ipv4Addr>> {
+    pub fn get(&self, key: GDPName) -> Option<&Vec<GDPNameRecord>> {
         self.routing_table.get_vec(&key)
     }
+}
 
-    pub fn get(&self, key: Vec<u8>) -> &Vec<Ipv4Addr> {
-        match self.get_no_default(key) {
-            Some(v) => v,
-            None => &self.default_route,
+//
+pub async fn local_rib_handler(
+    mut rib_rx: tokio::sync::mpsc::UnboundedReceiver<GDPNameRecord>,
+) {
+    // TODO: currently, we only take one rx due to select! limitation
+    // will use FutureUnordered Instead
+    let _receive_handle = tokio::spawn(async move {
+        let mut rib_store = RoutingInformationBase::new();
+        let mut counter = 0;
+
+        // loop polling from
+        loop {
+            tokio::select! {
+                // GDP Name Record received
+                Some(pkt) = rib_rx.recv() => {
+                }
+            }
         }
-    }
+    });
 }

@@ -3,11 +3,12 @@ extern crate tokio_core;
 use std::env;
 use std::time::Duration;
 
-use crate::connection_fib::connection_router;
+use crate::connection_fib::connection_fib;
 
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use crate::network::webrtc::{webrtc_listener, webrtc_peer};
+use crate::rib::local_rib_handler;
 use crate::structs::GDPStatus;
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
@@ -50,9 +51,11 @@ async fn router_async_loop() {
         _ => panic!("Unknown protocol"),
     };
 
-    // fib_rx <GDPPacket = [u8]>: forward gdppacket tofib
+    // fib_rx <GDPPacket = [u8]>: forward gdppacket to fib
     let (fib_tx, fib_rx) = mpsc::unbounded_channel();
-    // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping tofib
+    // rib_rx <GDPNameRecord>: rib queries
+    let (rib_tx, rib_rx) = mpsc::unbounded_channel();
+    // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to fib
     let (channel_tx, channel_rx) = mpsc::unbounded_channel();
     // stat_tx <GdpUpdate proto>: any status update from other routers
     let (stat_tx, stat_rx) = mpsc::unbounded_channel();
@@ -95,10 +98,16 @@ async fn router_async_loop() {
     // let grpc_server_handle = manager_handle;
     // future_handles.push(grpc_server_handle);
 
-    let fib_handle = tokio::spawn(connection_router(
+    let rib_handle = tokio::spawn(local_rib_handler(
+        rib_rx,     // send routing queries to rib
+    ));
+    future_handles.push(rib_handle);
+
+    let fib_handle = tokio::spawn(connection_fib(
         fib_rx,     // receive packets to forward
+        rib_tx,     // send routing queries to rib
         stat_rx,    // recevie control place info, e.g. routing
-        channel_rx, // receive channel information for connectionfib
+        channel_rx, // receive channel information for connection fib
     ));
     future_handles.push(fib_handle);
 
