@@ -13,8 +13,8 @@ services:
           vpcbr:
             ipv4_address: 10.5.0.6
         environment:
-          SGC_CONFIG: "listener.toml"
-          # SGC_CONFIG: "automatic.toml"
+          # SGC_CONFIG: "listener.toml"
+          SGC_CONFIG: "automatic.toml"
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         command: >
@@ -33,10 +33,10 @@ services:
           vpcbr:
             ipv4_address: 10.5.0.5
         environment:
-          SGC_CONFIG: "talker.toml"
-          # SGC_CONFIG: "automatic.toml"
+          # SGC_CONFIG: "talker.toml"
+          SGC_CONFIG: "automatic.toml"
           # this connects the talker to the listener
-          GATEWAY_IP: "10.5.0.6"
+          # GATEWAY_IP: "10.5.0.6"
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         depends_on:
