@@ -31,7 +31,7 @@ pub fn pnet_proc_loop() {
         Err(e) => panic!("packetdump: unable to create channel: {}", e),
     };
 
-    //TODO: is there any better way of putting the rib? How to make it thread safe?
+    //TODO: is there any better way of putting thefib? How to make it thread safe?
     let mut gdp_rib = RoutingInformationBase::new(&iface_config);
 
     loop {

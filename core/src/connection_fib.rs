@@ -33,7 +33,7 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_router(
-    mut rib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GDPStatus>,
+    mut fib_rx: UnboundedReceiver<GDPPacket>, mut stat_rs: UnboundedReceiver<GDPStatus>,
     mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
@@ -48,7 +48,7 @@ pub async fn connection_router(
             tokio::select! {
                 // GDP packet received
                 // recv () -> find_where_to_route() -> route()
-                Some(pkt) = rib_rx.recv() => {
+                Some(pkt) = fib_rx.recv() => {
                     counter += 1;
                     info!("RIB received the packet #{} with name {}", counter, &pkt.gdpname);
 
@@ -74,7 +74,7 @@ pub async fn connection_router(
                     }
                 }
 
-                // connection rib advertisement received
+                // connectionfib advertisement received
                 Some(channel) = channel_rx.recv() => {
                     info!("channel registry received {:?}", channel);
                     // broadcast_advertisement(&channel, &coonection_rib_table).await;
@@ -89,7 +89,7 @@ pub async fn connection_router(
                     // }
                     match  coonection_rib_table.get_mut(&channel.gdpname) {
                         Some(v) => {
-                            info!("adding to connection rib vec");
+                            info!("adding to connectionfib vec");
                             v.push(channel)
                         }
                         None =>{

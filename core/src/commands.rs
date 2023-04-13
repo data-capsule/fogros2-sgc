@@ -3,7 +3,7 @@ extern crate tokio_core;
 use std::env;
 use std::time::Duration;
 
-use crate::connection_rib::connection_router;
+use crate::connection_fib::connection_router;
 
 use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
@@ -50,29 +50,29 @@ async fn router_async_loop() {
         _ => panic!("Unknown protocol"),
     };
 
-    // rib_rx <GDPPacket = [u8]>: forward gdppacket to rib
-    let (rib_tx, rib_rx) = mpsc::unbounded_channel();
-    // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to rib
+    // fib_rx <GDPPacket = [u8]>: forward gdppacket tofib
+    let (fib_tx, fib_rx) = mpsc::unbounded_channel();
+    // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping tofib
     let (channel_tx, channel_rx) = mpsc::unbounded_channel();
     // stat_tx <GdpUpdate proto>: any status update from other routers
     let (stat_tx, stat_rx) = mpsc::unbounded_channel();
 
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
-        rib_tx.clone(),
+        fib_tx.clone(),
         channel_tx.clone(),
     ));
     future_handles.push(tcp_sender_handle);
 
     let webrtc_listener_handle = webrtc_listener(
-        rib_tx.clone(),
+        fib_tx.clone(),
         channel_tx.clone(),
     );
     // future_handles.push(webrtc_sender_handle);
 
     let dtls_sender_handle = tokio::spawn(dtls_listener(
         dtls_bind_addr,
-        rib_tx.clone(),
+        fib_tx.clone(),
         channel_tx.clone(),
     ));
     future_handles.push(dtls_sender_handle);
@@ -80,7 +80,7 @@ async fn router_async_loop() {
     // grpc
     // TODO: uncomment for grpc
     // let psl_service = GDPService {
-    //     rib_tx: rib_tx.clone(),
+    //     fib_tx: fib_tx.clone(),
     //     status_tx: stat_tx,
     // };
 
@@ -95,17 +95,17 @@ async fn router_async_loop() {
     // let grpc_server_handle = manager_handle;
     // future_handles.push(grpc_server_handle);
 
-    let rib_handle = tokio::spawn(connection_router(
-        rib_rx,     // receive packets to forward
+    let fib_handle = tokio::spawn(connection_router(
+        fib_rx,     // receive packets to forward
         stat_rx,    // recevie control place info, e.g. routing
-        channel_rx, // receive channel information for connection rib
+        channel_rx, // receive channel information for connectionfib
     ));
-    future_handles.push(rib_handle);
+    future_handles.push(fib_handle);
 
     let ros_topic_manager_handle = tokio::spawn(ros_topic_manager(
         peer_with_gateway,
         default_gateway_addr.clone(),
-        rib_tx.clone(),
+        fib_tx.clone(),
         channel_tx.clone(),
     ));
     future_handles.push(ros_topic_manager_handle);
@@ -118,7 +118,7 @@ async fn router_async_loop() {
         if config.ros_protocol == "dtls" {
             let peer_advertisement = tokio::spawn(dtls_to_peer(
                 default_gateway_addr.clone().into(),
-                rib_tx.clone(),
+                fib_tx.clone(),
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
@@ -127,7 +127,7 @@ async fn router_async_loop() {
         } else if config.ros_protocol == "tcp" {
             let peer_advertisement = tokio::spawn(tcp_to_peer(
                 default_gateway_addr.clone().into(),
-                rib_tx.clone(),
+                fib_tx.clone(),
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,

@@ -20,7 +20,7 @@ use utils::app_config::AppConfig;
 /// and spawns a new thread that peers with the gateway
 pub async fn topic_creator(
     peer_with_gateway: bool, default_gateway_addr: String, node_name: String, protocol: String,
-    topic_name: String, topic_type: String, action: String, rib_tx: UnboundedSender<GDPPacket>,
+    topic_name: String, topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,
 ) {
     if action == "noop" {
@@ -39,7 +39,7 @@ pub async fn topic_creator(
         if protocol == "dtls" {
             let _ros_peer = tokio::spawn(dtls_to_peer_direct(
                 default_gateway_addr.clone().into(),
-                rib_tx.clone(),
+                fib_tx.clone(),
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
@@ -47,7 +47,7 @@ pub async fn topic_creator(
         } else if protocol == "tcp" {
             let _ros_peer = tokio::spawn(tcp_to_peer_direct(
                 default_gateway_addr.clone().into(),
-                rib_tx.clone(),
+                fib_tx.clone(),
                 channel_tx.clone(),
                 m_tx.clone(),
                 m_rx,
@@ -57,8 +57,8 @@ pub async fn topic_creator(
         // reasoning here:
         // m_tx is the next hop that the ros sends messages
         // if we don't peer with another router directly
-        // we just forward to rib
-        m_tx = rib_tx.clone();
+        // we just forward tofib
+        m_tx = fib_tx.clone();
     }
 
     let _ros_handle = match action.as_str() {
@@ -141,7 +141,7 @@ pub struct RosTopicStatus {
 }
 
 pub async fn ros_topic_manager(
-    peer_with_gateway: bool, default_gateway_addr: String, rib_tx: UnboundedSender<GDPPacket>,
+    peer_with_gateway: bool, default_gateway_addr: String, fib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>,
 ) {
     // get ros information from config file
@@ -170,7 +170,7 @@ pub async fn ros_topic_manager(
             topic_name.clone(),
             topic_type,
             action.clone(),
-            rib_tx.clone(),
+            fib_tx.clone(),
             channel_tx.clone(),
             certificate.clone(),
         )
@@ -217,7 +217,7 @@ pub async fn ros_topic_manager(
                     topic_name.clone(),
                     topic.1[0].clone(),
                     action.clone(),
-                    rib_tx.clone(),
+                    fib_tx.clone(),
                     channel_tx.clone(),
                     certificate.clone(),
                 )

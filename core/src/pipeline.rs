@@ -33,14 +33,14 @@ pub fn construct_gdp_advertisement_from_bytes(
 /// match GDP action and send the packets with corresponding actual actions
 ///
 ///  proc_gdp_packet(buf,  // packet
-///               rib_tx.clone(),  //used to send packet to rib
-///               channel_tx.clone(), // used to send GDPChannel to rib
+///               fib_tx.clone(),  //used to send packet to fib
+///               channel_tx.clone(), // used to send GDPChannel to fib
 ///               m_tx.clone() //the sending handle of this connection
 ///  );
 pub async fn proc_gdp_packet(
     gdp_packet: GDPPacket,
-    rib_tx: &UnboundedSender<GDPPacket>, // used to send packet to rib
-    channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to rib
+    fib_tx: &UnboundedSender<GDPPacket>, // used to send packet to fib
+    channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to fib
     m_tx: &UnboundedSender<GDPPacket>,   // the sending handle of this connection
 ) {
     // Vec<u8> to GDP Packet
@@ -63,19 +63,19 @@ pub async fn proc_gdp_packet(
         }
         GdpAction::Forward => {
             // send the packet to RIB
-            match rib_tx.send(gdp_packet) {
+            match fib_tx.send(gdp_packet) {
                 Ok(_) => {}
                 Err(_) => error!(
-                    "Unable to forward the packet because connection channel or rib is closed"
+                    "Unable to forward the packet because connection channel orfib is closed"
                 ),
             };
         }
         GdpAction::RibGet => {
-            // handle rib query by responding with the RIB item
+            // handle fib query by responding with the RIB item
         }
         GdpAction::RibReply => {
-            // update local rib with the rib reply
-        }
+            // update local fib with the fib reply
+        } 
 
         GdpAction::Noop => {
             // nothing to be done here

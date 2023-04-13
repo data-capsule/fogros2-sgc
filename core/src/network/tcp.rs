@@ -78,12 +78,12 @@ fn parse_header_payload_pairs(
 }
 
 /// handle one single session of tcpstream
-/// 1. init and advertise the mpsc channel to connection rib
+/// 1. init and advertise the mpsc channel to connection fib
 /// 2. select between
-///         incoming tcp packets -> receive and send to rib
-///         incomine packets from rib -> send to the tcp session
+///         incoming tcp packets -> receive and send to fib
+///         incomine packets from fib -> send to the tcp session
 async fn handle_tcp_stream(
-    stream: TcpStream, rib_tx: &UnboundedSender<GDPPacket>,
+    stream: TcpStream, fib_tx: &UnboundedSender<GDPPacket>,
     channel_tx: &UnboundedSender<GDPChannel>, m_tx: UnboundedSender<GDPPacket>,
     mut m_rx: UnboundedReceiver<GDPPacket>, thread_name: GDPName,
 ) {
@@ -198,16 +198,16 @@ async fn handle_tcp_stream(
                             if deserialized.action == GdpAction::Forward {
                                 let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload); //todo
                                 proc_gdp_packet(packet,  // packet
-                                    rib_tx,  //used to send packet to rib
-                                    channel_tx, // used to send GDPChannel to rib
+                                    fib_tx,  //used to send packet tofib
+                                    channel_tx, // used to send GDPChannel tofib
                                     &m_tx //the sending handle of this connection
                                 ).await;
                             }
                             else if deserialized.action == GdpAction::Advertise {
                                 let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, None);
                                 proc_gdp_packet(packet,  // packet
-                                    rib_tx,  //used to send packet to rib
-                                    channel_tx, // used to send GDPChannel to rib
+                                    fib_tx,  //used to send packet tofib
+                                    channel_tx, // used to send GDPChannel tofib
                                     &m_tx //the sending handle of this connection
                                 ).await;
                             }
@@ -293,15 +293,15 @@ async fn handle_tcp_stream(
 }
 
 /// listen at @param address and process on tcp accept()
-///     rib_tx: channel that send GDPPacket to rib
-///     channel_tx: channel that advertise GDPChannel to rib
+///     fib_tx: channel that send GDPPacket to fib
+///     channel_tx: channel that advertise GDPChannel to fib
 pub async fn tcp_listener(
-    addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) {
     let listener = TcpListener::bind(&addr).await.unwrap();
     loop {
         let (socket, _) = listener.accept().await.unwrap();
-        let rib_tx = rib_tx.clone();
+        let fib_tx = fib_tx.clone();
         let channel_tx = channel_tx.clone();
 
         // Process each socket concurrently.
@@ -309,7 +309,7 @@ pub async fn tcp_listener(
             let (m_tx, m_rx) = mpsc::unbounded_channel();
             handle_tcp_stream(
                 socket,
-                &rib_tx,
+                &fib_tx,
                 &channel_tx,
                 m_tx,
                 m_rx,
@@ -321,7 +321,7 @@ pub async fn tcp_listener(
 }
 
 pub async fn tcp_to_peer(
-    addr: String, rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
     m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,
 ) {
     let stream = match TcpStream::connect(SocketAddr::from_str(&addr).unwrap()).await {
@@ -344,18 +344,18 @@ pub async fn tcp_to_peer(
     );
     proc_gdp_packet(
         node_advertisement, // packet
-        &rib_tx,            // used to send packet to rib
-        &channel_tx,        // used to send GDPChannel to rib
+        &fib_tx,            // used to send packet to fib
+        &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
     )
     .await;
-    handle_tcp_stream(stream, &rib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
+    handle_tcp_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name).await;
 }
 
-/// does not go to rib when peering
+/// does not go tofib when peering
 pub async fn tcp_to_peer_direct(
     addr: String,
-    rib_tx: UnboundedSender<GDPPacket>,
+    fib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>,
     peer_tx: UnboundedSender<GDPPacket>,   // used
     peer_rx: UnboundedReceiver<GDPPacket>, // used to send packet over the network
@@ -373,5 +373,5 @@ pub async fn tcp_to_peer_direct(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("TCP connection takes gdp name {:?}", m_gdp_name);
 
-    handle_tcp_stream(stream, &rib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
+    handle_tcp_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name).await;
 }

@@ -5,10 +5,8 @@ pub mod crypto;
 pub mod network;
 pub mod protocol;
 pub mod structs;
-// helper processing lines
-pub mod rib;
 // network processing
-pub mod connection_rib;
+pub mod connection_fib;
 pub mod pipeline;
 // util
 pub mod commands;

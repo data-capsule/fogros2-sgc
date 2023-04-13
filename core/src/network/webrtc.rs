@@ -43,13 +43,13 @@ fn generate_random_gdp_name_for_thread() -> GDPName {
 }
 
 pub async fn webrtc_listener(
-    rib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
+    fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
 ) -> Result<()> {
 
     let (m_tx, mut m_rx) = mpsc::unbounded_channel();
     let m_tx_clone = m_tx.clone();
     let channel_tx_clone = channel_tx.clone();
-    let rib_tx_clone = rib_tx.clone();
+    let fib_tx_clone = fib_tx.clone();
     let m_gdp_name = generate_random_gdp_name_for_thread();
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -130,7 +130,7 @@ pub async fn webrtc_listener(
     let d_label = data_channel.label().to_owned();
     data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
 
-        let rib_tx_clone = rib_tx.clone();
+        let fib_tx_clone = fib_tx.clone();
         let m_tx_clone = m_tx.clone();
         let channel_tx_clone = channel_tx.clone();
         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
@@ -141,8 +141,8 @@ pub async fn webrtc_listener(
         Box::pin(async move {
             //TODO: ignore advertisement message? 
             proc_gdp_packet(gdp_packet,  // packet
-                &rib_tx_clone,  //used to send packet to rib
-                &channel_tx_clone, // used to send GDPChannel to rib
+                &fib_tx_clone,  //used to send packet tofib
+                &channel_tx_clone, // used to send GDPChannel tofib
                 &m_tx_clone //the sending handle of this connection
             ).await;
         })
@@ -175,8 +175,8 @@ pub async fn webrtc_listener(
         );
         proc_gdp_packet(
             node_advertisement, // packet
-            &rib_tx_clone,            // used to send packet to rib
-            &channel_tx_clone,        // used to send GDPChannel to rib
+            &fib_tx_clone,            // used to send packet tofib
+            &channel_tx_clone,        // used to send GDPChannel tofib
             &m_tx_clone,              // the sending handle of this connection
         )
         .await;
