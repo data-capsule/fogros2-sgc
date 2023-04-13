@@ -62,6 +62,10 @@ async fn router_async_loop() {
     // stat_tx <GdpUpdate proto>: any status update from other routers
     let (stat_tx, stat_rx) = mpsc::unbounded_channel();
 
+    // ros_manager <GDPNameRecord>: to and from ros manager
+    let (ros_manager_tx, mut ros_manager_rx) = mpsc::unbounded_channel();
+
+
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
         fib_tx.clone(),
@@ -120,6 +124,7 @@ async fn router_async_loop() {
         peer_with_gateway,
         default_gateway_addr.clone(),
         fib_tx.clone(),
+        ros_manager_rx,
         channel_tx.clone(),
     ));
     future_handles.push(ros_topic_manager_handle);

@@ -1,5 +1,5 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::{construct_gdp_advertisement_from_bytes, proc_gdp_packet};
+use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet, construct_gdp_advertisement_from_bytes};
 use openssl::{
     pkey::PKey,
     ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
@@ -197,7 +197,7 @@ async fn handle_dtls_stream(
                         ).await;
                     }
                     else if deserialized.action == GdpAction::Advertise {
-                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, None,);
+                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
                         proc_gdp_packet(packet,  // packet
                             fib_tx,  //used to send packet tofib
                             channel_tx, // used to send GDPChannel tofib
@@ -285,7 +285,16 @@ pub async fn dtls_to_peer(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("DTLS takes gdp name {:?}", m_gdp_name);
 
-    let node_advertisement = construct_gdp_advertisement_from_bytes(m_gdp_name, m_gdp_name, None,);
+    let node_advertisement = construct_gdp_advertisement_from_structs(
+        m_gdp_name, m_gdp_name,
+         crate::structs::GDPNameRecord{
+        record_type: crate::structs::GDPNameRecordType::UPDATE,
+        gdpname: m_gdp_name, 
+        webrtc_offer: None, 
+        ip_address: Some(addr.clone()), 
+        indirect: None, 
+        ros:None,
+    },);
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib

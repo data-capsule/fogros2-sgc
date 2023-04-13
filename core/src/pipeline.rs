@@ -1,4 +1,4 @@
-use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction};
+use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, GDPNameRecord};
 use tokio::sync::mpsc::UnboundedSender;
 
 /// construct gdp struct from bytes
@@ -11,34 +11,53 @@ pub fn construct_gdp_forward_from_bytes(
         gdpname: destination,
         payload: Some(buffer),
         source: source,
+        name_record: None,
     }
 }
 
 /// construct gdp struct from bytes
 /// bytes is put as payload
+pub fn construct_gdp_advertisement_from_structs(
+    destination: GDPName, 
+    source: GDPName,
+    name_record: GDPNameRecord
+) -> GDPPacket {
+    GDPPacket {
+        action: GdpAction::Advertise,
+        gdpname: destination,
+        source,
+        payload: None,
+        name_record: Some(name_record),
+    }
+}
+
 pub fn construct_gdp_advertisement_from_bytes(
     destination: GDPName, 
     source: GDPName,
-    advertisement: Option<Vec<u8>>
+    advertisement_packet: Vec<u8>
 ) -> GDPPacket {
     GDPPacket {
         action: GdpAction::Advertise,
         gdpname: destination,
         source: source,
-        payload: advertisement,
+        payload: Some(advertisement_packet),
+        name_record: None,
     }
 }
+
 
 /// construct rib query from bytes
 pub fn construct_rib_query_from_bytes(
     destination: GDPName, 
     source: GDPName,
+    name_record: GDPNameRecord
 ) -> GDPPacket {
     GDPPacket {
         action: GdpAction::RibGet,
         gdpname: destination,
         source: source,
         payload: None,
+        name_record: Some(name_record),
     }
 }
 

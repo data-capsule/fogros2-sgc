@@ -1,5 +1,5 @@
 use crate::pipeline::{
-    construct_gdp_advertisement_from_bytes, construct_gdp_forward_from_bytes, proc_gdp_packet,
+    construct_gdp_advertisement_from_structs, construct_gdp_forward_from_bytes, proc_gdp_packet,
 };
 use crate::structs::get_gdp_name_from_topic;
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, Packet};
@@ -46,7 +46,14 @@ pub async fn ros_publisher(
     });
 
     // note that different from other connectionfibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None, );
+    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
+        record_type: crate::structs::GDPNameRecordType::UPDATE,
+        gdpname: node_gdp_name, 
+        webrtc_offer: None, 
+        ip_address:  None, 
+        indirect: None, 
+        ros: Some((topic_name.clone(), topic_type.clone())),
+    });
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -105,7 +112,14 @@ pub async fn ros_subscriber(
     });
 
     // note that different from other connectionfibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None,);
+    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
+        record_type: crate::structs::GDPNameRecordType::UPDATE,
+        gdpname: node_gdp_name, 
+        webrtc_offer: None, 
+        ip_address:  None, 
+        indirect: None, 
+        ros: Some((topic_name.clone(), topic_type.clone())),
+    });
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -164,7 +178,14 @@ pub async fn ros_subscriber_image(
     });
 
     // note that different from other connectionfibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None,);
+    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
+        record_type: crate::structs::GDPNameRecordType::UPDATE,
+        gdpname: node_gdp_name, 
+        webrtc_offer: None, 
+        ip_address:  None, 
+        indirect: None, 
+        ros: Some((topic_name.clone(), topic_type.clone())),
+    });
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -228,7 +249,14 @@ pub async fn ros_publisher_image(
     });
 
     // note that different from other connection fibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_bytes(topic_gdp_name, node_gdp_name, None,);
+    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
+        record_type: crate::structs::GDPNameRecordType::UPDATE,
+        gdpname: node_gdp_name, 
+        webrtc_offer: None, 
+        ip_address:  None, 
+        indirect: None, 
+        ros: Some((topic_name.clone(), topic_type.clone())),
+    });
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib

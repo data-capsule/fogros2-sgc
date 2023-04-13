@@ -4,13 +4,14 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
-use crate::structs::{GDPChannel, GDPPacket};
+use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction};
 
 use serde::{Deserialize, Serialize};
+use tokio::select;
 use std::collections::HashMap;
 
 use tokio::process::Command;
-use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio::sync::mpsc::{self, UnboundedSender, UnboundedReceiver};
 use tokio::time::sleep;
 use tokio::time::Duration;
 use utils::app_config::AppConfig;
@@ -141,7 +142,10 @@ pub struct RosTopicStatus {
 }
 
 pub async fn ros_topic_manager(
-    peer_with_gateway: bool, default_gateway_addr: String, fib_tx: UnboundedSender<GDPPacket>,
+    peer_with_gateway: bool, 
+    default_gateway_addr: String, 
+    fib_tx: UnboundedSender<GDPPacket>,
+    mut ros_topic_manager_rx: UnboundedReceiver<GDPPacket>, // receiver of advertise-response
     channel_tx: UnboundedSender<GDPChannel>,
 ) {
     // get ros information from config file
@@ -199,39 +203,65 @@ pub async fn ros_topic_manager(
     // when a new topic is detected, create a new thread
     // to handle the topic
     loop {
-        let current_topics = node.get_topic_names_and_types().unwrap();
-        let mut existing_topics = vec![];
-        // check if there is a new topic by comparing current topics with
-        // the bookkeeping topics
-        for topic in current_topics {
-            if !topic_status.contains_key(&topic.0) {
-                let topic_name = topic.0.clone();
-                let action = determine_topic_action(topic_name.clone()).await;
-                info!("detect a new topic {:?}", topic);
-                topic_creator(
-                    peer_with_gateway,
-                    default_gateway_addr.clone(),
-                    // TODO: currently we use a fixed node name with a random integer
-                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-                    config.ros_protocol.clone(),
-                    topic_name.clone(),
-                    topic.1[0].clone(),
-                    action.clone(),
-                    fib_tx.clone(),
-                    channel_tx.clone(),
-                    certificate.clone(),
-                )
-                .await;
-                topic_status.insert(topic_name.clone(), RosTopicStatus { action: action });
-            } else {
-                existing_topics.push(topic.0.clone());
+        select! {
+            Some(packet) = ros_topic_manager_rx.recv() => {
+                // get the gdpname record component of advertiseresponse
+                
+                match packet.action {
+                    GdpAction::AdvertiseResponse => {
+                        match packet.name_record {
+                            Some(name_record) => {
+                                
+                                let topic_name = format!("{}", name_record.ros.clone().unwrap().0);
+                                let topic_type = format!("{}", name_record.ros.unwrap().1);
+                                info!("received advertise response for topic {}", topic_name);
+                                let _ros_handle = topic_creator(
+                                    peer_with_gateway,
+                                    default_gateway_addr.clone(),
+                                    // TODO: currently we use a fixed node name with a random integer
+                                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+                                    config.ros_protocol.clone(),
+                                    topic_name,
+                                    topic_type,
+                                    "pub".to_string(), // only publisher needs advertiseResponse from the subscriber
+                                    fib_tx.clone(),
+                                    channel_tx.clone(),
+                                    certificate.clone(),
+                                )
+                                .await;
+                            }, 
+                            None => {
+                                warn!("received advertise response without name record");
+                            }
+                        }
+                    }, 
+                    _  => {
+                        warn!("ros topic manager received a packet with action {:?}", packet.action);
+                    }
+                }
+            }, 
+            _ = sleep(Duration::from_millis(5000)) => {
+                let current_topics = node.get_topic_names_and_types().unwrap();
+                let mut existing_topics = vec![];
+                // check if there is a new topic by comparing current topics with
+                // the bookkeeping topics
+                for topic in current_topics {
+                    if !topic_status.contains_key(&topic.0) {
+                        let topic_name = topic.0.clone();
+                        let action = determine_topic_action(topic_name.clone()).await;
+                        info!("detect a new topic {:?}", topic);
+
+                        topic_status.insert(topic_name.clone(), RosTopicStatus { action: action });
+                    } else {
+                        existing_topics.push(topic.0.clone());
+                    }
+                }
+                info!(
+                    "automatic new topic discovery: topics already exist {:?}",
+                    existing_topics
+                );
             }
         }
-        info!(
-            "automatic new topic discovery: topics already exist {:?}",
-            existing_topics
-        );
-        sleep(Duration::from_millis(5000)).await;
     }
 
     // TODO: a better way to detect new ros topic is needed

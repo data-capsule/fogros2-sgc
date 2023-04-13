@@ -19,10 +19,10 @@ use webrtc::rtp_transceiver::rtp_codec::RTPCodecType;
 use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 use webrtc::track::track_local::{TrackLocal, TrackLocalWriter};
 use webrtc::Error;
-use crate::pipeline::construct_gdp_advertisement_from_bytes;
+use crate::pipeline::construct_gdp_advertisement_from_structs;
 use crate::pipeline::proc_gdp_packet;
 use crate::signal;
-use crate::structs::GDPName;
+use crate::structs::{GDPName, GDPNameRecord};
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
 use std::io;
 use std::{net::SocketAddr, str::FromStr};
@@ -168,10 +168,17 @@ pub async fn webrtc_listener(
         let json_str = serde_json::to_string(&local_desc)?;
         let b64 = signal::encode(&json_str);
         println!("{b64}");
-        let node_advertisement = construct_gdp_advertisement_from_bytes(
+        let node_advertisement = construct_gdp_advertisement_from_structs(
             m_gdp_name, 
             m_gdp_name,
-            Some(serde_json::to_string(&local_desc)?.as_bytes().to_vec()),
+            GDPNameRecord{
+                record_type: crate::structs::GDPNameRecordType::UPDATE,
+                gdpname: m_gdp_name, 
+                webrtc_offer: Some(serde_json::to_string(&local_desc)?), 
+                ip_address: None, 
+                indirect: None, 
+                ros:None,
+            },
         );
         proc_gdp_packet(
             node_advertisement, // packet

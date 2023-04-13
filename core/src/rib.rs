@@ -68,6 +68,7 @@ pub async fn local_rib_handler(
                                             webrtc_offer: None, 
                                             ip_address: None, 
                                             indirect: None, 
+                                            ros: None,
                                         }
                                     ).expect(
                                         "failed to send RIB query response"

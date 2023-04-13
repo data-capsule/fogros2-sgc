@@ -11,10 +11,11 @@ pub enum GdpAction {
     Noop = 0,
     Forward = 1,
     Advertise = 2,
-    RibGet = 3,
-    RibReply = 4,
-    Nack = 5,
-    Control = 6,
+    AdvertiseResponse = 3,
+    RibGet = 4,
+    RibReply = 5,
+    Nack = 6,
+    Control = 7,
 }
 
 impl Default for GdpAction {
@@ -34,6 +35,7 @@ impl TryFrom<u8> for GdpAction {
             x if x == GdpAction::Forward as u8 => Ok(GdpAction::Forward),
             x if x == GdpAction::Nack as u8 => Ok(GdpAction::Nack),
             x if x == GdpAction::Control as u8 => Ok(GdpAction::Control),
+            x if x == GdpAction::AdvertiseResponse as u8 => Ok(GdpAction::AdvertiseResponse),
             unknown => Err(anyhow!("Unknown action byte ({:?})", unknown)),
         }
     }
@@ -82,6 +84,7 @@ pub struct GDPPacket {
     // converting back and forth between proto and u8 is expensive
     // preferably forward directly without conversion
     pub payload: Option<Vec<u8>>,
+    pub name_record: Option<GDPNameRecord>,
     pub source: GDPName,
 }
 
@@ -151,19 +154,20 @@ pub struct GDPChannel {
 // name record is what being stored in RIB and used for routing
 // one can resolve the GDPNameRecord using RIB put and get 
 // it can be safely ported for another machine to connect
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct GDPNameRecord {
     pub record_type: GDPNameRecordType,
     pub gdpname: GDPName,
     pub webrtc_offer: Option<String>,
     pub ip_address: Option<String>,
+    pub ros: Option<(String, String)>,
     // indirect to another GDPName
     // this occurs if certain gdpname is hosted on a machine;
     // then we solve the GDP name to the machine's GDPName
     pub indirect: Option<GDPName>,  
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum GDPNameRecordType {
     EMPTY,
     QUERY, 

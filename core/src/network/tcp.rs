@@ -1,4 +1,5 @@
 use crate::pipeline::construct_gdp_advertisement_from_bytes;
+use crate::pipeline::construct_gdp_advertisement_from_structs;
 use crate::pipeline::proc_gdp_packet;
 
 use crate::structs::GDPName;
@@ -204,7 +205,7 @@ async fn handle_tcp_stream(
                                 ).await;
                             }
                             else if deserialized.action == GdpAction::Advertise {
-                                let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, None);
+                                let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
                                 proc_gdp_packet(packet,  // packet
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
@@ -337,10 +338,17 @@ pub async fn tcp_to_peer(
     let m_gdp_name = generate_random_gdp_name_for_thread();
     info!("TCP takes gdp name {:?}", m_gdp_name);
 
-    let node_advertisement = construct_gdp_advertisement_from_bytes(
+    let node_advertisement = construct_gdp_advertisement_from_structs(
         m_gdp_name, 
         m_gdp_name,
-        None,
+        crate::structs::GDPNameRecord{
+            record_type: crate::structs::GDPNameRecordType::UPDATE,
+            gdpname: m_gdp_name, 
+            webrtc_offer: None, 
+            ip_address: Some(addr.clone()), 
+            indirect: None, 
+            ros:None,
+        },
     );
     proc_gdp_packet(
         node_advertisement, // packet

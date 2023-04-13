@@ -1,5 +1,5 @@
 use crate::{
-    pipeline::{construct_gdp_advertisement_from_bytes, construct_rib_query_from_bytes},
+    pipeline::{construct_gdp_advertisement_from_structs, construct_rib_query_from_bytes},
     structs::{GDPChannel, GDPName, GDPPacket, GDPStatus, GDPNameRecord},
 };
 use std::collections::HashMap;
@@ -71,6 +71,7 @@ pub async fn connection_fib(
                                     webrtc_offer: None, 
                                     ip_address: None, 
                                     indirect: None, 
+                                    ros:None,
                                 }
                             ).expect(
                                 "failed to send RIB query response"
@@ -108,7 +109,15 @@ pub async fn connection_fib(
                                 info!("flushing advertisement for {} to {:?}", rib_response.gdpname, channel);
                                 let packet = construct_rib_query_from_bytes(
                                     rib_response.gdpname, 
-                                    *channel_name
+                                    *channel_name, 
+                                    GDPNameRecord{
+                                        record_type: QUERY,
+                                        gdpname: rib_response.gdpname, 
+                                        webrtc_offer: None, 
+                                        ip_address: None, 
+                                        indirect: None, 
+                                        ros:None,
+                                    }
                                 );
 
                                 for dst in channel {
@@ -134,10 +143,17 @@ pub async fn connection_fib(
                     let dst = update.sink;
                     for (name, channel) in &coonection_rib_table {
                         info!("flushing advertisement for {} to {:?}", name, dst);
-                        let packet = construct_gdp_advertisement_from_bytes(
+                        let packet = construct_gdp_advertisement_from_structs(
                             *name, 
                             *name,
-                            None 
+                            GDPNameRecord{
+                                record_type: UPDATE,
+                                gdpname: *name, 
+                                webrtc_offer: None, 
+                                ip_address: None, 
+                                indirect: None, 
+                                ros:None,
+                            } 
                         );
 
                         let result = dst.send(packet.clone());

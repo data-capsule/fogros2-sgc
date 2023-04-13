@@ -71,3 +71,6 @@ We are able to trace something like: [topic 256 bit name] is from [ROS local sub
 
 2. currently we don't consider multiple path available. What needs to be done if we need to support OSPF? 
 
+3. what if there is a ros subscriber before ros publisher
+
+subscriber keeps querying the publisher?
