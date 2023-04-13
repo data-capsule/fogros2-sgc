@@ -34,7 +34,8 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
 /// forward the packet to corresponding send_tx
 pub async fn connection_fib(
     mut fib_rx: UnboundedReceiver<GDPPacket>, 
-    rib_tx: UnboundedSender<GDPNameRecord>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
+    mut rib_response_rx: UnboundedReceiver<GDPNameRecord>,
     mut stat_rs: UnboundedReceiver<GDPStatus>,
     mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {

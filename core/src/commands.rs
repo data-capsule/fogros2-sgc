@@ -54,7 +54,9 @@ async fn router_async_loop() {
     // fib_rx <GDPPacket = [u8]>: forward gdppacket to fib
     let (fib_tx, fib_rx) = mpsc::unbounded_channel();
     // rib_rx <GDPNameRecord>: rib queries
-    let (rib_tx, rib_rx) = mpsc::unbounded_channel();
+    let (rib_query_tx, rib_query_rx) = mpsc::unbounded_channel();
+    // rib_rx <GDPNameRecord>: rib queries
+    let (rib_response_tx, rib_response_rx) = mpsc::unbounded_channel();
     // channel_tx <GDPChannel = <gdp_name, sender>>: forward channel maping to fib
     let (channel_tx, channel_rx) = mpsc::unbounded_channel();
     // stat_tx <GdpUpdate proto>: any status update from other routers
@@ -99,13 +101,16 @@ async fn router_async_loop() {
     // future_handles.push(grpc_server_handle);
 
     let rib_handle = tokio::spawn(local_rib_handler(
-        rib_rx,     // send routing queries to rib
+        rib_query_rx,     // get routing queries/updates to rib
+        rib_response_tx,  // send routing queries/updates from rib
+        stat_tx.clone(),          // send status updates to fib
     ));
     future_handles.push(rib_handle);
 
     let fib_handle = tokio::spawn(connection_fib(
         fib_rx,     // receive packets to forward
-        rib_tx,     // send routing queries to rib
+        rib_query_tx,     // send routing queries to rib
+        rib_response_rx, // get routing queries from rib
         stat_rx,    // recevie control place info, e.g. routing
         channel_rx, // receive channel information for connection fib
     ));

@@ -165,6 +165,7 @@ pub struct GDPNameRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GDPNameRecordType {
+    EMPTY,
     QUERY, 
     MERGE,
     UPDATE,
