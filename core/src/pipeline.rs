@@ -53,8 +53,9 @@ pub async fn proc_gdp_packet(
             // construct and send channel to RIB
             let channel = GDPChannel {
                 gdpname: gdp_name,
+                source: gdp_packet.source,
                 channel: m_tx.clone(),
-                advertisement: gdp_packet,
+                name_record: gdp_packet, // TODO: what to put here
             };
             channel_tx
                 .send(channel)

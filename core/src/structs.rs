@@ -143,8 +143,22 @@ impl fmt::Display for GDPPacket {
 #[derive(Debug, Clone)]
 pub struct GDPChannel {
     pub gdpname: GDPName,
+    pub source: GDPName,
     pub channel: UnboundedSender<GDPPacket>,
-    pub advertisement: GDPPacket,
+    pub name_record: GDPNameRecord,
+}
+
+// name record is what being stored in RIB and used for routing
+// one can resolve the GDPNameRecord using RIB put and get 
+// it can be safely ported for another machine to connect
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct GDPNameRecord {
+    pub gdpname: GDPName,
+    pub webrtc_offer: Option<String>,
+    // indirect to another GDPName
+    // this occurs if certain gdpname is hosted on a machine;
+    // then we solve the GDP name to the machine's GDPName
+    pub indirect: Option<GDPName>,  
 }
 
 use sha2::Digest;

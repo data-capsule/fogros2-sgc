@@ -9,9 +9,9 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     for dst in destinations {
         info!(
             "data {} from {} send to {}",
-            packet.gdpname, packet.source, dst.advertisement.source
+            packet.gdpname, packet.source, dst.source
         );
-        if dst.advertisement.source == packet.source {
+        if dst.source == packet.source {
             info!("Equal to the source, skipped!");
             continue;
         }
@@ -21,30 +21,6 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
             Err(_) => {
                 warn!("Send Failure: channel sent to destination is closed");
             }
-        }
-    }
-}
-
-#[allow(dead_code)]
-async fn broadcast_advertisement(
-    channel: &GDPChannel, coonection_rib_table: &HashMap<GDPName, Vec<GDPChannel>>,
-) {
-    for dsts in coonection_rib_table.values() {
-        for dst in dsts {
-            info!(
-                "advertisement of {} is sent to channel {}",
-                dst.advertisement.source, channel.advertisement.source
-            );
-            if dst.advertisement.source == channel.advertisement.source {
-                info!(
-                    "skipping {} is because they come from same source",
-                    dst.advertisement.source
-                );
-                continue;
-            }
-            dst.channel
-                .send(channel.advertisement.clone())
-                .expect("adv channel closed");
         }
     }
 }
@@ -65,7 +41,7 @@ pub async fn connection_router(
     let _receive_handle = tokio::spawn(async move {
         let mut coonection_rib_table: HashMap<GDPName, Vec<GDPChannel>> = HashMap::new();
         let mut counter = 0;
-        let mut m_webrtc_offer:Option<Vec<u8>> = None;
+        // let mut m_webrtc_offer:Option<Vec<u8>> = None;
 
         // loop polling from
         loop {
@@ -108,9 +84,9 @@ pub async fn connection_router(
                     //     channel.gdpname,
                     //     channel.channel
                     // );
-                    if let Some(offer) = &channel.advertisement.payload {
-                        m_webrtc_offer = Some(offer.clone());
-                    }
+                    // if let Some(offer) = &channel.advertisement.payload {
+                    //     m_webrtc_offer = Some(offer.clone());
+                    // }
                     match  coonection_rib_table.get_mut(&channel.gdpname) {
                         Some(v) => {
                             info!("adding to connection rib vec");
