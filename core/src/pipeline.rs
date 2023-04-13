@@ -89,6 +89,7 @@ pub async fn proc_gdp_packet(
                 source: gdp_packet.source,
                 channel: m_tx.clone(),
             };
+            rib_tx.send(gdp_packet.name_record.unwrap()).expect("send to rib failure");
             channel_tx
                 .send(channel)
                 .expect("channel_tx channel closed!");

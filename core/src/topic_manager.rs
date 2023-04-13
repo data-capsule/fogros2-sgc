@@ -4,7 +4,7 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
-use crate::pipeline::construct_gdp_advertisement_from_structs;
+use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
 use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName};
 
 use serde::{Deserialize, Serialize};
@@ -160,6 +160,7 @@ pub async fn ros_topic_manager(
     let config = AppConfig::fetch().expect("Failed to fetch config");
     // bookkeeping the status of ros topics
     let mut topic_status = HashMap::new();
+    let (m_tx, m_rx) = mpsc::unbounded_channel();
 
     // read certificate from file in config
     let certificate = std::fs::read(format!(
@@ -260,12 +261,13 @@ pub async fn ros_topic_manager(
                         let topic_name = topic.0.clone();
                         let topic_type = topic.1[0].clone(); // TODO: currently, broadcast only the first topic type
                         let action = determine_topic_action(topic_name.clone()).await;
-                        info!("detected a new topic {:?}", topic);
+                        
                         let topic_gdp_name = GDPName(get_gdp_name_from_topic(
                             &topic_name,
                             &topic_type,
                             &certificate,
                         ));
+                        info!("detected a new topic {:?} with action {:?}", topic, action);
 
                         match action.as_str() {
                             "sub" => {
@@ -281,17 +283,17 @@ pub async fn ros_topic_manager(
                                         indirect: None, 
                                         ros: Some((topic_name.clone(), topic_type.clone())),
                                 });
-                                // proc_gdp_packet(
-                                //     node_advertisement, // packet
-                                //     &fib_tx,            // used to send packet to fib
-                                //     &channel_tx,        // used to send GDPChannel to fib
-                                //     &m_tx,              // the sending handle of this connection
-                                //     rib_query_tx,       // used to send GDPNameRecord to rib
-                                // )
-                                // .await;
+                                proc_gdp_packet(
+                                    node_advertisement, // packet
+                                    &fib_tx,            // used to send packet to fib
+                                    &channel_tx,        // used to send GDPChannel to fib
+                                    &m_tx,              // the sending handle of this connection
+                                    &rib_query_tx,       // used to send GDPNameRecord to rib
+                                )
+                                .await;
                             }
                             "pub" => {
-                                // 
+                                
 
                             }
                             "noop" => {}

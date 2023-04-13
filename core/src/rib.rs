@@ -22,11 +22,19 @@ impl RoutingInformationBase {
 
     pub fn put(&mut self, key: GDPName, value: GDPNameRecord) -> Option<()> {
         self.routing_table.insert(key, value);
+        self.dump();
         Some(())
     }
 
     pub fn get(&self, key: GDPName) -> Option<&Vec<GDPNameRecord>> {
         self.routing_table.get_vec(&key)
+    }
+
+    pub fn dump(&self) {
+        info!("dumping RIB");
+        for (key, value) in self.routing_table.iter() {
+            println!("key: {:?}, value: {:?}", key, value);
+        }
     }
 }
 
@@ -75,6 +83,9 @@ pub async fn local_rib_handler(
                                     );
                                 }
                             }
+                        },
+                        UPDATE => {
+                            rib_store.put(query.gdpname, query.clone());
                         },
                         _ => {
                             warn!("received RIB query with unknown record type {:?}", query.record_type);
