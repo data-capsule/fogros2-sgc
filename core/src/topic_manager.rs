@@ -5,7 +5,7 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
 use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
-use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName};
+use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name};
 
 use serde::{Deserialize, Serialize};
 use tokio::select;
@@ -161,6 +161,7 @@ pub async fn ros_topic_manager(
     // bookkeeping the status of ros topics
     let mut topic_status = HashMap::new();
     let (m_tx, m_rx) = mpsc::unbounded_channel();
+    let ros_topic_manager_gdp_name = generate_random_gdp_name();
 
     // read certificate from file in config
     let certificate = std::fs::read(format!(
@@ -278,6 +279,7 @@ pub async fn ros_topic_manager(
                                         topic_gdp_name, topic_gdp_name, crate::structs::GDPNameRecord{
                                         record_type: crate::structs::GDPNameRecordType::UPDATE,
                                         gdpname: topic_gdp_name, 
+                                        source_gdpname: ros_topic_manager_gdp_name,
                                         webrtc_offer: None, 
                                         ip_address:  None, 
                                         indirect: None, 
@@ -300,6 +302,7 @@ pub async fn ros_topic_manager(
                                         topic_gdp_name, topic_gdp_name, crate::structs::GDPNameRecord{
                                         record_type: crate::structs::GDPNameRecordType::QUERY,
                                         gdpname: topic_gdp_name, 
+                                        source_gdpname: ros_topic_manager_gdp_name,
                                         webrtc_offer: None, 
                                         ip_address:  None, 
                                         indirect: None, 

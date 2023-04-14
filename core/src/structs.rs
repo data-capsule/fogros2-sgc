@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use rand::Rng;
 use std::fmt;
 use strum_macros::EnumIter;
 use tokio::sync::mpsc::UnboundedSender;
@@ -64,6 +65,16 @@ impl fmt::Display for GDPName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
+}
+
+pub fn generate_random_gdp_name() -> GDPName {
+    // u8:4
+    GDPName([
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+    ])
 }
 
 use crate::gdp_proto::GdpPacket;
@@ -162,6 +173,10 @@ pub struct GDPChannel {
 pub struct GDPNameRecord {
     pub record_type: GDPNameRecordType,
     pub gdpname: GDPName,
+    // the source of the record
+    // if the record is the query, then the source_gdpname is the destination
+    // that forward the data
+    pub source_gdpname: GDPName,
     pub webrtc_offer: Option<String>,
     pub ip_address: Option<String>,
     pub ros: Option<(String, String)>,

@@ -3,6 +3,7 @@ use crate::pipeline::construct_gdp_advertisement_from_structs;
 use crate::pipeline::proc_gdp_packet;
 
 use crate::structs::GDPName;
+use crate::structs::generate_random_gdp_name;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
 use std::io;
 
@@ -14,15 +15,7 @@ use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPHeaderInTransit;
 use rand::Rng;
 use crate::structs::GDPNameRecord;
-fn generate_random_gdp_name_for_thread() -> GDPName {
-    // u8:4
-    GDPName([
-        rand::thread_rng().gen(),
-        rand::thread_rng().gen(),
-        rand::thread_rng().gen(),
-        rand::thread_rng().gen(),
-    ])
-}
+
 
 /// parse the header of the packet using the first null byte as delimiter
 /// return a vector of (header, payload) pairs if the header is complete
@@ -338,7 +331,7 @@ pub async fn tcp_listener(
                 &channel_tx,
                 m_tx,
                 m_rx,
-                generate_random_gdp_name_for_thread(),
+                generate_random_gdp_name(),
                 &rib_query_tx,
             )
             .await
@@ -361,7 +354,7 @@ pub async fn tcp_to_peer(
 
     println!("{:?}", stream);
 
-    let m_gdp_name = generate_random_gdp_name_for_thread();
+    let m_gdp_name = generate_random_gdp_name();
     info!("TCP takes gdp name {:?}", m_gdp_name);
 
     let node_advertisement = construct_gdp_advertisement_from_structs(
@@ -370,6 +363,7 @@ pub async fn tcp_to_peer(
         crate::structs::GDPNameRecord{
             record_type: crate::structs::GDPNameRecordType::UPDATE,
             gdpname: m_gdp_name, 
+            source_gdpname: m_gdp_name,
             webrtc_offer: None, 
             ip_address: Some(addr.clone()), 
             indirect: None, 
@@ -406,7 +400,7 @@ pub async fn tcp_to_peer_direct(
 
     println!("{:?}", stream);
 
-    let m_gdp_name = generate_random_gdp_name_for_thread();
+    let m_gdp_name = generate_random_gdp_name();
     info!("TCP connection takes gdp name {:?}", m_gdp_name);
 
     handle_tcp_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name, &rib_query_tx).await;

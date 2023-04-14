@@ -32,7 +32,7 @@ use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPHeaderInTransit;
 use rand::Rng;
 
-fn generate_random_gdp_name_for_thread() -> GDPName {
+fn generate_random_gdp_name() -> GDPName {
     // u8:4
     GDPName([
         rand::thread_rng().gen(),
@@ -51,7 +51,7 @@ pub async fn webrtc_listener(
     let m_tx_clone = m_tx.clone();
     let channel_tx_clone = channel_tx.clone();
     let fib_tx_clone = fib_tx.clone();
-    let m_gdp_name = generate_random_gdp_name_for_thread();
+    let m_gdp_name = generate_random_gdp_name();
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -178,6 +178,7 @@ pub async fn webrtc_listener(
             GDPNameRecord{
                 record_type: crate::structs::GDPNameRecordType::UPDATE,
                 gdpname: m_gdp_name, 
+                source_gdpname: m_gdp_name,
                 webrtc_offer: Some(serde_json::to_string(&local_desc)?), 
                 ip_address: None, 
                 indirect: None, 

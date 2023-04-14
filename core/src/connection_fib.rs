@@ -68,6 +68,7 @@ pub async fn connection_fib(
                                 GDPNameRecord{
                                     record_type: QUERY,
                                     gdpname: pkt.gdpname, 
+                                    source_gdpname: pkt.source,
                                     webrtc_offer: None, 
                                     ip_address: None, 
                                     indirect: None, 
@@ -115,6 +116,7 @@ pub async fn connection_fib(
                                     GDPNameRecord{
                                         record_type: QUERY,
                                         gdpname: rib_response.gdpname, 
+                                        source_gdpname: *channel_name, // so that one can send it back the the interface which issues the query
                                         webrtc_offer: None, 
                                         ip_address: None, 
                                         indirect: None, 
@@ -135,6 +137,22 @@ pub async fn connection_fib(
                         }, 
                         INFO => {
                             // get it back to the interface which issues the query
+                            let dst = rib_response.source_gdpname;
+                            info!("found the name {:?} in RIB, sending back to {:?}", rib_response.gdpname, dst);
+                            let pkt = construct_gdp_advertisement_from_structs(
+                                rib_response.gdpname, 
+                                rib_response.source_gdpname,
+                                rib_response
+                            );
+
+                            match coonection_rib_table.get(&dst) {
+                                Some(routing_dsts) => {
+                                    send_to_destination(routing_dsts.clone(), pkt).await;
+                                }
+                                None => {
+                                    warn!("{:} is not there when sending the response of the RIB", pkt.gdpname);
+                                }
+                            }
 
                         }
                         _ => {
@@ -155,6 +173,7 @@ pub async fn connection_fib(
                             GDPNameRecord{
                                 record_type: UPDATE,
                                 gdpname: *name, 
+                                source_gdpname: *name,
                                 webrtc_offer: None, 
                                 ip_address: None, 
                                 indirect: None, 

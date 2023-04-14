@@ -20,7 +20,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 
-fn generate_random_gdp_name_for_thread() -> GDPName {
+fn generate_random_gdp_name() -> GDPName {
     // u8:4
     GDPName([
         rand::thread_rng().gen(),
@@ -302,7 +302,7 @@ pub async fn dtls_to_peer(
     println!("{:?}", stream);
     Pin::new(&mut stream).connect().await.unwrap();
 
-    let m_gdp_name = generate_random_gdp_name_for_thread();
+    let m_gdp_name = generate_random_gdp_name();
     info!("DTLS takes gdp name {:?}", m_gdp_name);
 
     let node_advertisement = construct_gdp_advertisement_from_structs(
@@ -310,6 +310,7 @@ pub async fn dtls_to_peer(
          crate::structs::GDPNameRecord{
         record_type: crate::structs::GDPNameRecordType::UPDATE,
         gdpname: m_gdp_name, 
+        source_gdpname: m_gdp_name,
         webrtc_offer: None, 
         ip_address: Some(addr.clone()), 
         indirect: None, 
@@ -370,7 +371,7 @@ pub async fn dtls_to_peer_direct(
     println!("{:?}", stream);
     Pin::new(&mut stream).connect().await.unwrap();
 
-    let m_gdp_name = generate_random_gdp_name_for_thread();
+    let m_gdp_name = generate_random_gdp_name();
     info!("dTLS connection takes gdp name {:?}", m_gdp_name);
 
     handle_dtls_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name, &rib_query_tx).await;
@@ -411,7 +412,7 @@ pub async fn dtls_listener(
             let ssl = Ssl::new(&acceptor).unwrap();
             let mut stream = tokio_openssl::SslStream::new(ssl, socket).unwrap();
             Pin::new(&mut stream).accept().await.unwrap();
-            let m_gdp_name = generate_random_gdp_name_for_thread();
+            let m_gdp_name = generate_random_gdp_name();
             info!("DTLS listener takes gdp name {:?}", m_gdp_name);
             handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await
         });

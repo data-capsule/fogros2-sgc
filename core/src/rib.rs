@@ -67,6 +67,7 @@ pub async fn local_rib_handler(
                                         let record_response = GDPNameRecord{
                                             record_type: INFO,
                                             gdpname: record.gdpname, 
+                                            source_gdpname: query.source_gdpname, // so that we can send it back to the source
                                             webrtc_offer: record.webrtc_offer.clone(), 
                                             ip_address: record.ip_address.clone(), 
                                             indirect: record.indirect, 
@@ -83,6 +84,7 @@ pub async fn local_rib_handler(
                                         GDPNameRecord{
                                             record_type: EMPTY,
                                             gdpname: query.gdpname, 
+                                            source_gdpname: query.source_gdpname, // identify the source of the query
                                             webrtc_offer: None, 
                                             ip_address: None, 
                                             indirect: None, 

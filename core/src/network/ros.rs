@@ -50,6 +50,7 @@ pub async fn ros_publisher(
     let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
         record_type: crate::structs::GDPNameRecordType::UPDATE,
         gdpname: node_gdp_name, 
+        source_gdpname: node_gdp_name,
         webrtc_offer: None, 
         ip_address:  None, 
         indirect: None, 
@@ -117,6 +118,7 @@ pub async fn ros_subscriber(
     let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
         record_type: crate::structs::GDPNameRecordType::UPDATE,
         gdpname: node_gdp_name, 
+        source_gdpname: node_gdp_name,
         webrtc_offer: None, 
         ip_address:  None, 
         indirect: None, 
@@ -187,6 +189,7 @@ pub async fn ros_subscriber_image(
     let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
         record_type: crate::structs::GDPNameRecordType::UPDATE,
         gdpname: node_gdp_name, 
+        source_gdpname: node_gdp_name,
         webrtc_offer: None, 
         ip_address:  None, 
         indirect: None, 
@@ -260,6 +263,7 @@ pub async fn ros_publisher_image(
     let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
         record_type: crate::structs::GDPNameRecordType::UPDATE,
         gdpname: node_gdp_name, 
+        source_gdpname: node_gdp_name,
         webrtc_offer: None, 
         ip_address:  None, 
         indirect: None, 
