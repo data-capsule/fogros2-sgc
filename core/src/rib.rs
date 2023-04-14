@@ -82,19 +82,27 @@ pub async fn local_rib_handler(
                                 None => {
                                     warn!("received RIB query for non-existing name {:?}", query.gdpname);
                                     pending_routing_records.insert(query.gdpname, query.source_gdpname);
-                                    rib_response_tx.send(
-                                        GDPNameRecord{
-                                            record_type: EMPTY,
-                                            gdpname: query.gdpname, 
-                                            source_gdpname: query.source_gdpname, // identify the source of the query
-                                            webrtc_offer: None, 
-                                            ip_address: None, 
-                                            indirect: None, 
-                                            ros: None,
-                                        }
-                                    ).expect(
-                                        "failed to send RIB query response"
-                                    );
+                                    // check if the source gdpname is already in the pending routing records
+                                    let records = pending_routing_records.get_vec(&query.gdpname);
+                                    if  records.is_some()
+                                        && records.unwrap().contains(&query.source_gdpname){
+                                            info!("source gdpname already in pending routing records");
+                                    }else{
+                                        pending_routing_records.insert(query.gdpname, query.source_gdpname);
+                                        rib_response_tx.send(
+                                            GDPNameRecord{
+                                                record_type: EMPTY,
+                                                gdpname: query.gdpname, 
+                                                source_gdpname: query.source_gdpname, // identify the source of the query
+                                                webrtc_offer: None, 
+                                                ip_address: None, 
+                                                indirect: None, 
+                                                ros: None,
+                                            }
+                                        ).expect(
+                                            "failed to send RIB query response"
+                                        );
+                                    }
                                 }
                             }
                         },

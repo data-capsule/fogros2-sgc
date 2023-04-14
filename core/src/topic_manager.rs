@@ -353,8 +353,26 @@ pub async fn ros_topic_manager(
                                         loop{
                                             select!{
                                                 Some(message) = m_rx.recv() => {
-                                                    info!("received a message from the topic subscriber {:?}", message);
-
+                                                    // info!("received a message from the topic subscriber {:?}", message);
+                                                    let name_record = message.name_record.unwrap();
+                                                    info!("received a name record {:?}", name_record);
+                                                    if name_record.indirect.is_none() {
+                                                        // the query message might be routed to here
+                                                        // this is a workaround
+                                                        warn!("received a message without indirect name record from the fib {:?}", name_record);
+                                                        continue;
+                                                    }
+                                                    
+                                                    let publisher_name = name_record.indirect.unwrap();
+                                                    info!("received a publisher name {:?}", publisher_name);
+                                                    let subscribe_request_packet = GDPPacket {
+                                                        action: GdpAction::AdvertiseResponse,
+                                                        gdpname: publisher_name,
+                                                        source: subscriber_listening_gdp_name,
+                                                        payload: None,
+                                                        name_record: None,
+                                                    };
+                                                    fib_tx.send(subscribe_request_packet);
                                                 }, 
                                             };
                                         }
