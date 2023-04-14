@@ -192,8 +192,8 @@ async fn handle_dtls_stream(
                     if deserialized.action == GdpAction::Forward {
                         let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload); //todo
                         proc_gdp_packet(packet,  // packet
-                            fib_tx,  //used to send packet tofib
-                            channel_tx, // used to send GDPChannel tofib
+                            fib_tx,  //used to send packet to fib
+                            channel_tx, // used to send GDPChannel to fib
                             &m_tx, //the sending handle of this connection
                             &rib_query_tx,
                         ).await;
@@ -201,14 +201,21 @@ async fn handle_dtls_stream(
                     else if deserialized.action == GdpAction::Advertise {
                         let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
                         proc_gdp_packet(packet,  // packet
-                            fib_tx,  //used to send packet tofib
-                            channel_tx, // used to send GDPChannel tofib
+                            fib_tx,  //used to send packet to fib
+                            channel_tx, // used to send GDPChannel to fib
                             &m_tx, //the sending handle of this connection
                             &rib_query_tx,
                         ).await;
                     }
                     else if deserialized.action == GdpAction::RibGet {
-                        warn!("RIB GET RECEIVED!!!!");
+                        let name_record:GDPNameRecord = serde_json::from_slice(&payload).unwrap();
+                        info!("received RIB get request {:?}", name_record);
+                        rib_query_tx.send(name_record).expect("send to rib failure");
+                    }
+                    else if deserialized.action == GdpAction::RibReply {
+                        let name_record:GDPNameRecord = serde_json::from_slice(&payload).unwrap();
+                        info!("received RIB get request {:?}", name_record);
+                        rib_query_tx.send(name_record).expect("send to rib failure");
                     }
                     else{
                         info!("TCP received a packet but did not handle: {:?}", deserialized)

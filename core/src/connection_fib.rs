@@ -100,9 +100,11 @@ pub async fn connection_fib(
 
                 },
 
+                // response from RIB
                 Some(rib_response) = rib_response_rx.recv() => {
                     info!("get RIB response {:?}", rib_response);
                     match rib_response.record_type {
+                        // not found
                         EMPTY => {
                             warn!("Name {:?} is not registered in RIB, flooding the query...", rib_response.gdpname);
                             for (channel_name, channel) in &coonection_rib_table {
@@ -130,6 +132,10 @@ pub async fn connection_fib(
                                     }
                                 }
                             }
+                        }, 
+                        INFO => {
+                            // get it back to the interface which issues the query
+
                         }
                         _ => {
                             info!("rib response not handled!");

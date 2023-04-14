@@ -59,10 +59,20 @@ pub async fn local_rib_handler(
                             warn!("received empty RIB query")
                         },
                         QUERY => {
+                            info!("received RIB query for {:?}", query.gdpname);
                             match rib_store.get(query.gdpname) {
                                 Some(records) => {
                                     for record in records {
-                                        rib_response_tx.send(record.clone()).expect(
+                                        info!("sending RIB query response for {:?}", record.gdpname);
+                                        let record_response = GDPNameRecord{
+                                            record_type: INFO,
+                                            gdpname: record.gdpname, 
+                                            webrtc_offer: record.webrtc_offer.clone(), 
+                                            ip_address: record.ip_address.clone(), 
+                                            indirect: record.indirect, 
+                                            ros: record.ros.clone(),
+                                        };
+                                        rib_response_tx.send(record_response.clone()).expect(
                                             "failed to send RIB query response"
                                         );
                                     }
