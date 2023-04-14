@@ -81,12 +81,12 @@ pub async fn local_rib_handler(
                                 },
                                 None => {
                                     warn!("received RIB query for non-existing name {:?}", query.gdpname);
-                                    pending_routing_records.insert(query.gdpname, query.source_gdpname);
+                                    // pending_routing_records.insert(query.gdpname, query.source_gdpname);
                                     // check if the source gdpname is already in the pending routing records
                                     let records = pending_routing_records.get_vec(&query.gdpname);
                                     if  records.is_some()
                                         && records.unwrap().contains(&query.source_gdpname){
-                                            info!("source gdpname already in pending routing records");
+                                            info!("source gdpname {} already in pending routing records", query.source_gdpname);
                                     }else{
                                         pending_routing_records.insert(query.gdpname, query.source_gdpname);
                                         rib_response_tx.send(
