@@ -5,7 +5,7 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
 use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
-use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name};
+use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name, GDPNameRecordType};
 
 use serde::{Deserialize, Serialize};
 use tokio::select;
@@ -357,7 +357,8 @@ pub async fn ros_topic_manager(
                                                     // info!("received a message from the topic subscriber {:?}", message);
                                                     let name_record = message.name_record.unwrap();
                                                     info!("received a name record {:?}", name_record);
-                                                    if name_record.indirect.is_none() {
+                                                    if name_record.record_type != GDPNameRecordType::INFO || 
+                                                        name_record.indirect.is_none() {
                                                         // the query message might be routed to here
                                                         // this is a workaround
                                                         warn!("received a message without indirect name record from the fib {:?}", name_record);
