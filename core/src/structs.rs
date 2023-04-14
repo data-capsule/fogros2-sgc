@@ -163,6 +163,7 @@ pub struct GDPChannel {
     pub gdpname: GDPName,
     pub source: GDPName,
     pub channel: UnboundedSender<GDPPacket>,
+    pub comment: String,
 }
 
 // union in rust is unsafe, use struct instead

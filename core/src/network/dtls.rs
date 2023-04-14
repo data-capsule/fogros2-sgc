@@ -196,6 +196,7 @@ async fn handle_dtls_stream(
                             channel_tx, // used to send GDPChannel to fib
                             &m_tx, //the sending handle of this connection
                             &rib_query_tx,
+                            "".to_string(),
                         ).await;
                     }
                     else if deserialized.action == GdpAction::Advertise {
@@ -205,6 +206,7 @@ async fn handle_dtls_stream(
                             channel_tx, // used to send GDPChannel to fib
                             &m_tx, //the sending handle of this connection
                             &rib_query_tx,
+                            "".to_string(),
                         ).await;
                     }
                     else if deserialized.action == GdpAction::RibGet {
@@ -322,6 +324,7 @@ pub async fn dtls_to_peer(
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
         &rib_query_tx,
+        format!("DTLS to peer {}", addr),
     )
     .await;
     handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await;

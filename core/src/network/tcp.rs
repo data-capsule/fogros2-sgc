@@ -196,7 +196,8 @@ async fn handle_tcp_stream(
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
                                     &m_tx, //the sending handle of this connection
-                                    &rib_query_tx
+                                    &rib_query_tx, 
+                                    "".to_string(),
                                 ).await;
                             }
                             else if deserialized.action == GdpAction::Advertise {
@@ -205,7 +206,8 @@ async fn handle_tcp_stream(
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
                                     &m_tx, //the sending handle of this connection
-                                    &rib_query_tx
+                                    &rib_query_tx, 
+                                    format!("{}-{}", "tcp", thread_name),
                                 ).await;
                             }
                             else{
@@ -376,6 +378,7 @@ pub async fn tcp_to_peer(
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
         &rib_query_tx,      // used to query rib
+        format!("tcp_to_peer({})", addr),
     )
     .await;
     handle_tcp_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await;

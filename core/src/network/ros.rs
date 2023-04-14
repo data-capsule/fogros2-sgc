@@ -62,6 +62,7 @@ pub async fn ros_publisher(
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
         &rib_query_tx,      // used to send GDPNameRecord to rib
+        format!("ros publisher {}-{}", topic_name, topic_type),
     )
     .await;
 
@@ -130,6 +131,7 @@ pub async fn ros_subscriber(
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
         &rib_query_tx,      // used to send GDPNameRecord to rib
+        format!("ros subscriber {}-{}", topic_name, topic_type),
     )
     .await;
 
@@ -145,6 +147,7 @@ pub async fn ros_subscriber(
                     &channel_tx, // used to send GDPChannel to fib
                     &m_tx, //the sending handle of this connection
                     &rib_query_tx, // used to send GDPNameRecord to rib
+                    "".to_string(),
                 ).await;
 
             }
@@ -200,7 +203,8 @@ pub async fn ros_subscriber_image(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
-        &rib_query_tx
+        &rib_query_tx,
+        format!("ros subscriber image {}-{}", topic_name, topic_type),
     )
     .await;
 
@@ -216,7 +220,8 @@ pub async fn ros_subscriber_image(
                     &fib_tx,  //used to send packet to fib
                     &channel_tx, // used to send GDPChannel to fib
                     &m_tx, //the sending handle of this connection
-                    &rib_query_tx
+                    &rib_query_tx, 
+                    format!("ros subscriber image {}-{}", topic_name, topic_type),
                 ).await;
 
             }
@@ -274,7 +279,8 @@ pub async fn ros_publisher_image(
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
-        &rib_query_tx
+        &rib_query_tx, 
+        format!("ros publisher image {}-{}", topic_name, topic_type),
     )
     .await;
 

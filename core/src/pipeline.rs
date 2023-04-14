@@ -85,6 +85,7 @@ pub async fn proc_gdp_packet(
     channel_tx: &UnboundedSender<GDPChannel>, // used to send GDPChannel to fib
     m_tx: &UnboundedSender<GDPPacket>,   // the sending handle of this connection
     rib_tx: &UnboundedSender<GDPNameRecord>, // used to send packet to rib
+    comment: String,
 ) {
     // Vec<u8> to GDP Packet
     // let gdp_packet = populate_gdp_struct(packet);
@@ -98,6 +99,7 @@ pub async fn proc_gdp_packet(
                 gdpname: gdp_name,
                 source: gdp_packet.source,
                 channel: m_tx.clone(),
+                comment
             };
             rib_tx.send(gdp_packet.name_record.unwrap()).expect("send to rib failure");
             channel_tx

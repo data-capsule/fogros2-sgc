@@ -291,6 +291,7 @@ pub async fn ros_topic_manager(
                                     &channel_tx,        // used to send GDPChannel to fib
                                     &m_tx,              // the sending handle of this connection
                                     &rib_query_tx,       // used to send GDPNameRecord to rib
+                                    format!("ros topic manager - topic {:?}", topic_gdp_name),
                                 )
                                 .await;
                             }
@@ -314,6 +315,7 @@ pub async fn ros_topic_manager(
                                     &channel_tx,        // used to send GDPChannel to fib
                                     &m_tx,              // the sending handle of this connection
                                     &rib_query_tx,       // used to send GDPNameRecord to rib
+                                    format!("ros topic manager - topic {:?}", topic_gdp_name),
                                 )
                                 .await;
                             }
