@@ -307,8 +307,9 @@ pub async fn ros_topic_manager(
                                         loop{
                                             select!{
                                                 Some(message) = m_rx.recv() => {
-                                                    info!("received a message from the topic subscriber {:?}", message);
-
+                                                    if message.action == GdpAction::AdvertiseResponse {
+                                                        info!("publisher received a message from the topic subscriber {:?}", message);
+                                                    }
                                                 }, 
                                             };
                                         }

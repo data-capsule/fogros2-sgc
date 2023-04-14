@@ -101,7 +101,10 @@ pub async fn proc_gdp_packet(
                 channel: m_tx.clone(),
                 comment
             };
-            rib_tx.send(gdp_packet.name_record.unwrap()).expect("send to rib failure");
+            if let Some(record) = gdp_packet.name_record {
+                rib_tx.send(record).expect("send to rib failure");
+            }
+            // rib_tx.send(gdp_packet.name_record.unwrap()).expect("send to rib failure");
             channel_tx
                 .send(channel)
                 .expect("channel_tx channel closed!");

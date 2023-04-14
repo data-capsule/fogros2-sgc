@@ -206,7 +206,7 @@ async fn handle_dtls_stream(
                             channel_tx, // used to send GDPChannel to fib
                             &m_tx, //the sending handle of this connection
                             &rib_query_tx,
-                            "".to_string(),
+                            format!("DTLS Advertise {} from thread {}", deserialized.destination, thread_name),
                         ).await;
                     }
                     else if deserialized.action == GdpAction::RibGet {
@@ -218,6 +218,16 @@ async fn handle_dtls_stream(
                         let name_record:GDPNameRecord = serde_json::from_slice(&payload).unwrap();
                         info!("received RIB get request {:?}", name_record);
                         rib_query_tx.send(name_record).expect("send to rib failure");
+                    }
+                    else if deserialized.action == GdpAction::AdvertiseResponse {
+                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
+                        proc_gdp_packet(packet,  // packet
+                            fib_tx,  //used to send packet to fib
+                            channel_tx, // used to send GDPChannel to fib
+                            &m_tx, //the sending handle of this connection
+                            &rib_query_tx,
+                            format!("DTLS Advertise Response {} from thread {}", deserialized.destination, thread_name),
+                        ).await;
                     }
                     else{
                         info!("TCP received a packet but did not handle: {:?}", deserialized)
