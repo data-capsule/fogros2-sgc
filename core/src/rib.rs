@@ -33,7 +33,7 @@ impl RoutingInformationBase {
     pub fn dump(&self) {
         info!("dumping RIB");
         for (key, value) in self.routing_table.iter() {
-            println!("key: {:?}, value: {:?}", key, value);
+            info!("key: {:?}, value: {:?}", key, value);
         }
     }
 }
@@ -48,6 +48,7 @@ pub async fn local_rib_handler(
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
         let mut rib_store = RoutingInformationBase::new();
+        let mut pending_routing_records = MultiMap::new();
 
         // loop polling from
         loop {
@@ -79,7 +80,8 @@ pub async fn local_rib_handler(
                                     }
                                 },
                                 None => {
-                                    warn!("received RIB query for non-existing name");
+                                    warn!("received RIB query for non-existing name {:?}", query.gdpname);
+                                    pending_routing_records.insert(query.gdpname, query.source_gdpname);
                                     rib_response_tx.send(
                                         GDPNameRecord{
                                             record_type: EMPTY,
@@ -103,6 +105,29 @@ pub async fn local_rib_handler(
                         INFO => {
                             info!("received RIB info for {:?}", query);
                             rib_store.put(query.gdpname, query.clone());
+                            match pending_routing_records.get_vec(&query.gdpname) {
+                                Some(records) => {
+                                    for record in records {
+                                        info!("sending RIB query response for {:?}", record);
+                                        let record_response = GDPNameRecord{
+                                            record_type: INFO,
+                                            gdpname: query.gdpname, 
+                                            source_gdpname: record.clone(), // so that we can send it back to the source
+                                            webrtc_offer: query.webrtc_offer.clone(), 
+                                            ip_address: query.ip_address.clone(), 
+                                            indirect: query.indirect, 
+                                            ros: query.ros.clone(),
+                                        };
+                                        rib_response_tx.send(record_response.clone()).expect(
+                                            "failed to send RIB query response"
+                                        );
+                                    }
+                                },
+                                None => {
+                                    info!("no pending RIB query for {:?}", query.gdpname);
+                                }
+                            }
+                            pending_routing_records.remove(&query.gdpname);
                         },
                         _ => {
                             warn!("received RIB query with unknown record type {:?}", query.record_type);

@@ -26,6 +26,16 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     }
 }
 
+
+fn dump_fib_table(rib_table: &HashMap<GDPName, Vec<GDPChannel>>) {
+    info!("dumpping FIB table");
+    for (k, v) in rib_table {
+        for channel in v {
+            info!("{}, {},source: {}", k, channel.comment, channel.source);
+        }
+    }
+}
+
 /// receive, check, and route GDP messages
 ///
 /// receive from a pool of receiver connections (one per interface)
@@ -147,10 +157,13 @@ pub async fn connection_fib(
 
                             match coonection_rib_table.get(&dst) {
                                 Some(routing_dsts) => {
-                                    send_to_destination(routing_dsts.clone(), pkt).await;
+                                    for dst in routing_dsts {
+                                        dst.channel.send(pkt.clone()).expect("failed to send RIB query response");
+                                    }
                                 }
                                 None => {
-                                    warn!("{:} is not there when sending the response of the RIB", pkt.gdpname);
+                                    dump_fib_table(&coonection_rib_table);
+                                    warn!("{:} is not there when sending the response of the RIB", dst);
                                 }
                             }
 

@@ -254,6 +254,7 @@ pub async fn ros_topic_manager(
             _ = sleep(Duration::from_millis(5000)) => {
                 let current_topics = node.get_topic_names_and_types().unwrap();
                 let mut existing_topics = vec![];
+                let mut waiting_rib_handles = vec![];
                 // check if there is a new topic by comparing current topics with
                 // the bookkeeping topics
                 for topic in current_topics {
@@ -303,13 +304,15 @@ pub async fn ros_topic_manager(
                                 let rib_query_tx = rib_query_tx.clone();
                                 let topic_name = topic_name.clone();
                                 let subscriber_listening_gdp_name = generate_random_gdp_name();
-                                tokio::spawn(
+                                let handle = tokio::spawn(
                                     async move {
                                             // a new local topic is present
                                             // advertise the topic 
                                             let node_advertisement = 
                                             construct_gdp_advertisement_from_structs(
-                                                topic_gdp_name, topic_gdp_name, crate::structs::GDPNameRecord{
+                                                subscriber_listening_gdp_name, 
+                                                subscriber_listening_gdp_name, 
+                                                crate::structs::GDPNameRecord{
                                                 record_type: crate::structs::GDPNameRecordType::QUERY,
                                                 gdpname: topic_gdp_name, 
                                                 source_gdpname: subscriber_listening_gdp_name,
@@ -335,6 +338,7 @@ pub async fn ros_topic_manager(
                                         };
                                     }
                                 );
+                                waiting_rib_handles.push(handle);
                             }
                             _ => {
                                 warn!("unknown action {}", action);
