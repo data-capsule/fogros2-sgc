@@ -330,12 +330,13 @@ pub async fn ros_topic_manager(
                                             format!("ros topic subscriber - topic {:?}", topic_gdp_name),
                                         )
                                         .await;
-
-                                        select!{
-                                            Some(message) = m_rx.recv() => {
-                                                info!("received a message from the topic");
-                                            }, 
-                                        };
+                                        loop{
+                                            select!{
+                                                Some(message) = m_rx.recv() => {
+                                                    info!("received a message from the topic");
+                                                }, 
+                                            };
+                                        }
                                     }
                                 );
                                 waiting_rib_handles.push(handle);
