@@ -203,8 +203,8 @@ pub fn get_gdp_name_from_topic(topic_name: &str, topic_type: &str, cert: &[u8]) 
     let mut hasher = Sha256::new();
 
     info!(
-        "Name is generated from topic_name: {}, topic_type: {}, cert: {:?}",
-        topic_name, topic_type, cert
+        "Name is generated from topic_name: {}, topic_type: {}, cert: (too long, not printed)",
+        topic_name, topic_type
     );
     // hash with name, type and certificate
     hasher.update(topic_name);

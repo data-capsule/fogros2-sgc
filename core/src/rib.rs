@@ -97,6 +97,11 @@ pub async fn local_rib_handler(
                             }
                         },
                         UPDATE => {
+                            info!("received RIB update for {:?}", query);
+                            rib_store.put(query.gdpname, query.clone());
+                        },
+                        INFO => {
+                            info!("received RIB info for {:?}", query);
                             rib_store.put(query.gdpname, query.clone());
                         },
                         _ => {
