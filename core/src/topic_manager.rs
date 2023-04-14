@@ -272,29 +272,49 @@ pub async fn ros_topic_manager(
 
                         match action.as_str() {
                             "sub" => {
-                                let (m_tx, m_rx) = mpsc::unbounded_channel();
-                                // a new local topic is present
-                                // advertise the topic 
-                                let node_advertisement = 
-                                    construct_gdp_advertisement_from_structs(
-                                        topic_gdp_name, topic_gdp_name, crate::structs::GDPNameRecord{
-                                        record_type: crate::structs::GDPNameRecordType::UPDATE,
-                                        gdpname: topic_gdp_name, 
-                                        source_gdpname: ros_topic_manager_gdp_name,
-                                        webrtc_offer: None, 
-                                        ip_address:  None, 
-                                        indirect: None, 
-                                        ros: Some((topic_name.clone(), topic_type.clone())),
-                                });
-                                proc_gdp_packet(
-                                    node_advertisement, // packet
-                                    &fib_tx,            // used to send packet to fib
-                                    &channel_tx,        // used to send GDPChannel to fib
-                                    &m_tx,              // the sending handle of this connection
-                                    &rib_query_tx,       // used to send GDPNameRecord to rib
-                                    format!("ros topic manager - topic {:?}", topic_gdp_name),
-                                )
-                                .await;
+                                let channel_tx = channel_tx.clone();
+                                let fib_tx = fib_tx.clone();
+                                let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+                                let rib_query_tx = rib_query_tx.clone();
+                                let topic_name = topic_name.clone();
+                                let publisher_listening_gdp_name = generate_random_gdp_name();
+                                let handle = tokio::spawn(
+                                    async move {
+                                            // a new local topic is present
+                                            // advertise the topic 
+                                            let node_advertisement = 
+                                            construct_gdp_advertisement_from_structs(
+                                                publisher_listening_gdp_name, 
+                                                publisher_listening_gdp_name, 
+                                                crate::structs::GDPNameRecord{
+                                                record_type: crate::structs::GDPNameRecordType::UPDATE,
+                                                gdpname: topic_gdp_name, 
+                                                source_gdpname: publisher_listening_gdp_name,
+                                                webrtc_offer: None, 
+                                                ip_address:  None, 
+                                                indirect: Some(publisher_listening_gdp_name), 
+                                                ros: Some((topic_name.clone(), topic_type.clone())),
+                                        });
+                                        proc_gdp_packet(
+                                            node_advertisement, // packet
+                                            &fib_tx.clone(),            // used to send packet to fib
+                                            &channel_tx.clone(),        // used to send GDPChannel to fib
+                                            &m_tx.clone(),              // the sending handle of this connection
+                                            &rib_query_tx.clone(),       // used to send GDPNameRecord to rib
+                                            format!("ros topic publisher - topic {:?}", topic_gdp_name),
+                                        )
+                                        .await;
+                                        loop{
+                                            select!{
+                                                Some(message) = m_rx.recv() => {
+                                                    info!("received a message from the topic subscriber {:?}", message);
+
+                                                }, 
+                                            };
+                                        }
+                                    }
+                                );
+                                waiting_rib_handles.push(handle);
                             }
                             "pub" => {
                                 // create a new thread to handle that listens for the topic
@@ -333,7 +353,8 @@ pub async fn ros_topic_manager(
                                         loop{
                                             select!{
                                                 Some(message) = m_rx.recv() => {
-                                                    info!("received a message from the topic");
+                                                    info!("received a message from the topic subscriber {:?}", message);
+
                                                 }, 
                                             };
                                         }
