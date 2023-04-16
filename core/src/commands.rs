@@ -17,6 +17,7 @@ use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use utils::app_config::AppConfig;
 use utils::error::Result;
+use crate::network::webrtc::webrtc_main;
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
@@ -38,6 +39,8 @@ async fn router_async_loop() {
         }
         None => config.default_gateway,
     };
+
+    webrtc_main("other_id".to_string(), None).await;
 
     // initialize the address binding
     let all_addr = "0.0.0.0"; // optionally use [::0] for ipv6 address
@@ -202,5 +205,6 @@ pub async fn simulate_error() -> Result<()> {
 
     // ros_sample();
     // TODO: uncomment them
+    webrtc_main("my_id".to_string(), Some("other_id".to_string())).await;
     Ok(())
 }

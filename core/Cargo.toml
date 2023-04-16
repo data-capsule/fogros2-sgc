@@ -36,6 +36,12 @@ base64="0.13.0"
 lazy_static = "1.4"
 hyper = { version = "0.14.16", features = ["full"] }
 async-datachannel = "0.4.0"
+async-tungstenite = { version = "0.17.2", features = ["tokio-openssl"] }
+tracing-subscriber = "0.3.16"
+parking_lot = "0.12.1"
+tracing = "0.1.37"
+
+
 [dependencies.r2r]
 r2r = "0.6.2"
 optional = true 
