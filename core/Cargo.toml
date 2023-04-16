@@ -14,10 +14,6 @@ utils = { path = "../utils" }
 
 rand = "0.8.4"
 log = "0.4.14"
-pnet= { version = "0.31.0", features = ["std"] }
-pnet_macros_support =  { version = "0.31.0" }
-pnet_macros ={ version = "0.31.0" }
-pnet_packet = { version = "0.31.0", features = ["std"] }
 local-ip-address = "0.4.9"
 strum_macros = "0.24.3"
 anyhow = "1.0.66"
@@ -28,7 +24,7 @@ openssl = "0.10.42"
 regex="1.7.0"
 serde = "1.0.149"
 serde_json = "*"
-tokio = { version = "1.21.2", features = ["full"] }
+tokio = { version = "1.22", features = ["full"] }
 tokio-core = "0.1"
 futures = "0.3.19"
 tokio-openssl = '0.6'
@@ -39,10 +35,16 @@ webrtc = "0.7.1"
 base64="0.13.0"
 lazy_static = "1.4"
 hyper = { version = "0.14.16", features = ["full"] }
-
+async-datachannel = "0.4.0"
 [dependencies.r2r]
 r2r = "0.6.2"
 optional = true 
+
+# deprecated dependencies 
+# pnet= { version = "0.31.0", features = ["std"] }
+# pnet_macros_support =  { version = "0.31.0" }
+# pnet_macros ={ version = "0.31.0" }
+# pnet_packet = { version = "0.31.0", features = ["std"] }
 
 [build-dependencies]
 tonic-build = "0.8"

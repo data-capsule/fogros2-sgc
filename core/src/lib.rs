@@ -3,7 +3,6 @@
 // sub crates and primitives
 pub mod crypto;
 pub mod network;
-pub mod protocol;
 pub mod structs;
 
 pub mod rib;
