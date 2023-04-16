@@ -367,14 +367,14 @@ pub async fn ros_topic_manager(
                                                     
                                                     let publisher_name = name_record.indirect.unwrap();
                                                     info!("received a publisher name {:?}", publisher_name);
-                                                    let subscribe_request_packet = GDPPacket {
-                                                        action: GdpAction::AdvertiseResponse,
-                                                        gdpname: publisher_name,
-                                                        source: subscriber_listening_gdp_name,
-                                                        payload: None,
-                                                        name_record: None,
-                                                    };
-                                                    fib_tx.send(subscribe_request_packet);
+                                                    // let subscribe_request_packet = GDPPacket {
+                                                    //     action: GdpAction::AdvertiseResponse,
+                                                    //     gdpname: publisher_name,
+                                                    //     source: subscriber_listening_gdp_name,
+                                                    //     payload: None,
+                                                    //     name_record: None,
+                                                    // };
+                                                    // fib_tx.send(subscribe_request_packet);
                                                 }, 
                                             };
                                         }
