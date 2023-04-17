@@ -107,7 +107,6 @@ pub struct GDPHeaderInTransit {
 }
 
 impl Packet for GDPPacket {
-
     fn get_byte_payload(&self) -> Option<&Vec<u8>> {
         match &self.payload {
             Some(p) => Some(p),
@@ -117,7 +116,10 @@ impl Packet for GDPPacket {
 
     fn get_header(&self) -> GDPHeaderInTransit {
         let name_record_length = match &self.name_record {
-            Some(name_record) => serde_json::to_string(&name_record).unwrap().as_bytes().len(),
+            Some(name_record) => serde_json::to_string(&name_record)
+                .unwrap()
+                .as_bytes()
+                .len(),
             None => 0,
         };
         let transit_packet = match &self.payload {
@@ -168,7 +170,7 @@ pub struct GDPChannel {
 
 // union in rust is unsafe, use struct instead
 // name record is what being stored in RIB and used for routing
-// one can resolve the GDPNameRecord using RIB put and get 
+// one can resolve the GDPNameRecord using RIB put and get
 // it can be safely ported for another machine to connect
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct GDPNameRecord {
@@ -184,16 +186,16 @@ pub struct GDPNameRecord {
     // indirect to another GDPName
     // this occurs if certain gdpname is hosted on a machine;
     // then we solve the GDP name to the machine's GDPName
-    pub indirect: Option<GDPName>,  
+    pub indirect: Option<GDPName>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum GDPNameRecordType {
     EMPTY,
     INFO, // inform the existence of the record, does not replace if present
-    QUERY, 
+    QUERY,
     UPDATE, // update the existing record by replacing the old one
-    MERGE, // merge-able into the existing record
+    MERGE,  // merge-able into the existing record
     DELETE,
 }
 

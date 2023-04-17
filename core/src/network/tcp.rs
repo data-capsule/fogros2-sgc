@@ -2,8 +2,8 @@ use crate::pipeline::construct_gdp_advertisement_from_bytes;
 use crate::pipeline::construct_gdp_advertisement_from_structs;
 use crate::pipeline::proc_gdp_packet;
 
-use crate::structs::GDPName;
 use crate::structs::generate_random_gdp_name;
+use crate::structs::GDPName;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
 use std::io;
 
@@ -196,7 +196,7 @@ async fn handle_tcp_stream(
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
                                     &m_tx, //the sending handle of this connection
-                                    &rib_query_tx, 
+                                    &rib_query_tx,
                                     "".to_string(),
                                 ).await;
                             }
@@ -206,7 +206,7 @@ async fn handle_tcp_stream(
                                     fib_tx,  //used to send packet tofib
                                     channel_tx, // used to send GDPChannel tofib
                                     &m_tx, //the sending handle of this connection
-                                    &rib_query_tx, 
+                                    &rib_query_tx,
                                     format!("{}-{}", "tcp", thread_name),
                                 ).await;
                             }
@@ -360,16 +360,16 @@ pub async fn tcp_to_peer(
     info!("TCP takes gdp name {:?}", m_gdp_name);
 
     let node_advertisement = construct_gdp_advertisement_from_structs(
-        m_gdp_name, 
         m_gdp_name,
-        crate::structs::GDPNameRecord{
+        m_gdp_name,
+        crate::structs::GDPNameRecord {
             record_type: crate::structs::GDPNameRecordType::UPDATE,
-            gdpname: m_gdp_name, 
+            gdpname: m_gdp_name,
             source_gdpname: m_gdp_name,
-            webrtc_offer: None, 
-            ip_address: Some(addr.clone()), 
-            indirect: None, 
-            ros:None,
+            webrtc_offer: None,
+            ip_address: Some(addr.clone()),
+            indirect: None,
+            ros: None,
         },
     );
     proc_gdp_packet(
@@ -381,7 +381,16 @@ pub async fn tcp_to_peer(
         format!("tcp_to_peer({})", addr),
     )
     .await;
-    handle_tcp_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await;
+    handle_tcp_stream(
+        stream,
+        &fib_tx,
+        &channel_tx,
+        m_tx,
+        m_rx,
+        m_gdp_name,
+        &rib_query_tx,
+    )
+    .await;
 }
 
 /// does not go tofib when peering
@@ -406,5 +415,14 @@ pub async fn tcp_to_peer_direct(
     let m_gdp_name = generate_random_gdp_name();
     info!("TCP connection takes gdp name {:?}", m_gdp_name);
 
-    handle_tcp_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name, &rib_query_tx).await;
+    handle_tcp_stream(
+        stream,
+        &fib_tx,
+        &channel_tx,
+        peer_tx,
+        peer_rx,
+        m_gdp_name,
+        &rib_query_tx,
+    )
+    .await;
 }

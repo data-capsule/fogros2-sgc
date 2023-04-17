@@ -2,7 +2,6 @@ use std::future::Future;
 /// The code is vendored and adapted from
 /// https://github.com/SajjadPourali/udp-stream
 /// udp-stream == 0.3.0
-///
 use std::{
     collections::HashMap,
     io::{self},

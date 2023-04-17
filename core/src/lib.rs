@@ -11,8 +11,8 @@ pub mod connection_fib;
 pub mod pipeline;
 // util
 pub mod commands;
-pub mod topic_manager;
 pub mod signal;
+pub mod topic_manager;
 use utils::error::Result;
 
 pub mod gdp_proto {

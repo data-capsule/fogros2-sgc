@@ -6,14 +6,17 @@ use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
 use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer};
 use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
-use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name, GDPNameRecordType, gdp_name_to_string};
+use crate::structs::{
+    gdp_name_to_string, generate_random_gdp_name, get_gdp_name_from_topic, GDPChannel, GDPName,
+    GDPNameRecord, GDPNameRecordType, GDPPacket, GdpAction,
+};
 
 use serde::{Deserialize, Serialize};
-use tokio::select;
 use std::collections::HashMap;
+use tokio::select;
 
 use tokio::process::Command;
-use tokio::sync::mpsc::{self, UnboundedSender, UnboundedReceiver};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio::time::sleep;
 use tokio::time::Duration;
 use utils::app_config::AppConfig;
@@ -24,7 +27,8 @@ use utils::app_config::AppConfig;
 pub async fn topic_creator(
     peer_with_gateway: bool, default_gateway_addr: String, node_name: String, protocol: String,
     topic_name: String, topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,rib_query_tx: UnboundedSender<GDPNameRecord>,
+    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     if action == "noop" {
         info!("noop for topic {}", topic_name);
@@ -111,18 +115,20 @@ pub async fn topic_creator(
 
 
 pub async fn topic_creator_webrtc(
-    stream: async_datachannel::DataStream, node_name: String,
-    topic_name: String, topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>,certificate: Vec<u8>, rib_query_tx: UnboundedSender<GDPNameRecord>,
-){
+    stream: async_datachannel::DataStream, node_name: String, topic_name: String,
+    topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
+    channel_tx: UnboundedSender<GDPChannel>, certificate: Vec<u8>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
+) {
     let (m_tx, m_rx) = mpsc::unbounded_channel();
-    tokio::spawn(
-        webrtc_reader_and_writer(stream, fib_tx.clone(), 
-        channel_tx.clone(), 
-        rib_query_tx.clone(), 
+    tokio::spawn(webrtc_reader_and_writer(
+        stream,
+        fib_tx.clone(),
+        channel_tx.clone(),
+        rib_query_tx.clone(),
         m_tx.clone(),
-        m_rx)
-    );
+        m_rx,
+    ));
 
     let _ros_handle = match action.as_str() {
         "sub" => match topic_type.as_str() {
@@ -165,7 +171,6 @@ pub async fn topic_creator_webrtc(
         },
         _ => panic!("unknown action"),
     };
-
 }
 
 
@@ -210,8 +215,8 @@ pub struct RosTopicStatus {
 }
 
 pub async fn ros_topic_manager(
-    peer_with_gateway: bool, 
-    default_gateway_addr: String, 
+    peer_with_gateway: bool,
+    default_gateway_addr: String,
     fib_tx: UnboundedSender<GDPPacket>,
     mut ros_topic_manager_rx: UnboundedReceiver<GDPPacket>, // receiver of advertise-response
     channel_tx: UnboundedSender<GDPChannel>,
@@ -277,12 +282,12 @@ pub async fn ros_topic_manager(
         select! {
             Some(packet) = ros_topic_manager_rx.recv() => {
                 // get the gdpname record component of advertiseresponse
-                
+
                 match packet.action {
                     GdpAction::AdvertiseResponse => {
                         match packet.name_record {
                             Some(name_record) => {
-                                
+
                                 let topic_name = format!("{}", name_record.ros.clone().unwrap().0);
                                 let topic_type = format!("{}", name_record.ros.unwrap().1);
                                 info!("received advertise response for topic {}", topic_name);
@@ -301,17 +306,17 @@ pub async fn ros_topic_manager(
                                     rib_query_tx.clone(),
                                 )
                                 .await;
-                            }, 
+                            },
                             None => {
                                 warn!("received advertise response without name record");
                             }
                         }
-                    }, 
+                    },
                     _  => {
                         warn!("ros topic manager received a packet with action {:?}", packet.action);
                     }
                 }
-            }, 
+            },
             _ = sleep(Duration::from_millis(5000)) => {
                 let current_topics = node.get_topic_names_and_types().unwrap();
                 let mut existing_topics = vec![];
@@ -323,7 +328,7 @@ pub async fn ros_topic_manager(
                         let topic_name = topic.0.clone();
                         let topic_type = topic.1[0].clone(); // TODO: currently, broadcast only the first topic type
                         let action = determine_topic_action(topic_name.clone()).await;
-                        
+
                         let topic_gdp_name = GDPName(get_gdp_name_from_topic(
                             &topic_name,
                             &topic_type,
@@ -345,18 +350,18 @@ pub async fn ros_topic_manager(
                                 let handle = tokio::spawn(
                                     async move {
                                             // a new local topic is present
-                                            // advertise the topic 
-                                            let node_advertisement = 
+                                            // advertise the topic
+                                            let node_advertisement =
                                             construct_gdp_advertisement_from_structs(
-                                                publisher_listening_gdp_name, 
-                                                publisher_listening_gdp_name, 
+                                                publisher_listening_gdp_name,
+                                                publisher_listening_gdp_name,
                                                 crate::structs::GDPNameRecord{
                                                 record_type: crate::structs::GDPNameRecordType::UPDATE,
-                                                gdpname: topic_gdp_name, 
+                                                gdpname: topic_gdp_name,
                                                 source_gdpname: publisher_listening_gdp_name,
-                                                webrtc_offer: None, 
-                                                ip_address:  None, 
-                                                indirect: Some(publisher_listening_gdp_name), 
+                                                webrtc_offer: None,
+                                                ip_address:  None,
+                                                indirect: Some(publisher_listening_gdp_name),
                                                 ros: Some((topic_name.clone(), topic_type.clone())),
                                         });
                                         proc_gdp_packet(
@@ -371,7 +376,7 @@ pub async fn ros_topic_manager(
                                         let webrtc_stream = register_webrtc_stream(
                                             gdp_name_to_string(publisher_listening_gdp_name),
                                             None
-                                        ).await; 
+                                        ).await;
                                         info!("publisher registered webrtc stream");
                                         let _ros_handle = topic_creator_webrtc(
                                             webrtc_stream,
@@ -387,14 +392,14 @@ pub async fn ros_topic_manager(
                                         .await;
 
                                         // start a ros thread and connect to the topic
-                                        
+
                                         // loop{
                                         //     select!{
                                         //         Some(message) = m_rx.recv() => {
                                         //             if message.action == GdpAction::AdvertiseResponse {
                                         //                 info!("publisher received a message from the topic subscriber {:?}", message);
                                         //             }
-                                        //         }, 
+                                        //         },
                                         //     };
                                         // }
                                     }
@@ -417,18 +422,18 @@ pub async fn ros_topic_manager(
                                 let handle = tokio::spawn(
                                     async move {
                                             // a new local topic is present
-                                            // advertise the topic 
-                                            let node_advertisement = 
+                                            // advertise the topic
+                                            let node_advertisement =
                                             construct_gdp_advertisement_from_structs(
-                                                subscriber_listening_gdp_name, 
-                                                subscriber_listening_gdp_name, 
+                                                subscriber_listening_gdp_name,
+                                                subscriber_listening_gdp_name,
                                                 crate::structs::GDPNameRecord{
                                                 record_type: crate::structs::GDPNameRecordType::QUERY,
-                                                gdpname: topic_gdp_name, 
+                                                gdpname: topic_gdp_name,
                                                 source_gdpname: subscriber_listening_gdp_name,
-                                                webrtc_offer: None, 
-                                                ip_address:  None, 
-                                                indirect: None, 
+                                                webrtc_offer: None,
+                                                ip_address:  None,
+                                                indirect: None,
                                                 ros: Some((topic_name.clone(), topic_type.clone())),
                                         });
                                         proc_gdp_packet(
@@ -446,20 +451,20 @@ pub async fn ros_topic_manager(
                                                     // info!("received a message from the topic subscriber {:?}", message);
                                                     let name_record = message.name_record.unwrap();
                                                     info!("received a name record {:?}", name_record);
-                                                    if name_record.record_type != GDPNameRecordType::INFO || 
+                                                    if name_record.record_type != GDPNameRecordType::INFO ||
                                                         name_record.indirect.is_none() {
                                                         // the query message might be routed to here
                                                         // this is a workaround
                                                         warn!("received a message without indirect name record from the fib {:?}", name_record);
                                                         continue;
                                                     }
-                                                    
+
                                                     let publisher_name = name_record.indirect.unwrap();
                                                     info!("received a publisher name {:?}", publisher_name);
                                                     let webrtc_stream = register_webrtc_stream(
                                                         gdp_name_to_string(subscriber_listening_gdp_name),
                                                         Some(gdp_name_to_string(publisher_name)),
-                                                    ).await; 
+                                                    ).await;
                                                     info!("subscriber registered webrtc stream");
 
                                                     let _ros_handle = topic_creator_webrtc(
@@ -483,7 +488,7 @@ pub async fn ros_topic_manager(
                                                     //     name_record: None,
                                                     // };
                                                     // fib_tx.send(subscribe_request_packet);
-                                                }, 
+                                                },
                                             };
                                         }
                                     }

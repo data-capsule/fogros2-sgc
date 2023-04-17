@@ -4,11 +4,11 @@
 use anyhow::Result;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
+use lazy_static::lazy_static;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-use lazy_static::lazy_static;
 
 lazy_static! {
     static ref SDP_CHAN_TX_MUTEX: Arc<Mutex<Option<mpsc::Sender<String>>>> =
@@ -20,7 +20,7 @@ async fn remote_handler(req: Request<Body>) -> Result<Response<Body>, hyper::Err
     match (req.method(), req.uri().path()) {
         // A HTTP handler that processes a SessionDescription given to us from the other WebRTC-rs or Pion process
         (&Method::POST, "/sdp") => {
-            //println!("remote_handler receive from /sdp");
+            // println!("remote_handler receive from /sdp");
             let sdp_str = match std::str::from_utf8(&hyper::body::to_bytes(req.into_body()).await?)
             {
                 Ok(s) => s.to_owned(),
@@ -86,7 +86,7 @@ pub fn must_read_stdin() -> Result<String> {
 /// encode encodes the input in base64
 /// It can optionally zip the input before encoding
 pub fn encode(b: &str) -> String {
-    //if COMPRESS {
+    // if COMPRESS {
     //    b = zip(b)
     //}
 
@@ -98,46 +98,44 @@ pub fn encode(b: &str) -> String {
 pub fn decode(s: &str) -> Result<String> {
     let b = base64::decode(s)?;
 
-    //if COMPRESS {
+    // if COMPRESS {
     //    b = unzip(b)
     //}
 
     let s = String::from_utf8(b)?;
     Ok(s)
 }
-/*
-func zip(in []byte) []byte {
-    var b bytes.Buffer
-    gz := gzip.NewWriter(&b)
-    _, err := gz.Write(in)
-    if err != nil {
-        panic(err)
-    }
-    err = gz.Flush()
-    if err != nil {
-        panic(err)
-    }
-    err = gz.Close()
-    if err != nil {
-        panic(err)
-    }
-    return b.Bytes()
-}
-
-func unzip(in []byte) []byte {
-    var b bytes.Buffer
-    _, err := b.Write(in)
-    if err != nil {
-        panic(err)
-    }
-    r, err := gzip.NewReader(&b)
-    if err != nil {
-        panic(err)
-    }
-    res, err := ioutil.ReadAll(r)
-    if err != nil {
-        panic(err)
-    }
-    return res
-}
-*/
+// func zip(in []byte) []byte {
+// var b bytes.Buffer
+// gz := gzip.NewWriter(&b)
+// _, err := gz.Write(in)
+// if err != nil {
+// panic(err)
+// }
+// err = gz.Flush()
+// if err != nil {
+// panic(err)
+// }
+// err = gz.Close()
+// if err != nil {
+// panic(err)
+// }
+// return b.Bytes()
+// }
+//
+// func unzip(in []byte) []byte {
+// var b bytes.Buffer
+// _, err := b.Write(in)
+// if err != nil {
+// panic(err)
+// }
+// r, err := gzip.NewReader(&b)
+// if err != nil {
+// panic(err)
+// }
+// res, err := ioutil.ReadAll(r)
+// if err != nil {
+// panic(err)
+// }
+// return res
+// }

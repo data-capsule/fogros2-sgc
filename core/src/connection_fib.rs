@@ -1,10 +1,10 @@
+use crate::structs::GDPNameRecordType::*;
 use crate::{
     pipeline::{construct_gdp_advertisement_from_structs, construct_rib_query_from_bytes},
-    structs::{GDPChannel, GDPName, GDPPacket, GDPStatus, GDPNameRecord},
+    structs::{GDPChannel, GDPName, GDPNameRecord, GDPPacket, GDPStatus},
 };
 use std::collections::HashMap;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use crate::structs::GDPNameRecordType::*;
 
 async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     for dst in destinations {
@@ -44,13 +44,10 @@ fn dump_fib_table(rib_table: &HashMap<GDPName, Vec<GDPChannel>>) {
 ///     TODO: use future if the destination is unknown
 /// forward the packet to corresponding send_tx
 pub async fn connection_fib(
-    mut fib_rx: UnboundedReceiver<GDPPacket>, 
-    rib_query_tx: UnboundedSender<GDPNameRecord>,
+    mut fib_rx: UnboundedReceiver<GDPPacket>, rib_query_tx: UnboundedSender<GDPNameRecord>,
     mut rib_response_rx: UnboundedReceiver<GDPNameRecord>,
-    mut stat_rs: UnboundedReceiver<GDPStatus>,
-    mut channel_rx: UnboundedReceiver<GDPChannel>,
+    mut stat_rs: UnboundedReceiver<GDPStatus>, mut channel_rx: UnboundedReceiver<GDPChannel>,
 ) {
-    
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
     let _receive_handle = tokio::spawn(async move {
@@ -66,7 +63,7 @@ pub async fn connection_fib(
                 Some(pkt) = fib_rx.recv() => {
                     counter += 1;
                     info!("RIB received the packet #{} with name {}", counter, &pkt.gdpname);
-                    
+
                     // find where to route
                     match coonection_rib_table.get(&pkt.gdpname) {
                         Some(routing_dsts) => {
@@ -77,11 +74,11 @@ pub async fn connection_fib(
                             rib_query_tx.send(
                                 GDPNameRecord{
                                     record_type: QUERY,
-                                    gdpname: pkt.gdpname, 
+                                    gdpname: pkt.gdpname,
                                     source_gdpname: pkt.source,
-                                    webrtc_offer: None, 
-                                    ip_address: None, 
-                                    indirect: None, 
+                                    webrtc_offer: None,
+                                    ip_address: None,
+                                    indirect: None,
                                     ros:None,
                                 }
                             ).expect(
@@ -121,15 +118,15 @@ pub async fn connection_fib(
                             for (channel_name, channel) in &coonection_rib_table {
                                 info!("flushing advertisement for {} to {:?}", rib_response.gdpname, channel);
                                 let packet = construct_rib_query_from_bytes(
-                                    rib_response.gdpname, 
-                                    *channel_name, 
+                                    rib_response.gdpname,
+                                    *channel_name,
                                     GDPNameRecord{
                                         record_type: QUERY,
-                                        gdpname: rib_response.gdpname, 
+                                        gdpname: rib_response.gdpname,
                                         source_gdpname: *channel_name, // so that one can send it back the the interface which issues the query
-                                        webrtc_offer: None, 
-                                        ip_address: None, 
-                                        indirect: None, 
+                                        webrtc_offer: None,
+                                        ip_address: None,
+                                        indirect: None,
                                         ros:None,
                                     }
                                 );
@@ -144,13 +141,13 @@ pub async fn connection_fib(
                                     }
                                 }
                             }
-                        }, 
+                        },
                         INFO => {
                             // get it back to the interface which issues the query
                             let dst = rib_response.source_gdpname;
                             info!("found the name {:?} in RIB, sending back to {:?}", rib_response.gdpname, dst);
                             let pkt = construct_gdp_advertisement_from_structs(
-                                rib_response.gdpname, 
+                                rib_response.gdpname,
                                 rib_response.source_gdpname,
                                 rib_response
                             );
@@ -181,17 +178,17 @@ pub async fn connection_fib(
                     for (name, _channel) in &coonection_rib_table {
                         info!("flushing advertisement for {} to {:?}", name, dst);
                         let packet = construct_gdp_advertisement_from_structs(
-                            *name, 
+                            *name,
                             *name,
                             GDPNameRecord{
                                 record_type: UPDATE,
-                                gdpname: *name, 
+                                gdpname: *name,
                                 source_gdpname: *name,
-                                webrtc_offer: None, 
-                                ip_address: None, 
-                                indirect: None, 
+                                webrtc_offer: None,
+                                ip_address: None,
+                                indirect: None,
                                 ros:None,
-                            } 
+                            }
                         );
 
                         let result = dst.send(packet.clone());

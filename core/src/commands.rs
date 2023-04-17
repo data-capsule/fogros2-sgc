@@ -83,8 +83,8 @@ async fn router_async_loop() {
     future_handles.push(dtls_sender_handle);
 
     // let webrtc_sender_handle = tokio::spawn(webrtc_main(
-    //     "other_id".to_string(), 
-    //     None, 
+    //     "other_id".to_string(),
+    //     None,
     //     fib_tx.clone(),
     //     channel_tx.clone(),
     //     rib_query_tx.clone(),
@@ -93,8 +93,8 @@ async fn router_async_loop() {
 
 
     // let webrtc_sender_handle2 = tokio::spawn(webrtc_main(
-    //     "other_id2".to_string(), 
-    //     Some("other_id".to_string()), 
+    //     "other_id2".to_string(),
+    //     Some("other_id".to_string()),
     //     fib_tx.clone(),
     //     channel_tx.clone(),
     //     rib_query_tx.clone(),
@@ -120,18 +120,18 @@ async fn router_async_loop() {
     // future_handles.push(grpc_server_handle);
 
     let rib_handle = tokio::spawn(local_rib_handler(
-        rib_query_rx,     // get routing queries/updates to rib
-        rib_response_tx,  // send routing queries/updates from rib
-        stat_tx.clone(),          // send status updates to fib
+        rib_query_rx,    // get routing queries/updates to rib
+        rib_response_tx, // send routing queries/updates from rib
+        stat_tx.clone(), // send status updates to fib
     ));
     future_handles.push(rib_handle);
 
     let fib_handle = tokio::spawn(connection_fib(
-        fib_rx,     // receive packets to forward
-        rib_query_tx.clone(),     // send routing queries to rib
-        rib_response_rx, // get routing queries from rib
-        stat_rx,    // recevie control place info, e.g. routing
-        channel_rx, // receive channel information for connection fib
+        fib_rx,               // receive packets to forward
+        rib_query_tx.clone(), // send routing queries to rib
+        rib_response_rx,      // get routing queries from rib
+        stat_rx,              // recevie control place info, e.g. routing
+        channel_rx,           // receive channel information for connection fib
     ));
     future_handles.push(fib_handle);
 
@@ -190,7 +190,6 @@ async fn router_async_loop() {
     // futures.collect().await;
     // webrtc_listener_handle.await;
     future::join_all(future_handles).await;
-
 }
 
 /// Show the configuration file

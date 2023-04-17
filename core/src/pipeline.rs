@@ -1,4 +1,4 @@
-use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, GDPNameRecord};
+use crate::structs::{GDPChannel, GDPName, GDPNameRecord, GDPPacket, GdpAction};
 use tokio::sync::mpsc::UnboundedSender;
 
 /// construct gdp struct from bytes
@@ -18,9 +18,7 @@ pub fn construct_gdp_forward_from_bytes(
 /// construct gdp struct from bytes
 /// bytes is put as payload
 pub fn construct_gdp_advertisement_from_structs(
-    destination: GDPName, 
-    source: GDPName,
-    name_record: GDPNameRecord
+    destination: GDPName, source: GDPName, name_record: GDPNameRecord,
 ) -> GDPPacket {
     GDPPacket {
         action: GdpAction::Advertise,
@@ -32,9 +30,7 @@ pub fn construct_gdp_advertisement_from_structs(
 }
 
 pub fn construct_gdp_advertisement_from_bytes(
-    destination: GDPName, 
-    source: GDPName,
-    advertisement_packet: Vec<u8>
+    destination: GDPName, source: GDPName, advertisement_packet: Vec<u8>,
 ) -> GDPPacket {
     if advertisement_packet.len() == 0 {
         warn!("advertisement packet is empty");
@@ -44,23 +40,26 @@ pub fn construct_gdp_advertisement_from_bytes(
             source: source,
             payload: None,
             name_record: None,
-        }
+        };
     }
     GDPPacket {
         action: GdpAction::Advertise,
         gdpname: destination,
         source: source,
         payload: None,
-        name_record: Some(serde_json::from_str::<GDPNameRecord>(std::str::from_utf8(&advertisement_packet).unwrap()).unwrap()),
+        name_record: Some(
+            serde_json::from_str::<GDPNameRecord>(
+                std::str::from_utf8(&advertisement_packet).unwrap(),
+            )
+            .unwrap(),
+        ),
     }
 }
 
 
 /// construct rib query from bytes
 pub fn construct_rib_query_from_bytes(
-    destination: GDPName, 
-    source: GDPName,
-    name_record: GDPNameRecord
+    destination: GDPName, source: GDPName, name_record: GDPNameRecord,
 ) -> GDPPacket {
     GDPPacket {
         action: GdpAction::RibGet,
@@ -99,7 +98,7 @@ pub async fn proc_gdp_packet(
                 gdpname: gdp_name,
                 source: gdp_packet.source,
                 channel: m_tx.clone(),
-                comment
+                comment,
             };
             if let Some(record) = gdp_packet.name_record {
                 rib_tx.send(record).expect("send to rib failure");
@@ -123,7 +122,7 @@ pub async fn proc_gdp_packet(
         }
         GdpAction::RibReply => {
             // update local fib with the fib reply
-        } 
+        }
 
         GdpAction::Noop => {
             // nothing to be done here

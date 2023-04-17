@@ -1,23 +1,19 @@
-use std::{sync::Arc};
 use crate::network::dtls::parse_header_payload_pairs;
+use std::sync::Arc;
 
-use crate::pipeline::{proc_gdp_packet, construct_gdp_advertisement_from_bytes};
-
-
-
-
+use crate::pipeline::{construct_gdp_advertisement_from_bytes, proc_gdp_packet};
 
 
 use crate::pipeline::construct_gdp_forward_from_bytes;
-use crate::structs::{GDPName, GDPNameRecord, generate_random_gdp_name};
 use crate::structs::GDPHeaderInTransit;
+use crate::structs::{generate_random_gdp_name, GDPName, GDPNameRecord};
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
 
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 
-use async_datachannel::{Message, PeerConnection, RtcConfig, DataStream};
+use async_datachannel::{DataStream, Message, PeerConnection, RtcConfig};
 use async_tungstenite::{tokio::connect_async, tungstenite};
 use futures::{
     channel::mpsc,
@@ -41,11 +37,7 @@ struct SignalingMessage {
 }
 
 
-pub async fn register_webrtc_stream(
-    my_id: String,
-    peer_to_dial: Option<String>,
-) -> DataStream {
-
+pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>) -> DataStream {
     let ice_servers = vec!["stun:stun.l.google.com:19302"];
     let conf = RtcConfig::new(&ice_servers);
     let (tx_sig_outbound, mut rx_sig_outbound) = mpsc::channel(32);
@@ -96,7 +88,8 @@ pub async fn register_webrtc_stream(
     };
 
     tokio::spawn(f_read);
-    let stream = if peer_to_dial.is_some() { // here we are the initiator
+    let stream = if peer_to_dial.is_some() {
+        // here we are the initiator
         let dc = listener.dial("whatever").await.unwrap();
         info!("dial succeed");
 
@@ -112,16 +105,13 @@ pub async fn register_webrtc_stream(
 
 
 pub async fn webrtc_reader_and_writer(
-    mut stream: DataStream,
-    fib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>, 
-    rib_query_tx: UnboundedSender<GDPNameRecord>, 
-    m_tx: UnboundedSender<GDPPacket>,
-    mut m_rx: UnboundedReceiver<GDPPacket>, 
+    mut stream: DataStream, fib_tx: UnboundedSender<GDPPacket>,
+    channel_tx: UnboundedSender<GDPChannel>, rib_query_tx: UnboundedSender<GDPNameRecord>,
+    m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>,
 ) {
     // tracing_subscriber::fmt::init();
     // let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
-    
+
     let thread_name: GDPName = generate_random_gdp_name();
     let mut need_more_data_for_previous_header = false;
     let mut remaining_gdp_header: GDPHeaderInTransit = GDPHeaderInTransit {

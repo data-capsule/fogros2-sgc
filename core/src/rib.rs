@@ -2,7 +2,7 @@ extern crate multimap;
 use multimap::MultiMap;
 
 
-use crate::structs::{GDPName, GDPNameRecord, GDPStatus, GDPNameRecordType::*};
+use crate::structs::{GDPName, GDPNameRecord, GDPNameRecordType::*, GDPStatus};
 
 // an interface to rib
 // will support queries
@@ -16,7 +16,7 @@ impl RoutingInformationBase {
         // TODO: config can populate the RIB somehow
 
         RoutingInformationBase {
-            routing_table: MultiMap::new()
+            routing_table: MultiMap::new(),
         }
     }
 
@@ -42,7 +42,7 @@ impl RoutingInformationBase {
 pub async fn local_rib_handler(
     mut rib_query_rx: tokio::sync::mpsc::UnboundedReceiver<GDPNameRecord>,
     rib_response_tx: tokio::sync::mpsc::UnboundedSender<GDPNameRecord>,
-    _stat_tx: tokio::sync::mpsc::UnboundedSender<GDPStatus>,   
+    _stat_tx: tokio::sync::mpsc::UnboundedSender<GDPStatus>,
 ) {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
@@ -67,11 +67,11 @@ pub async fn local_rib_handler(
                                         info!("sending RIB query response for {:?}", record.gdpname);
                                         let record_response = GDPNameRecord{
                                             record_type: INFO,
-                                            gdpname: record.gdpname, 
+                                            gdpname: record.gdpname,
                                             source_gdpname: query.source_gdpname, // so that we can send it back to the source
-                                            webrtc_offer: record.webrtc_offer.clone(), 
-                                            ip_address: record.ip_address.clone(), 
-                                            indirect: record.indirect, 
+                                            webrtc_offer: record.webrtc_offer.clone(),
+                                            ip_address: record.ip_address.clone(),
+                                            indirect: record.indirect,
                                             ros: record.ros.clone(),
                                         };
                                         rib_response_tx.send(record_response.clone()).expect(
@@ -92,11 +92,11 @@ pub async fn local_rib_handler(
                                         rib_response_tx.send(
                                             GDPNameRecord{
                                                 record_type: EMPTY,
-                                                gdpname: query.gdpname, 
+                                                gdpname: query.gdpname,
                                                 source_gdpname: query.source_gdpname, // identify the source of the query
-                                                webrtc_offer: None, 
-                                                ip_address: None, 
-                                                indirect: None, 
+                                                webrtc_offer: None,
+                                                ip_address: None,
+                                                indirect: None,
                                                 ros: None,
                                             }
                                         ).expect(
@@ -119,11 +119,11 @@ pub async fn local_rib_handler(
                                         info!("sending RIB query response for {:?}", record);
                                         let record_response = GDPNameRecord{
                                             record_type: INFO,
-                                            gdpname: query.gdpname, 
+                                            gdpname: query.gdpname,
                                             source_gdpname: record.clone(), // so that we can send it back to the source
-                                            webrtc_offer: query.webrtc_offer.clone(), 
-                                            ip_address: query.ip_address.clone(), 
-                                            indirect: query.indirect, 
+                                            webrtc_offer: query.webrtc_offer.clone(),
+                                            ip_address: query.ip_address.clone(),
+                                            indirect: query.indirect,
                                             ros: query.ros.clone(),
                                         };
                                         rib_response_tx.send(record_response.clone()).expect(

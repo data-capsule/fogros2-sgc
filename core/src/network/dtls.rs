@@ -1,5 +1,8 @@
 use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet, construct_gdp_advertisement_from_bytes};
+use crate::pipeline::{
+    construct_gdp_advertisement_from_bytes, construct_gdp_advertisement_from_structs,
+    proc_gdp_packet,
+};
 use openssl::{
     pkey::PKey,
     ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
@@ -11,9 +14,9 @@ use tokio_openssl::SslStream;
 use utils::app_config::AppConfig;
 
 use crate::pipeline::construct_gdp_forward_from_bytes;
-use crate::structs::{GDPName, GDPNameRecord};
 use crate::structs::GDPHeaderInTransit;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
+use crate::structs::{GDPName, GDPNameRecord};
 use rand::Rng;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -278,7 +281,8 @@ async fn handle_dtls_stream(
 
 pub async fn dtls_to_peer(
     addr: String, fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>,
-    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,rib_query_tx: UnboundedSender<GDPNameRecord>,
+    m_tx: UnboundedSender<GDPPacket>, m_rx: UnboundedReceiver<GDPPacket>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let stream = UdpStream::connect(SocketAddr::from_str(&addr).unwrap())
         .await
@@ -318,16 +322,18 @@ pub async fn dtls_to_peer(
     info!("DTLS takes gdp name {:?}", m_gdp_name);
 
     let node_advertisement = construct_gdp_advertisement_from_structs(
-        m_gdp_name, m_gdp_name,
-         crate::structs::GDPNameRecord{
-        record_type: crate::structs::GDPNameRecordType::UPDATE,
-        gdpname: m_gdp_name, 
-        source_gdpname: m_gdp_name,
-        webrtc_offer: None, 
-        ip_address: Some(addr.clone()), 
-        indirect: None, 
-        ros:None,
-    },);
+        m_gdp_name,
+        m_gdp_name,
+        crate::structs::GDPNameRecord {
+            record_type: crate::structs::GDPNameRecordType::UPDATE,
+            gdpname: m_gdp_name,
+            source_gdpname: m_gdp_name,
+            webrtc_offer: None,
+            ip_address: Some(addr.clone()),
+            indirect: None,
+            ros: None,
+        },
+    );
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -337,7 +343,16 @@ pub async fn dtls_to_peer(
         format!("DTLS to peer {}", addr),
     )
     .await;
-    handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await;
+    handle_dtls_stream(
+        stream,
+        &fib_tx,
+        &channel_tx,
+        m_tx,
+        m_rx,
+        m_gdp_name,
+        &rib_query_tx,
+    )
+    .await;
 }
 
 /// does not go to fib when peering
@@ -387,7 +402,16 @@ pub async fn dtls_to_peer_direct(
     let m_gdp_name = generate_random_gdp_name();
     info!("dTLS connection takes gdp name {:?}", m_gdp_name);
 
-    handle_dtls_stream(stream, &fib_tx, &channel_tx, peer_tx, peer_rx, m_gdp_name, &rib_query_tx).await;
+    handle_dtls_stream(
+        stream,
+        &fib_tx,
+        &channel_tx,
+        peer_tx,
+        peer_rx,
+        m_gdp_name,
+        &rib_query_tx,
+    )
+    .await;
 }
 
 pub async fn dtls_listener(
@@ -427,7 +451,16 @@ pub async fn dtls_listener(
             Pin::new(&mut stream).accept().await.unwrap();
             let m_gdp_name = generate_random_gdp_name();
             info!("DTLS listener takes gdp name {:?}", m_gdp_name);
-            handle_dtls_stream(stream, &fib_tx, &channel_tx, m_tx, m_rx, m_gdp_name, &rib_query_tx).await
+            handle_dtls_stream(
+                stream,
+                &fib_tx,
+                &channel_tx,
+                m_tx,
+                m_rx,
+                m_gdp_name,
+                &rib_query_tx,
+            )
+            .await
         });
     }
 }

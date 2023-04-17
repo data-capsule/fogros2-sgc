@@ -10,15 +10,16 @@ use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
 
 use serde_json;
 
+use crate::structs::GDPNameRecord;
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::sync::mpsc::UnboundedSender;
-use crate::structs::GDPNameRecord;
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, topic_type: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
+    topic_name: String, topic_type: String, certificate: Vec<u8>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -47,15 +48,19 @@ pub async fn ros_publisher(
     });
 
     // note that different from other connectionfibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
-        record_type: crate::structs::GDPNameRecordType::UPDATE,
-        gdpname: node_gdp_name, 
-        source_gdpname: node_gdp_name,
-        webrtc_offer: None, 
-        ip_address:  None, 
-        indirect: None, 
-        ros: Some((topic_name.clone(), topic_type.clone())),
-    });
+    let node_advertisement = construct_gdp_advertisement_from_structs(
+        topic_gdp_name,
+        node_gdp_name,
+        crate::structs::GDPNameRecord {
+            record_type: crate::structs::GDPNameRecordType::UPDATE,
+            gdpname: node_gdp_name,
+            source_gdpname: node_gdp_name,
+            webrtc_offer: None,
+            ip_address: None,
+            indirect: None,
+            ros: Some((topic_name.clone(), topic_type.clone())),
+        },
+    );
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -88,7 +93,8 @@ pub async fn ros_publisher(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, topic_type: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
+    topic_name: String, topic_type: String, certificate: Vec<u8>,
+    rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -116,15 +122,19 @@ pub async fn ros_subscriber(
     });
 
     // note that different from other connectionfibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
-        record_type: crate::structs::GDPNameRecordType::UPDATE,
-        gdpname: node_gdp_name, 
-        source_gdpname: node_gdp_name,
-        webrtc_offer: None, 
-        ip_address:  None, 
-        indirect: None, 
-        ros: Some((topic_name.clone(), topic_type.clone())),
-    });
+    let node_advertisement = construct_gdp_advertisement_from_structs(
+        topic_gdp_name,
+        node_gdp_name,
+        crate::structs::GDPNameRecord {
+            record_type: crate::structs::GDPNameRecordType::UPDATE,
+            gdpname: node_gdp_name,
+            source_gdpname: node_gdp_name,
+            webrtc_offer: None,
+            ip_address: None,
+            indirect: None,
+            ros: Some((topic_name.clone(), topic_type.clone())),
+        },
+    );
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -158,10 +168,8 @@ pub async fn ros_subscriber(
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
+    topic_name: String, certificate: Vec<u8>, rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
-  
-
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -189,15 +197,19 @@ pub async fn ros_subscriber_image(
     });
 
     // note that different from other connectionfibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
-        record_type: crate::structs::GDPNameRecordType::UPDATE,
-        gdpname: node_gdp_name, 
-        source_gdpname: node_gdp_name,
-        webrtc_offer: None, 
-        ip_address:  None, 
-        indirect: None, 
-        ros: Some((topic_name.clone(), topic_type.clone())),
-    });
+    let node_advertisement = construct_gdp_advertisement_from_structs(
+        topic_gdp_name,
+        node_gdp_name,
+        crate::structs::GDPNameRecord {
+            record_type: crate::structs::GDPNameRecordType::UPDATE,
+            gdpname: node_gdp_name,
+            source_gdpname: node_gdp_name,
+            webrtc_offer: None,
+            ip_address: None,
+            indirect: None,
+            ros: Some((topic_name.clone(), topic_type.clone())),
+        },
+    );
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
@@ -220,7 +232,7 @@ pub async fn ros_subscriber_image(
                     &fib_tx,  //used to send packet to fib
                     &channel_tx, // used to send GDPChannel to fib
                     &m_tx, //the sending handle of this connection
-                    &rib_query_tx, 
+                    &rib_query_tx,
                     format!("ros subscriber image {}-{}", topic_name, topic_type),
                 ).await;
 
@@ -232,7 +244,7 @@ pub async fn ros_subscriber_image(
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
     fib_tx: UnboundedSender<GDPPacket>, channel_tx: UnboundedSender<GDPChannel>, node_name: String,
-    topic_name: String, certificate: Vec<u8>,    rib_query_tx: UnboundedSender<GDPNameRecord>,
+    topic_name: String, certificate: Vec<u8>, rib_query_tx: UnboundedSender<GDPNameRecord>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
@@ -265,21 +277,25 @@ pub async fn ros_publisher_image(
     });
 
     // note that different from other connection fibs, we send advertisement ahead of time
-    let node_advertisement = construct_gdp_advertisement_from_structs(topic_gdp_name, node_gdp_name, crate::structs::GDPNameRecord{
-        record_type: crate::structs::GDPNameRecordType::UPDATE,
-        gdpname: node_gdp_name, 
-        source_gdpname: node_gdp_name,
-        webrtc_offer: None, 
-        ip_address:  None, 
-        indirect: None, 
-        ros: Some((topic_name.clone(), topic_type.clone())),
-    });
+    let node_advertisement = construct_gdp_advertisement_from_structs(
+        topic_gdp_name,
+        node_gdp_name,
+        crate::structs::GDPNameRecord {
+            record_type: crate::structs::GDPNameRecordType::UPDATE,
+            gdpname: node_gdp_name,
+            source_gdpname: node_gdp_name,
+            webrtc_offer: None,
+            ip_address: None,
+            indirect: None,
+            ros: Some((topic_name.clone(), topic_type.clone())),
+        },
+    );
     proc_gdp_packet(
         node_advertisement, // packet
         &fib_tx,            // used to send packet to fib
         &channel_tx,        // used to send GDPChannel to fib
         &m_tx,              // the sending handle of this connection
-        &rib_query_tx, 
+        &rib_query_tx,
         format!("ros publisher image {}-{}", topic_name, topic_type),
     )
     .await;
