@@ -17,7 +17,6 @@ use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use utils::app_config::AppConfig;
 use utils::error::Result;
-use crate::network::webrtc::webrtc_main;
 
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file

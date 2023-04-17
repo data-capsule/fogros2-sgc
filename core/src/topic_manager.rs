@@ -4,7 +4,7 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
-use crate::network::webrtc::register_webrtc_stream;
+use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer};
 use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
 use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name, GDPNameRecordType, gdp_name_to_string};
 
@@ -108,6 +108,66 @@ pub async fn topic_creator(
         _ => panic!("unknown action"),
     };
 }
+
+
+pub async fn topic_creator_webrtc(
+    mut stream: async_datachannel::DataStream, node_name: String,
+    topic_name: String, topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
+    channel_tx: UnboundedSender<GDPChannel>,certificate: Vec<u8>, rib_query_tx: UnboundedSender<GDPNameRecord>,
+){
+    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+    tokio::spawn(
+        webrtc_reader_and_writer(stream, fib_tx.clone(), 
+        channel_tx.clone(), 
+        rib_query_tx.clone(), 
+        m_tx.clone(),
+        m_rx)
+    );
+
+    let _ros_handle = match action.as_str() {
+        "sub" => match topic_type.as_str() {
+            "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
+                m_tx.clone(),
+                channel_tx.clone(),
+                node_name,
+                topic_name,
+                certificate,
+                rib_query_tx.clone(),
+            )),
+            _ => tokio::spawn(ros_subscriber(
+                m_tx.clone(),
+                channel_tx.clone(),
+                node_name,
+                topic_name,
+                topic_type,
+                certificate,
+                rib_query_tx.clone(),
+            )),
+        },
+        "pub" => match topic_type.as_str() {
+            "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
+                m_tx.clone(),
+                channel_tx.clone(),
+                node_name,
+                topic_name,
+                certificate,
+                rib_query_tx.clone(),
+            )),
+            _ => tokio::spawn(ros_publisher(
+                m_tx.clone(),
+                channel_tx.clone(),
+                node_name,
+                topic_name,
+                topic_type,
+                certificate,
+                rib_query_tx.clone(),
+            )),
+        },
+        _ => panic!("unknown action"),
+    };
+
+}
+
 
 /// determine the action of a new topic
 /// pub/sub/noop
@@ -279,6 +339,8 @@ pub async fn ros_topic_manager(
                                 let rib_query_tx = rib_query_tx.clone();
                                 let topic_name = topic_name.clone();
                                 let publisher_listening_gdp_name = generate_random_gdp_name();
+                                let certificate = certificate.clone();
+                                let action = action.clone();
                                 let handle = tokio::spawn(
                                     async move {
                                             // a new local topic is present
@@ -310,6 +372,20 @@ pub async fn ros_topic_manager(
                                             None
                                         ).await; 
                                         info!("publisher registered webrtc stream");
+                                        let _ros_handle = topic_creator_webrtc(
+                                            webrtc_stream,
+                                            gdp_name_to_string(publisher_listening_gdp_name),
+                                            topic_name.clone(),
+                                            topic_type,
+                                            action.clone(),
+                                            fib_tx.clone(),
+                                            channel_tx.clone(),
+                                            certificate.clone(),
+                                            rib_query_tx.clone(),
+                                        )
+                                        .await;
+
+                                        // start a ros thread and connect to the topic
                                         
                                         // loop{
                                         //     select!{
@@ -379,6 +455,19 @@ pub async fn ros_topic_manager(
                                                         Some(gdp_name_to_string(publisher_name)),
                                                     ).await; 
                                                     info!("subscriber registered webrtc stream");
+
+                                                    let _ros_handle = topic_creator_webrtc(
+                                                        webrtc_stream,
+                                                        gdp_name_to_string(publisher_listening_gdp_name),
+                                                        topic_name.clone(),
+                                                        topic_type,
+                                                        action.clone(),
+                                                        fib_tx.clone(),
+                                                        channel_tx.clone(),
+                                                        certificate.clone(),
+                                                        rib_query_tx.clone(),
+                                                    )
+                                                    .await;
 
                                                     // let subscribe_request_packet = GDPPacket {
                                                     //     action: GdpAction::AdvertiseResponse,

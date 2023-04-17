@@ -115,19 +115,19 @@ pub async fn register_webrtc_stream(
 }
 
 
-pub async fn webrtc_main(
-    my_id: String,
-    peer_to_dial: Option<String>,
+pub async fn webrtc_reader_and_writer(
+    mut stream: DataStream,
     fib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>, 
-    rib_query_tx: UnboundedSender<GDPNameRecord>
+    rib_query_tx: UnboundedSender<GDPNameRecord>, 
+    m_tx: UnboundedSender<GDPPacket>,
+    mut m_rx: UnboundedReceiver<GDPPacket>, 
 ) {
     // tracing_subscriber::fmt::init();
-    let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
+    // let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
     let mut buf = vec![0; 32];
     
     let thread_name: GDPName = generate_random_gdp_name();
-    let (m_tx, mut m_rx) = tokio::sync::mpsc::unbounded_channel();
     let mut need_more_data_for_previous_header = false;
     let mut remaining_gdp_header: GDPHeaderInTransit = GDPHeaderInTransit {
         action: GdpAction::Noop,
@@ -213,7 +213,7 @@ pub async fn webrtc_main(
                             &channel_tx, // used to send GDPChannel to fib
                             &m_tx, //the sending handle of this connection
                             &rib_query_tx,
-                            format!("DTLS Advertise {} from thread {}", deserialized.destination, thread_name),
+                            format!("WebRTC Advertise {} from thread {}", deserialized.destination, thread_name),
                         ).await;
                     }
                     else if deserialized.action == GdpAction::RibGet {
