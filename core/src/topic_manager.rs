@@ -332,6 +332,7 @@ pub async fn ros_topic_manager(
                         info!("detected a new topic {:?} with action {:?}", topic, action);
 
                         match action.as_str() {
+                            // locally subscribe, globally publish
                             "sub" => {
                                 let channel_tx = channel_tx.clone();
                                 let fib_tx = fib_tx.clone();
@@ -374,7 +375,7 @@ pub async fn ros_topic_manager(
                                         info!("publisher registered webrtc stream");
                                         let _ros_handle = topic_creator_webrtc(
                                             webrtc_stream,
-                                            gdp_name_to_string(publisher_listening_gdp_name),
+                                            format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
                                             topic_name.clone(),
                                             topic_type,
                                             action.clone(),
@@ -400,6 +401,8 @@ pub async fn ros_topic_manager(
                                 );
                                 waiting_rib_handles.push(handle);
                             }
+
+                            // locally publish, globally subscribe
                             "pub" => {
                                 // create a new thread to handle that listens for the topic
                                 let channel_tx = channel_tx.clone();
@@ -408,6 +411,9 @@ pub async fn ros_topic_manager(
                                 let rib_query_tx = rib_query_tx.clone();
                                 let topic_name = topic_name.clone();
                                 let subscriber_listening_gdp_name = generate_random_gdp_name();
+                                let certificate = certificate.clone();
+                                let action = action.clone();
+                                let topic_type = topic_type.clone();
                                 let handle = tokio::spawn(
                                     async move {
                                             // a new local topic is present
@@ -458,9 +464,9 @@ pub async fn ros_topic_manager(
 
                                                     let _ros_handle = topic_creator_webrtc(
                                                         webrtc_stream,
-                                                        gdp_name_to_string(publisher_listening_gdp_name),
+                                                        format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
                                                         topic_name.clone(),
-                                                        topic_type,
+                                                        topic_type.clone(),
                                                         action.clone(),
                                                         fib_tx.clone(),
                                                         channel_tx.clone(),
