@@ -13,7 +13,7 @@ use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17480 17kb TODO: make it formal
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPHeaderInTransit;
-use rand::Rng;
+
 use crate::structs::GDPNameRecord;
 
 
@@ -292,7 +292,7 @@ async fn handle_tcp_stream(
                     let name_record_buffer = name_record_string.as_bytes();
                     info!("the name record length is {}", name_record_buffer.len());
                     match stream.try_write(&name_record_buffer[..name_record_buffer.len()]) {
-                        Ok(n) => {
+                        Ok(_n) => {
                             info!("advertisement with size {}", name_record_buffer.len());
                         }
                         Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {

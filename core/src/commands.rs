@@ -5,13 +5,13 @@ use std::time::Duration;
 
 use crate::connection_fib::connection_fib;
 
-use crate::network::dtls::{dtls_listener, dtls_test_client, dtls_to_peer};
+use crate::network::dtls::{dtls_listener, dtls_to_peer};
 use crate::network::tcp::{tcp_listener, tcp_to_peer};
 use crate::rib::local_rib_handler;
 use crate::structs::GDPStatus;
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
-use futures::stream::FuturesUnordered;
+
 use tokio::sync::mpsc::{self};
 
 use tokio::time::sleep;
@@ -62,7 +62,7 @@ async fn router_async_loop() {
     let (stat_tx, stat_rx) = mpsc::unbounded_channel();
 
     // ros_manager <GDPNameRecord>: to and from ros manager
-    let (ros_manager_tx, mut ros_manager_rx) = mpsc::unbounded_channel();
+    let (_ros_manager_tx, ros_manager_rx) = mpsc::unbounded_channel();
 
 
     let tcp_sender_handle = tokio::spawn(tcp_listener(

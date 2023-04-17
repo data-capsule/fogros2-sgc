@@ -111,11 +111,11 @@ pub async fn topic_creator(
 
 
 pub async fn topic_creator_webrtc(
-    mut stream: async_datachannel::DataStream, node_name: String,
+    stream: async_datachannel::DataStream, node_name: String,
     topic_name: String, topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>,certificate: Vec<u8>, rib_query_tx: UnboundedSender<GDPNameRecord>,
 ){
-    let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+    let (m_tx, m_rx) = mpsc::unbounded_channel();
     tokio::spawn(
         webrtc_reader_and_writer(stream, fib_tx.clone(), 
         channel_tx.clone(), 
@@ -221,7 +221,7 @@ pub async fn ros_topic_manager(
     let config = AppConfig::fetch().expect("Failed to fetch config");
     // bookkeeping the status of ros topics
     let mut topic_status = HashMap::new();
-    let ros_topic_manager_gdp_name = generate_random_gdp_name();
+    let _ros_topic_manager_gdp_name = generate_random_gdp_name();
 
     // read certificate from file in config
     let certificate = std::fs::read(format!(
@@ -336,7 +336,7 @@ pub async fn ros_topic_manager(
                             "sub" => {
                                 let channel_tx = channel_tx.clone();
                                 let fib_tx = fib_tx.clone();
-                                let (m_tx, mut m_rx) = mpsc::unbounded_channel();
+                                let (m_tx, _m_rx) = mpsc::unbounded_channel();
                                 let rib_query_tx = rib_query_tx.clone();
                                 let topic_name = topic_name.clone();
                                 let publisher_listening_gdp_name = generate_random_gdp_name();

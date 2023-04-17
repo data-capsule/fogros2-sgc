@@ -1,23 +1,19 @@
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc};
 use crate::network::dtls::parse_header_payload_pairs;
-use crate::network::udpstream::{UdpListener, UdpStream};
-use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet, construct_gdp_advertisement_from_bytes};
-use openssl::{
-    pkey::PKey,
-    ssl::{Ssl, SslAcceptor, SslConnector, SslContext, SslMethod, SslVerifyMode},
-    x509::X509,
-};
-use std::fs;
-use std::{net::SocketAddr, pin::Pin, str::FromStr};
-use tokio_openssl::SslStream;
-use utils::app_config::AppConfig;
+
+use crate::pipeline::{proc_gdp_packet, construct_gdp_advertisement_from_bytes};
+
+
+
+
+
 
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::{GDPName, GDPNameRecord, generate_random_gdp_name};
 use crate::structs::GDPHeaderInTransit;
 use crate::structs::{GDPChannel, GDPPacket, GdpAction, Packet};
-use rand::Rng;
-use std::time::{SystemTime, UNIX_EPOCH};
+
+
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 
@@ -100,8 +96,8 @@ pub async fn register_webrtc_stream(
     };
 
     tokio::spawn(f_read);
-    let mut stream = if peer_to_dial.is_some() { // here we are the initiator
-        let mut dc = listener.dial("whatever").await.unwrap();
+    let stream = if peer_to_dial.is_some() { // here we are the initiator
+        let dc = listener.dial("whatever").await.unwrap();
         info!("dial succeed");
 
         // dc.write_all(b"Ping").await.unwrap();
@@ -125,7 +121,6 @@ pub async fn webrtc_reader_and_writer(
 ) {
     // tracing_subscriber::fmt::init();
     // let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
-    let mut buf = vec![0; 32];
     
     let thread_name: GDPName = generate_random_gdp_name();
     let mut need_more_data_for_previous_header = false;

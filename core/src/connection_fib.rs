@@ -178,7 +178,7 @@ pub async fn connection_fib(
                 Some(update) = stat_rs.recv() => {
                     // Note: incomplete implementation, only support flushing advertisement
                     let dst = update.sink;
-                    for (name, channel) in &coonection_rib_table {
+                    for (name, _channel) in &coonection_rib_table {
                         info!("flushing advertisement for {} to {:?}", name, dst);
                         let packet = construct_gdp_advertisement_from_structs(
                             *name, 

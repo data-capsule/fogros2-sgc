@@ -1,6 +1,6 @@
 extern crate multimap;
 use multimap::MultiMap;
-use utils::app_config::AppConfig;
+
 
 use crate::structs::{GDPName, GDPNameRecord, GDPStatus, GDPNameRecordType::*};
 
@@ -42,7 +42,7 @@ impl RoutingInformationBase {
 pub async fn local_rib_handler(
     mut rib_query_rx: tokio::sync::mpsc::UnboundedReceiver<GDPNameRecord>,
     rib_response_tx: tokio::sync::mpsc::UnboundedSender<GDPNameRecord>,
-    stat_tx: tokio::sync::mpsc::UnboundedSender<GDPStatus>,   
+    _stat_tx: tokio::sync::mpsc::UnboundedSender<GDPStatus>,   
 ) {
     // TODO: currently, we only take one rx due to select! limitation
     // will use FutureUnordered Instead
