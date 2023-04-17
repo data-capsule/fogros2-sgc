@@ -32,7 +32,7 @@ fn generate_random_gdp_name() -> GDPName {
 /// parse the header of the packet using the first null byte as delimiter
 /// return a vector of (header, payload) pairs if the header is complete
 /// return the remaining (header, payload) pairs if the header is incomplete
-fn parse_header_payload_pairs(
+pub fn parse_header_payload_pairs(
     mut buffer: Vec<u8>,
 ) -> (
     Vec<(GDPHeaderInTransit, Vec<u8>)>,

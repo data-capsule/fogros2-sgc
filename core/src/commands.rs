@@ -40,8 +40,6 @@ async fn router_async_loop() {
         None => config.default_gateway,
     };
 
-    webrtc_main("other_id".to_string(), None).await;
-
     // initialize the address binding
     let all_addr = "0.0.0.0"; // optionally use [::0] for ipv6 address
     let tcp_bind_addr = format!("{}:{}", all_addr, config.tcp_port);
@@ -84,6 +82,25 @@ async fn router_async_loop() {
         rib_query_tx.clone(),
     ));
     future_handles.push(dtls_sender_handle);
+
+    let webrtc_sender_handle = tokio::spawn(webrtc_main(
+        "other_id".to_string(), 
+        None, 
+        fib_tx.clone(),
+        channel_tx.clone(),
+        rib_query_tx.clone(),
+    ));
+    future_handles.push(webrtc_sender_handle);
+
+
+    // let webrtc_sender_handle2 = tokio::spawn(webrtc_main(
+    //     "other_id2".to_string(), 
+    //     Some("other_id".to_string()), 
+    //     fib_tx.clone(),
+    //     channel_tx.clone(),
+    //     rib_query_tx.clone(),
+    // ));
+    // future_handles.push(webrtc_sender_handle2);
 
     // grpc
     // TODO: uncomment for grpc
@@ -205,6 +222,6 @@ pub async fn simulate_error() -> Result<()> {
 
     // ros_sample();
     // TODO: uncomment them
-    webrtc_main("my_id".to_string(), Some("other_id".to_string())).await;
+    // webrtc_main("my_id".to_string(), Some("other_id".to_string())).await;
     Ok(())
 }
