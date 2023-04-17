@@ -11,7 +11,6 @@ pub mod connection_fib;
 pub mod pipeline;
 // util
 pub mod commands;
-pub mod signal;
 pub mod topic_manager;
 use utils::error::Result;
 

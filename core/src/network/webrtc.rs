@@ -103,7 +103,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
     stream
 }
 
-
+#[allow(unused_assignments)]
 pub async fn webrtc_reader_and_writer(
     mut stream: DataStream, fib_tx: UnboundedSender<GDPPacket>,
     channel_tx: UnboundedSender<GDPChannel>, rib_query_tx: UnboundedSender<GDPNameRecord>,
