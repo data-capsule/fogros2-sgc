@@ -225,3 +225,14 @@ pub fn get_gdp_name_from_topic(topic_name: &str, topic_type: &str, cert: &[u8]) 
 pub struct GDPStatus {
     pub sink: UnboundedSender<GDPPacket>,
 }
+
+pub fn gdp_name_to_string(GDPName(name): GDPName) -> String {
+    format!("{:x}{:x}{:x}{:x}", name[0], name[1], name[2], name[3])
+}
+pub fn string_to_gdp_name(name: &str) -> GDPName {
+    let mut bytes = [0u8; 4];
+    for (i, byte) in name.as_bytes().chunks(2).enumerate() {
+        bytes[i] = u8::from_str_radix(std::str::from_utf8(byte).unwrap(), 16).unwrap();
+    }
+    GDPName(bytes)
+}

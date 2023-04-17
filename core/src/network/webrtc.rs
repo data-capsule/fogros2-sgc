@@ -45,7 +45,7 @@ struct SignalingMessage {
 }
 
 
-async fn register_webrtc(
+pub async fn register_webrtc_stream(
     my_id: String,
     peer_to_dial: Option<String>,
 ) -> DataStream {
@@ -104,7 +104,7 @@ async fn register_webrtc(
         let mut dc = listener.dial("whatever").await.unwrap();
         info!("dial succeed");
 
-        dc.write_all(b"Ping").await.unwrap();
+        // dc.write_all(b"Ping").await.unwrap();
         dc
     } else {
         let dc = listener.accept().await.unwrap();
@@ -123,7 +123,7 @@ pub async fn webrtc_main(
     rib_query_tx: UnboundedSender<GDPNameRecord>
 ) {
     // tracing_subscriber::fmt::init();
-    let mut stream = register_webrtc(my_id, peer_to_dial).await;
+    let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
     let mut buf = vec![0; 32];
     
     let thread_name: GDPName = generate_random_gdp_name();

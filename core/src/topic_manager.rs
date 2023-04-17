@@ -4,8 +4,9 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::tcp::tcp_to_peer_direct;
+use crate::network::webrtc::register_webrtc_stream;
 use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
-use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name, GDPNameRecordType};
+use crate::structs::{GDPChannel, GDPPacket, GDPNameRecord, GdpAction, get_gdp_name_from_topic, GDPName, generate_random_gdp_name, GDPNameRecordType, gdp_name_to_string};
 
 use serde::{Deserialize, Serialize};
 use tokio::select;
@@ -304,15 +305,21 @@ pub async fn ros_topic_manager(
                                             format!("ros topic publisher - topic {:?}", topic_gdp_name),
                                         )
                                         .await;
-                                        loop{
-                                            select!{
-                                                Some(message) = m_rx.recv() => {
-                                                    if message.action == GdpAction::AdvertiseResponse {
-                                                        info!("publisher received a message from the topic subscriber {:?}", message);
-                                                    }
-                                                }, 
-                                            };
-                                        }
+                                        let webrtc_stream = register_webrtc_stream(
+                                            gdp_name_to_string(publisher_listening_gdp_name),
+                                            None
+                                        ).await; 
+                                        info!("publisher registered webrtc stream");
+                                        
+                                        // loop{
+                                        //     select!{
+                                        //         Some(message) = m_rx.recv() => {
+                                        //             if message.action == GdpAction::AdvertiseResponse {
+                                        //                 info!("publisher received a message from the topic subscriber {:?}", message);
+                                        //             }
+                                        //         }, 
+                                        //     };
+                                        // }
                                     }
                                 );
                                 waiting_rib_handles.push(handle);
@@ -367,6 +374,12 @@ pub async fn ros_topic_manager(
                                                     
                                                     let publisher_name = name_record.indirect.unwrap();
                                                     info!("received a publisher name {:?}", publisher_name);
+                                                    let webrtc_stream = register_webrtc_stream(
+                                                        gdp_name_to_string(subscriber_listening_gdp_name),
+                                                        Some(gdp_name_to_string(publisher_name)),
+                                                    ).await; 
+                                                    info!("subscriber registered webrtc stream");
+
                                                     // let subscribe_request_packet = GDPPacket {
                                                     //     action: GdpAction::AdvertiseResponse,
                                                     //     gdpname: publisher_name,

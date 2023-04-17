@@ -83,24 +83,24 @@ async fn router_async_loop() {
     ));
     future_handles.push(dtls_sender_handle);
 
-    let webrtc_sender_handle = tokio::spawn(webrtc_main(
-        "other_id".to_string(), 
-        None, 
-        fib_tx.clone(),
-        channel_tx.clone(),
-        rib_query_tx.clone(),
-    ));
-    future_handles.push(webrtc_sender_handle);
+    // let webrtc_sender_handle = tokio::spawn(webrtc_main(
+    //     "other_id".to_string(), 
+    //     None, 
+    //     fib_tx.clone(),
+    //     channel_tx.clone(),
+    //     rib_query_tx.clone(),
+    // ));
+    // future_handles.push(webrtc_sender_handle);
 
 
-    let webrtc_sender_handle2 = tokio::spawn(webrtc_main(
-        "other_id2".to_string(), 
-        Some("other_id".to_string()), 
-        fib_tx.clone(),
-        channel_tx.clone(),
-        rib_query_tx.clone(),
-    ));
-    future_handles.push(webrtc_sender_handle2);
+    // let webrtc_sender_handle2 = tokio::spawn(webrtc_main(
+    //     "other_id2".to_string(), 
+    //     Some("other_id".to_string()), 
+    //     fib_tx.clone(),
+    //     channel_tx.clone(),
+    //     rib_query_tx.clone(),
+    // ));
+    // future_handles.push(webrtc_sender_handle2);
 
     // grpc
     // TODO: uncomment for grpc
