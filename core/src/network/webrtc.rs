@@ -21,7 +21,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 const UDP_BUFFER_SIZE: usize = 17480; // 17kb
 
-use async_datachannel::{Message, PeerConnection, RtcConfig};
+use async_datachannel::{Message, PeerConnection, RtcConfig, DataStream};
 use async_tungstenite::{tokio::connect_async, tungstenite};
 use futures::{
     channel::mpsc,
@@ -45,14 +45,10 @@ struct SignalingMessage {
 }
 
 
-pub async fn webrtc_main(
+async fn register_webrtc(
     my_id: String,
     peer_to_dial: Option<String>,
-    fib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>, 
-    rib_query_tx: UnboundedSender<GDPNameRecord>
-) {
-    // tracing_subscriber::fmt::init();
+) -> DataStream {
 
     let ice_servers = vec!["stun:stun.l.google.com:19302"];
     let conf = RtcConfig::new(&ice_servers);
@@ -115,6 +111,19 @@ pub async fn webrtc_main(
         info!("accept succeed");
         dc
     };
+    stream
+}
+
+
+pub async fn webrtc_main(
+    my_id: String,
+    peer_to_dial: Option<String>,
+    fib_tx: UnboundedSender<GDPPacket>,
+    channel_tx: UnboundedSender<GDPChannel>, 
+    rib_query_tx: UnboundedSender<GDPNameRecord>
+) {
+    // tracing_subscriber::fmt::init();
+    let mut stream = register_webrtc(my_id, peer_to_dial).await;
     let mut buf = vec![0; 32];
     
     let thread_name: GDPName = generate_random_gdp_name();
