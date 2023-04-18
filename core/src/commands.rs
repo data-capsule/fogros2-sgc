@@ -64,7 +64,6 @@ async fn router_async_loop() {
     // ros_manager <GDPNameRecord>: to and from ros manager
     let (_ros_manager_tx, ros_manager_rx) = mpsc::unbounded_channel();
 
-
     let rib_handle = tokio::spawn(local_rib_handler(
         rib_query_rx,    // get routing queries/updates to rib
         rib_response_tx, // send routing queries/updates from rib
@@ -82,7 +81,7 @@ async fn router_async_loop() {
     future_handles.push(fib_handle);
 
     sleep(Duration::from_millis(500)).await;
-    
+
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
         fib_tx.clone(),
@@ -134,7 +133,6 @@ async fn router_async_loop() {
     // });
     // let grpc_server_handle = manager_handle;
     // future_handles.push(grpc_server_handle);
-
 
     let ros_topic_manager_handle = tokio::spawn(ros_topic_manager(
         peer_with_gateway,
