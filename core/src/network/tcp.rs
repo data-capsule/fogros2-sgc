@@ -16,7 +16,6 @@ use crate::structs::GDPHeaderInTransit;
 
 use crate::structs::GDPNameRecord;
 
-
 /// parse the header of the packet using the first null byte as delimiter
 /// return a vector of (header, payload) pairs if the header is complete
 /// return the remaining (header, payload) pairs if the header is incomplete

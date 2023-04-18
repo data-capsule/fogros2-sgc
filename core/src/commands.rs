@@ -64,7 +64,6 @@ async fn router_async_loop() {
     // ros_manager <GDPNameRecord>: to and from ros manager
     let (_ros_manager_tx, ros_manager_rx) = mpsc::unbounded_channel();
 
-
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
         fib_tx.clone(),
@@ -72,7 +71,6 @@ async fn router_async_loop() {
         rib_query_tx.clone(),
     ));
     future_handles.push(tcp_sender_handle);
-
 
     let dtls_sender_handle = tokio::spawn(dtls_listener(
         dtls_bind_addr,
@@ -90,7 +88,6 @@ async fn router_async_loop() {
     //     rib_query_tx.clone(),
     // ));
     // future_handles.push(webrtc_sender_handle);
-
 
     // let webrtc_sender_handle2 = tokio::spawn(webrtc_main(
     //     "other_id2".to_string(),
