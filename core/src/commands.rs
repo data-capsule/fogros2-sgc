@@ -65,6 +65,24 @@ async fn router_async_loop() {
     let (_ros_manager_tx, ros_manager_rx) = mpsc::unbounded_channel();
 
 
+    let rib_handle = tokio::spawn(local_rib_handler(
+        rib_query_rx,    // get routing queries/updates to rib
+        rib_response_tx, // send routing queries/updates from rib
+        stat_tx.clone(), // send status updates to fib
+    ));
+    future_handles.push(rib_handle);
+
+    let fib_handle = tokio::spawn(connection_fib(
+        fib_rx,               // receive packets to forward
+        rib_query_tx.clone(), // send routing queries to rib
+        rib_response_rx,      // get routing queries from rib
+        stat_rx,              // recevie control place info, e.g. routing
+        channel_rx,           // receive channel information for connection fib
+    ));
+    future_handles.push(fib_handle);
+
+    sleep(Duration::from_millis(500)).await;
+    
     let tcp_sender_handle = tokio::spawn(tcp_listener(
         tcp_bind_addr,
         fib_tx.clone(),
@@ -119,21 +137,6 @@ async fn router_async_loop() {
     // let grpc_server_handle = manager_handle;
     // future_handles.push(grpc_server_handle);
 
-    let rib_handle = tokio::spawn(local_rib_handler(
-        rib_query_rx,    // get routing queries/updates to rib
-        rib_response_tx, // send routing queries/updates from rib
-        stat_tx.clone(), // send status updates to fib
-    ));
-    future_handles.push(rib_handle);
-
-    let fib_handle = tokio::spawn(connection_fib(
-        fib_rx,               // receive packets to forward
-        rib_query_tx.clone(), // send routing queries to rib
-        rib_response_rx,      // get routing queries from rib
-        stat_rx,              // recevie control place info, e.g. routing
-        channel_rx,           // receive channel information for connection fib
-    ));
-    future_handles.push(fib_handle);
 
     let ros_topic_manager_handle = tokio::spawn(ros_topic_manager(
         peer_with_gateway,
@@ -174,7 +177,7 @@ async fn router_async_loop() {
 
         // only non-gateway proxy needs to advertise themselves
         // it needs the connection to be settled first, otherwise the advertisement is lost
-        sleep(Duration::from_millis(1000)).await;
+        sleep(Duration::from_millis(1500)).await;
         info!("Flushing the RIB....");
         stat_tx
             .send(GDPStatus { sink: m_tx })

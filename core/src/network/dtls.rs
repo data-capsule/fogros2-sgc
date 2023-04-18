@@ -203,6 +203,7 @@ async fn handle_dtls_stream(
                         ).await;
                     }
                     else if deserialized.action == GdpAction::Advertise {
+                        info!("received advertise packet from {}", deserialized.destination);
                         let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
                         proc_gdp_packet(packet,  // packet
                             fib_tx,  //used to send packet to fib
