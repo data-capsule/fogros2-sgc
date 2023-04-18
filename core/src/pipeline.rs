@@ -56,7 +56,6 @@ pub fn construct_gdp_advertisement_from_bytes(
     }
 }
 
-
 /// construct rib query from bytes
 pub fn construct_rib_query_from_bytes(
     destination: GDPName, source: GDPName, name_record: GDPNameRecord,

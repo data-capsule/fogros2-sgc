@@ -77,7 +77,6 @@ pub fn generate_random_gdp_name() -> GDPName {
     ])
 }
 
-
 pub(crate) trait Packet {
     /// get protobuf object of the packet
     /// get serialized byte array of the packet

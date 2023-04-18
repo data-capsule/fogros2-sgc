@@ -5,7 +5,8 @@ use crate::structs::get_gdp_name_from_topic;
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;
 
-#[cfg(feature = "ros")] use r2r::QosProfile;
+#[cfg(feature = "ros")]
+use r2r::QosProfile;
 use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
 
 use serde_json;

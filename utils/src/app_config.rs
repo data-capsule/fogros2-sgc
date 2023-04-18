@@ -109,7 +109,9 @@ impl AppConfig {
 
     // Get a single value
     pub fn get<'de, T>(key: &'de str) -> Result<T>
-    where T: serde::Deserialize<'de> {
+    where
+        T: serde::Deserialize<'de>,
+    {
         Ok(CONFIG.read()?.get::<T>(key)?)
     }
 

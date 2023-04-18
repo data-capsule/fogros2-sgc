@@ -1,7 +1,6 @@
 extern crate multimap;
 use multimap::MultiMap;
 
-
 use crate::structs::{GDPName, GDPNameRecord, GDPNameRecordType::*, GDPStatus};
 
 // an interface to rib

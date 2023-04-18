@@ -26,7 +26,6 @@ async fn send_to_destination(destinations: Vec<GDPChannel>, packet: GDPPacket) {
     }
 }
 
-
 fn dump_fib_table(rib_table: &HashMap<GDPName, Vec<GDPChannel>>) {
     info!("dumpping FIB table");
     for (k, v) in rib_table {
@@ -53,7 +52,6 @@ pub async fn connection_fib(
     let _receive_handle = tokio::spawn(async move {
         let mut coonection_rib_table: HashMap<GDPName, Vec<GDPChannel>> = HashMap::new();
         let mut counter = 0;
-
 
         // loop polling from
         loop {

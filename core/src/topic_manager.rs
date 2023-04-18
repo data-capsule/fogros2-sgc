@@ -113,7 +113,6 @@ pub async fn topic_creator(
     };
 }
 
-
 pub async fn topic_creator_webrtc(
     stream: async_datachannel::DataStream, node_name: String, topic_name: String,
     topic_type: String, action: String, fib_tx: UnboundedSender<GDPPacket>,
@@ -172,7 +171,6 @@ pub async fn topic_creator_webrtc(
         _ => panic!("unknown action"),
     };
 }
-
 
 /// determine the action of a new topic
 /// pub/sub/noop
@@ -256,9 +254,12 @@ pub async fn ros_topic_manager(
         )
         .await;
 
-        topic_status.insert(topic_name, RosTopicStatus {
-            action: action.clone(),
-        });
+        topic_status.insert(
+            topic_name,
+            RosTopicStatus {
+                action: action.clone(),
+            },
+        );
     }
 
     // if automatic topic discovery is disabled, return
