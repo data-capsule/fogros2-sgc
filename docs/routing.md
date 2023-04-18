@@ -47,38 +47,35 @@ The current switching infrastructure is composed of
 * a connection **Forward Information Base** (FIB) that stores the mapping of 256 bit to ongoing connections, 
 *  a **Routing Information Base** (RIB) that stores (semi) permanent records that facilitate connections. RIB does not route any packets.
 
-When a packet comes in from one interface, FIB is consulted for the next hop; if the name is found, directly forward to the interface. Otherwise, FIB queries its local RIB. 
+When a packet comes in from one interface, FIB is consulted for the next hop; if the name is found, directly forward to the interface. Otherwise, FIB queries its local RIB. If the local RIB cannot find the name, broadcast a `RIBGET` query to all interfaces.
 
 ### Workflow
 ```
 On a new ROS topic (publisher):
-    (ROS Topic Manager): creates routing information struct for the name, advertise the name, register its status handle with RIB
+    (ROS Topic Manager): creates routing information struct for the name, advertise the name with RIB, register its status handle with FIB
     If status handle receives subscribe request:
-        create a thread that subscribes to the topic
+        create a thread that subscribes to the ROS2 topic
+        relay the ROS2 topic thread with the communication thread(DTLS/TCP/webRTC)
 
 On a new ROS topic (subscriber):
-    (ROS Topic Manager): advertise the name request and querying the RIB, register its status handle with RIB
+    (ROS Topic Manager): advertise the name request and querying the RIB, register its status handle with FIB
     If status handle receives publish advertisement:
         create a thread that publishes to the ROS topic
         manager removes itself from subscribing request
         advertises the new thread that with name advertisement request
+    Querying by broadcasting
 
-
-RIB: 
 On a new packet: 
 match GDPAction with 
     Forward: 
-        Check its connection_rib hash table 
+        Check its FIB hash table 
         If name not found, 
-            mark name as in query, drop the messages (or buffer) 
-            send query to its own RIB and peers
+            mark name as in query queue; send query to its own RIB and peers
             create a connection if the routing information is found
-            (in this case, the original entity does not have access to the endpoint, so we need the router and establish peer-to-peer and hop-by-hop connection)
-            (TODO: send Nack that RIB cannot find the name)
         If name is found and sink/peer is not empty, 
             forward the packet 
     Advertisement: 
-        Store information to its corresponding connection RIB
+        Store information to its corresponding connection FIB
         Match NameType with 
             Source: add source to source rib
                 if sink_rib has the name record
@@ -87,10 +84,11 @@ match GDPAction with
                 if source_rib has the name record
                     inform ros topic manager
             Peer: add peer to rib
-            RIB: (a new RIB!) register the routing information with the RIB
+            RIB: (a new RIB!) register the routing information with the FIB
     AdvertisementResponse: 
         route the query to the corresponding protocol handler
     RibGet: 
+        forward a async message to RIB for the query
         search in RIB and get the IP address/port 
     RibResponse
         add and connect IP address/port by creating a new peering thread
