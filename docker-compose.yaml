@@ -9,9 +9,6 @@ services:
         volumes:
           - "./src:/src" 
           - "./scripts:/scripts" 
-        networks:
-          vpcbr:
-            ipv4_address: 10.5.0.5
         environment:
           # SGC_CONFIG: "talker.toml"
           SGC_CONFIG: "automatic.toml"
@@ -30,13 +27,9 @@ services:
         volumes:
           - "./src:/src" 
           - "./scripts:/scripts" 
-        networks:
-          vpcbr:
-            ipv4_address: 10.5.0.6
         environment:
           # SGC_CONFIG: "listener.toml"
           SGC_CONFIG: "automatic.toml"
-          # GATEWAY_IP: "10.5.0.5"
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         # TODO: this is a hack to make sure the subscriber is started after the publisher
