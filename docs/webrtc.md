@@ -9,11 +9,14 @@ This is achieved through a technique called ICE (Interactive Connectivity Establ
 
 Once both endpoints have exchanged their candidate lists, they use a process called connectivity checks to determine which candidates are capable of establishing a direct communication channel. This involves sending test packets to each candidate to check if they can be reached directly. If a candidate is not reachable, the endpoint can try to use another candidate until a direct connection can be established.
 
+![RTCPeerConnection diagram](https://raw.githubusercontent.com/satanas/simple-signaling-server/master/doc/RTCPeerConnection-diagram.png)
+
+
 ### Gateways / Signaling servers
 Having gateways is still in scope. FogROS robot and cloud needs to connect without knowing each other's IP address. What we do is that having robots to map the offer token to the cloud (FogROS) without knowing the IP address of the robot. Then we don't need to know the IP address of the robot and cloud. 
 
-### How it works with ROS
-
+### Why is this different from FogROS2 SGC
+The SGC relies on knowing a known gateway, and advertises the publishers 
 
 ### Q&A
 > What is the tradeoff between this and the direct DTLS approach? 
