@@ -27,12 +27,12 @@ pub async fn topic_creator_webrtc(
     topic_type: String, action: String, certificate: Vec<u8>,
 ) {
     info!("topic creator for topic {}, type {}, action {}", topic_name, topic_type, action);
-    let (m_tx, m_rx) = mpsc::unbounded_channel();
+    let (ros_tx, mut ros_rx) = mpsc::unbounded_channel();
+    let (rtc_tx, mut rtc_rx) = mpsc::unbounded_channel();
     tokio::spawn(webrtc_reader_and_writer(
         stream,
-        m_tx.clone(),
-        m_tx.clone(),
-        m_rx,
+        ros_tx.clone(),
+        rtc_rx,
     ));
 
     let _ros_handle = match action.as_str() {
@@ -47,6 +47,7 @@ pub async fn topic_creator_webrtc(
                 topic_name,
                 topic_type,
                 certificate,
+                rtc_tx, // m_tx is the sender to the webrtc reader
             )),
         },
         "pub" => match topic_type.as_str() {
@@ -61,6 +62,7 @@ pub async fn topic_creator_webrtc(
                 topic_name,
                 topic_type,
                 certificate,
+                ros_rx, // m_rx is the receiver from the webrtc writer
             )),
         },
         _ => panic!("unknown action"),

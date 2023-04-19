@@ -102,8 +102,9 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
 
 #[allow(unused_assignments)]
 pub async fn webrtc_reader_and_writer(
-    mut stream: DataStream, fib_tx: UnboundedSender<GDPPacket>,
-    m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>,
+    mut stream: DataStream, 
+    ros_tx: UnboundedSender<GDPPacket>,  //send to ros
+    mut rtc_rx: UnboundedReceiver<GDPPacket>, //receive from ros
 ) {
     // tracing_subscriber::fmt::init();
     // let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
@@ -178,7 +179,8 @@ pub async fn webrtc_reader_and_writer(
                     info!("the total received payload with size {:} with gdp header length {}",  payload.len(), header.length);
 
                     if deserialized.action == GdpAction::Forward {
-                        let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload); //todo
+                        let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload); 
+                        ros_tx.send(packet).unwrap();
                         // proc_gdp_packet(packet,  // packet
                         //     &fib_tx,  //used to send packet to fib
                         //     &channel_tx, // used to send GDPChannel to fib
@@ -206,7 +208,7 @@ pub async fn webrtc_reader_and_writer(
                 }
             },
 
-            Some(pkt_to_forward) = m_rx.recv() => {
+            Some(pkt_to_forward) = rtc_rx.recv() => {
                 //info!("TCP packet to forward: {:.unwrap()}", pkt_to_forward);
                 let transit_header = pkt_to_forward.get_header();
                 let mut header_string = serde_json::to_string(&transit_header).unwrap();

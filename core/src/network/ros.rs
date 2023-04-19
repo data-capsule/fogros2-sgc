@@ -15,12 +15,17 @@ use crate::structs::GDPNameRecord;
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::UnboundedReceiver;
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher(
      node_name: String,
-    topic_name: String, topic_type: String, certificate: Vec<u8>,
+    topic_name: String, 
+    topic_type: String, 
+    certificate: Vec<u8>,
+    mut m_rx: UnboundedReceiver<GDPPacket>,
 ) {
+    
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
         &topic_type,
@@ -34,8 +39,6 @@ pub async fn ros_publisher(
         &certificate,
     ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
-
-    let (m_tx, mut m_rx) = unbounded_channel::<GDPPacket>();
 
     let ctx = r2r::Context::create().expect("context creation failure");
     let mut node = r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
@@ -69,9 +72,11 @@ pub async fn ros_publisher(
 
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber(
-     node_name: String,
-    topic_name: String, topic_type: String, certificate: Vec<u8>,
-    
+    node_name: String,
+    topic_name: String, 
+    topic_type: String, 
+    certificate: Vec<u8>,
+    m_tx: UnboundedSender<GDPPacket>,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
@@ -87,7 +92,6 @@ pub async fn ros_subscriber(
     ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
-    let (m_tx, _m_rx) = unbounded_channel::<GDPPacket>();
     let ctx = r2r::Context::create().expect("context creation failure");
     let mut node = r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
     let mut subscriber = node
@@ -104,8 +108,9 @@ pub async fn ros_subscriber(
             Some(packet) = subscriber.next() => {
                 info!("received a packet {:?}", packet);
                 let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
-
-                // let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
+                let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
+                m_tx.send(packet).unwrap();
+                
                 // proc_gdp_packet(packet,  // packet
                 //     &fib_tx,  //used to send packet to fib
                 //     &channel_tx, // used to send GDPChannel to fib
