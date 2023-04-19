@@ -103,7 +103,6 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
 #[allow(unused_assignments)]
 pub async fn webrtc_reader_and_writer(
     mut stream: DataStream, fib_tx: UnboundedSender<GDPPacket>,
-    channel_tx: UnboundedSender<GDPChannel>, rib_query_tx: UnboundedSender<GDPNameRecord>,
     m_tx: UnboundedSender<GDPPacket>, mut m_rx: UnboundedReceiver<GDPPacket>,
 ) {
     // tracing_subscriber::fmt::init();
@@ -180,43 +179,14 @@ pub async fn webrtc_reader_and_writer(
 
                     if deserialized.action == GdpAction::Forward {
                         let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload); //todo
-                        proc_gdp_packet(packet,  // packet
-                            &fib_tx,  //used to send packet to fib
-                            &channel_tx, // used to send GDPChannel to fib
-                            &m_tx, //the sending handle of this connection
-                            &rib_query_tx,
-                            "".to_string(),
-                        ).await;
-                    }
-                    else if deserialized.action == GdpAction::Advertise {
-                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
-                        proc_gdp_packet(packet,  // packet
-                            &fib_tx,  //used to send packet to fib
-                            &channel_tx, // used to send GDPChannel to fib
-                            &m_tx, //the sending handle of this connection
-                            &rib_query_tx,
-                            format!("WebRTC Advertise {} from thread {}", deserialized.destination, thread_name),
-                        ).await;
-                    }
-                    else if deserialized.action == GdpAction::RibGet {
-                        let name_record:GDPNameRecord = serde_json::from_slice(&payload).unwrap();
-                        info!("received RIB get request {:?}", name_record);
-                        rib_query_tx.send(name_record).expect("send to rib failure");
-                    }
-                    else if deserialized.action == GdpAction::RibReply {
-                        let name_record:GDPNameRecord = serde_json::from_slice(&payload).unwrap();
-                        info!("received RIB get request {:?}", name_record);
-                        rib_query_tx.send(name_record).expect("send to rib failure");
-                    }
-                    else if deserialized.action == GdpAction::AdvertiseResponse {
-                        let packet = construct_gdp_advertisement_from_bytes(deserialized.destination, thread_name, payload);
-                        proc_gdp_packet(packet,  // packet
-                            &fib_tx,  //used to send packet to fib
-                            &channel_tx, // used to send GDPChannel to fib
-                            &m_tx, //the sending handle of this connection
-                            &rib_query_tx,
-                            format!("DTLS Advertise Response {} from thread {}", deserialized.destination, thread_name),
-                        ).await;
+                        // proc_gdp_packet(packet,  // packet
+                        //     &fib_tx,  //used to send packet to fib
+                        //     &channel_tx, // used to send GDPChannel to fib
+                        //     &m_tx, //the sending handle of this connection
+                        //     &rib_query_tx,
+                        //     "".to_string(),
+                        // ).await;
+                        info!("todo to be forwarded");
                     }
                     else{
                         info!("TCP received a packet but did not handle: {:?}", deserialized)
