@@ -41,6 +41,7 @@ pub async fn topic_creator_webrtc(
                 node_name,
                 topic_name,
                 certificate,
+                rtc_tx, // m_tx is the sender to the webrtc reader
             )),
             _ => tokio::spawn(ros_subscriber(
                 node_name,
@@ -55,6 +56,7 @@ pub async fn topic_creator_webrtc(
                 node_name,
                 topic_name,
                 certificate,
+                ros_rx
         
             )),
             _ => tokio::spawn(ros_publisher(
