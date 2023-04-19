@@ -40,11 +40,3 @@ services:
           bash -c "source /opt/ros/humble/setup.bash; 
           ros2 run demo_nodes_py listener & 
           /gdp-router router"
-
-networks:
-  vpcbr:
-    driver: bridge
-    ipam:
-     config:
-       - subnet: 10.5.0.0/16
-         gateway: 10.5.0.1

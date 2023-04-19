@@ -71,6 +71,53 @@ pub async fn topic_creator_webrtc(
     };
 }
 
+
+async fn create_new_remote_publisher(
+    topic_gdp_name: GDPName,
+    topic_name: String,
+    topic_type: String,
+    certificate: Vec<u8>
+){
+    let webrtc_stream = register_webrtc_stream(
+        gdp_name_to_string(topic_gdp_name),
+        None
+    ).await;
+    info!("publisher registered webrtc stream");
+    let _ros_handle = topic_creator_webrtc(
+        webrtc_stream,
+        format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+        topic_name.clone(),
+        topic_type,
+        "sub".to_string(),
+        certificate.clone(),
+    )
+    .await;
+}
+
+async fn create_new_remote_subscriber(
+    topic_gdp_name: GDPName,
+    subscriber_listening_gdp_name: GDPName,
+    topic_name: String,
+    topic_type: String,
+    certificate: Vec<u8>
+){
+    let webrtc_stream = register_webrtc_stream(
+        gdp_name_to_string(subscriber_listening_gdp_name),
+        Some(gdp_name_to_string(topic_gdp_name)),
+    ).await;
+    info!("subscriber registered webrtc stream");
+
+    let _ros_handle = topic_creator_webrtc(
+        webrtc_stream,
+        format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+        topic_name.clone(),
+        topic_type.clone(),
+        "pub".to_string(),
+        certificate.clone(),
+    )
+    .await;
+}
+
 /// determine the action of a new topic
 /// pub/sub/noop
 /// Currently it uses cli to get the information
@@ -196,26 +243,10 @@ pub async fn ros_topic_manager(
                             // locally subscribe, globally publish
                             "sub" => {
                                 let topic_name = topic_name.clone();
-                                let publisher_listening_gdp_name = generate_random_gdp_name();
                                 let certificate = certificate.clone();
-                                let action = action.clone();
                                 let handle = tokio::spawn(
                                     async move {
-                                        let webrtc_stream = register_webrtc_stream(
-                                            gdp_name_to_string(topic_gdp_name),
-                                            None
-                                        ).await;
-                                        info!("publisher registered webrtc stream");
-                                        let _ros_handle = topic_creator_webrtc(
-                                            webrtc_stream,
-                                            format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-                                            topic_name.clone(),
-                                            topic_type,
-                                            action.clone(),
-                                            certificate.clone(),
-                                        )
-                                        .await;
-
+                                        create_new_remote_publisher(topic_gdp_name, topic_name, topic_type, certificate).await;
                                     }
                                 );
                                 waiting_rib_handles.push(handle);
@@ -227,26 +258,14 @@ pub async fn ros_topic_manager(
                                 let topic_name = topic_name.clone();
                                 let subscriber_listening_gdp_name = generate_random_gdp_name();
                                 let certificate = certificate.clone();
-                                let action = action.clone();
                                 let topic_type = topic_type.clone();
                                 let handle = tokio::spawn(
                                     async move {
-                                        let webrtc_stream = register_webrtc_stream(
-                                            gdp_name_to_string(subscriber_listening_gdp_name),
-                                            Some(gdp_name_to_string(topic_gdp_name)),
-                                        ).await;
-                                        info!("subscriber registered webrtc stream");
-
-                                        let _ros_handle = topic_creator_webrtc(
-                                            webrtc_stream,
-                                            format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-                                            topic_name.clone(),
-                                            topic_type.clone(),
-                                            action.clone(),
-                                            certificate.clone(),
-                                        )
-                                        .await;
-                                        
+                                        create_new_remote_subscriber(topic_gdp_name, 
+                                            subscriber_listening_gdp_name, 
+                                            topic_name, 
+                                            topic_type, 
+                                            certificate).await;
                                     }
                                 );
                                 waiting_rib_handles.push(handle);
@@ -267,22 +286,4 @@ pub async fn ros_topic_manager(
             }
         }
     }
-
-    // TODO: a better way to detect new ros topic is needed
-    // the following is an intuition that doesn't work
-    // we subscribe to /parameter_events, whenever a new node joins
-    // it will publish some message to this topic, but it doesn't have
-    // the topic information, so we run a topic detection
-    // let mut param_subscriber = node.
-    // subscribe_untyped("/parameter_events", "rcl_interfaces/msg/ParameterEvent", QosProfile::default())
-    // .expect("subscribe failed");
-    // loop {
-    //     info!("in the loop!");
-    //     tokio::select! {
-    //         Some(packet) = param_subscriber.next() => {
-    //             info!("detect a new node {:?}", packet);
-    //
-    //         }
-    //     }
-    // }
 }
