@@ -10,8 +10,8 @@ services:
           - "./src:/src" 
           - "./scripts:/scripts" 
         environment:
-          # SGC_CONFIG: "talker.toml"
-          SGC_CONFIG: "automatic.toml"
+          SGC_CONFIG: "talker.toml"
+          # SGC_CONFIG: "automatic.toml"
           # this connects the talker to the listener
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
@@ -28,8 +28,8 @@ services:
           - "./src:/src" 
           - "./scripts:/scripts" 
         environment:
-          # SGC_CONFIG: "listener.toml"
-          SGC_CONFIG: "automatic.toml"
+          SGC_CONFIG: "listener.toml"
+          # SGC_CONFIG: "automatic.toml"
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         # TODO: this is a hack to make sure the subscriber is started after the publisher

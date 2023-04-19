@@ -162,6 +162,9 @@ pub async fn ros_topic_manager(
     peer_with_gateway: bool,
     default_gateway_addr: String,
 ) {
+
+    let mut existing_topics = vec![];
+    let mut waiting_rib_handles = vec![];
     // get ros information from config file
     let config = AppConfig::fetch().expect("Failed to fetch config");
     // bookkeeping the status of ros topics
@@ -169,30 +172,43 @@ pub async fn ros_topic_manager(
     let _ros_topic_manager_gdp_name = generate_random_gdp_name();
 
     // read certificate from file in config
-    let certificate = std::fs::read(format!(
-        "./scripts/crypto/{}/{}-private.pem",
-        config.crypto_name, config.crypto_name
-    ))
-    .expect("crypto file not found!");
-
     for topic in config.ros {
         let node_name = topic.node_name;
         let protocol = topic.protocol;
-        let topic_name = topic.topic_name;
+        let topic_name = format!("{}", topic.topic_name);
         let topic_type = topic.topic_type;
         let action = topic.action;
-        // let _ros_handle = topic_creator(
-        //     peer_with_gateway,
-        //     default_gateway_addr.clone(),
-        //     node_name,
-        //     protocol,
-        //     topic_name.clone(),
-        //     topic_type,
-        //     action.clone(),
-        //     certificate.clone(),
-        // )
-        // .await;
+        let certificate = std::fs::read(format!(
+            "./scripts/crypto/{}/{}-private.pem",
+            config.crypto_name, config.crypto_name
+        ))
+        .expect("crypto file not found!");
+        let topic_gdp_name = GDPName(get_gdp_name_from_topic(
+            &topic_name.clone(),
+            &topic_type,
+            &certificate,
+        ));
 
+        match action.as_str() {
+            "sub" => {
+                let handle = tokio::spawn(async move {
+                    create_new_remote_publisher(topic_gdp_name, topic_name.clone(), topic_type, certificate).await;
+                });
+                waiting_rib_handles.push(handle);
+            }, 
+            "pub" => {
+                let subscriber_listening_gdp_name = generate_random_gdp_name();
+                let handle = tokio::spawn(async move {
+                    create_new_remote_subscriber(
+                        topic_gdp_name, subscriber_listening_gdp_name, topic_name.clone(), topic_type, certificate).await;
+                });
+                waiting_rib_handles.push(handle);
+            }, 
+            _ => {
+                info!("topic {} has no action", topic_name);
+            }
+        }
+        let topic_name = format!("{}", topic.topic_name);
         topic_status.insert(
             topic_name,
             RosTopicStatus {
@@ -214,6 +230,11 @@ pub async fn ros_topic_manager(
         info!("automatic topic discovery is enabled. May be unstable!");
     }
 
+    let certificate = std::fs::read(format!(
+        "./scripts/crypto/{}/{}-private.pem",
+        config.crypto_name, config.crypto_name
+    ))
+    .expect("crypto file not found!");
     let ctx = r2r::Context::create().expect("failed to create context");
     let node = r2r::Node::create(ctx, "ros_manager", "namespace").expect("failed to create node");
     // when a new topic is detected, create a new thread
@@ -222,8 +243,7 @@ pub async fn ros_topic_manager(
         select! {
             _ = sleep(Duration::from_millis(5000)) => {
                 let current_topics = node.get_topic_names_and_types().unwrap();
-                let mut existing_topics = vec![];
-                let mut waiting_rib_handles = vec![];
+
                 // check if there is a new topic by comparing current topics with
                 // the bookkeeping topics
                 for topic in current_topics {
