@@ -193,7 +193,9 @@ pub async fn ros_topic_manager(
             "sub" => {
                 let handle = tokio::spawn(async move {
                     create_new_remote_publisher(topic_gdp_name, topic_name.clone(), topic_type, certificate).await;
+                    info!("exited");
                 });
+                
                 waiting_rib_handles.push(handle);
             }, 
             "pub" => {
@@ -201,7 +203,9 @@ pub async fn ros_topic_manager(
                 let handle = tokio::spawn(async move {
                     create_new_remote_subscriber(
                         topic_gdp_name, subscriber_listening_gdp_name, topic_name.clone(), topic_type, certificate).await;
+                        info!("exited");
                 });
+                
                 waiting_rib_handles.push(handle);
             }, 
             _ => {

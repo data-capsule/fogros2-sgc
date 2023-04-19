@@ -43,10 +43,9 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
 
     let signaling_uri = "ws://128.32.37.42:8000";
     let signaling_uri = format!("{}/{}", signaling_uri, my_id);
-    info!("Trying to connect to {}", signaling_uri);
+    info!("The signaling URI is {}", signaling_uri);
 
     let (mut write, mut read) = connect_async(&signaling_uri).await.unwrap().0.split();
-
     let other_peer = Arc::new(Mutex::new(peer_to_dial.clone()));
     let other_peer_c = other_peer.clone();
     let f_write = async move {
@@ -63,36 +62,52 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
     };
     tokio::spawn(f_write);
     let f_read = async move {
-        while let Some(Ok(m)) = read.next().await {
-            debug!("received {:?}", m);
-            if let Some(val) = match m {
-                tungstenite::Message::Text(t) => {
-                    Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
-                }
-                tungstenite::Message::Binary(b) => Some(serde_json::from_slice(&b[..]).unwrap()),
-                tungstenite::Message::Close(_) => panic!(),
-                _ => None,
-            } {
-                let c: SignalingMessage = serde_json::from_value(val).unwrap();
-                println!("msg {:?}", c);
-                other_peer.lock().replace(c.id);
-                if tx_sig_inbound.send(c.payload).await.is_err() {
-                    panic!()
+        tokio::select!{
+            Some(Ok(m)) = read.next() => {
+                debug!("received {:?}", m);
+                if let Some(val) = match m {
+                    tungstenite::Message::Text(t) => {
+                        Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
+                    }
+                    tungstenite::Message::Binary(b) => Some(serde_json::from_slice(&b[..]).unwrap()),
+                    tungstenite::Message::Close(_) => panic!(),
+                    _ => None,
+                } {
+                    let c: SignalingMessage = serde_json::from_value(val).unwrap();
+                    println!("msg {:?}", c);
+                    other_peer.lock().replace(c.id);
+                    if tx_sig_inbound.send(c.payload).await.is_err() {
+                        panic!()
+                    }
                 }
             }
-        }
+            _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
+                // info!("timeout!!!!")
+                match other_peer.lock().as_ref() {
+                    Some(_) => {
+                        info!("timeout, returning");
+                    }
+                    None => {
+                        warn!("timeout when waiting for peer to connect");
+                        return anyhow::Result::<_, anyhow::Error>::Ok(());
+                    }
+                }
+            }
+        } 
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };
 
     tokio::spawn(f_read);
     let stream = if peer_to_dial.is_some() {
         // here we are the initiator
+        info!("dialing");
         let dc = listener.dial("whatever").await.unwrap();
         info!("dial succeed");
 
         // dc.write_all(b"Ping").await.unwrap();
         dc
     } else {
+        info!("accepting");
         let dc = listener.accept().await.unwrap();
         info!("accept succeed");
         dc

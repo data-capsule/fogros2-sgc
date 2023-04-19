@@ -9,10 +9,11 @@ services:
         volumes:
           - "./src:/src" 
           - "./scripts:/scripts" 
+        depends_on:
+          - listener 
         environment:
           SGC_CONFIG: "talker.toml"
           # SGC_CONFIG: "automatic.toml"
-          # this connects the talker to the listener
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         command: >
@@ -34,8 +35,6 @@ services:
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         # TODO: this is a hack to make sure the subscriber is started after the publisher
         # will also test the scenario that is opposite
-        depends_on:
-          - talker 
         command: >
           bash -c "source /opt/ros/humble/setup.bash; 
           ros2 run demo_nodes_py listener & 
