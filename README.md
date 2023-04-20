@@ -13,6 +13,7 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
 **Table of Contents**
 
 - [Local Demo](#local-demo)
+- [From SGC to SGC-lite](#from-sgc-to-sgc-lite)
 - [Build FogROS2 SGC](#build-fogros2-sgc)
   - [Install dependencies](#install-dependencies)
     - [Install Rust](#install-rust)
