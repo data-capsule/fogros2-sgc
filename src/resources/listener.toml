@@ -8,7 +8,7 @@ log_level = "info"
 crypto_name="test_cert"
 # address of the signaling server of webrtc 
 # the default parameter is provided by a berkeley server
-signaling_server_address = "ws://128.32.37.42:8000"
+signaling_server_address = "ws://128.32.37.26:8000"
 # automatic_topic_discovery = true | false
 # if true, FogROS2-SGC will try to discover all topics
 # if false, FogROS2-SGC will only discover topics defined in [[ros]] section

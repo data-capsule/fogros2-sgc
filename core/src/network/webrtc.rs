@@ -19,6 +19,7 @@ use futures::{
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
+use utils::app_config::AppConfig;
 
 /// parse the header of the packet using the first null byte as delimiter
 /// return a vector of (header, payload) pairs if the header is complete
@@ -87,13 +88,14 @@ struct SignalingMessage {
 }
 
 pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>) -> DataStream {
+    let config = AppConfig::fetch().expect("Failed to fetch config");
     let ice_servers = vec!["stun:stun.l.google.com:19302"];
     let conf = RtcConfig::new(&ice_servers);
     let (tx_sig_outbound, mut rx_sig_outbound) = mpsc::channel(32);
     let (mut tx_sig_inbound, rx_sig_inbound) = mpsc::channel(32);
     let listener = PeerConnection::new(&conf, (tx_sig_outbound, rx_sig_inbound)).unwrap();
 
-    let signaling_uri = "ws://128.32.37.42:8000";
+    let signaling_uri = config.signaling_server_address;
     let signaling_uri = format!("{}/{}", signaling_uri, my_id);
     info!("The signaling URI is {}", signaling_uri);
 
