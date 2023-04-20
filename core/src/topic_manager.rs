@@ -1,9 +1,8 @@
-use crate::network::dtls::dtls_to_peer_direct;
+
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
-use crate::network::tcp::tcp_to_peer_direct;
 use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer};
 use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
 use crate::structs::{
@@ -159,8 +158,6 @@ pub struct RosTopicStatus {
 }
 
 pub async fn ros_topic_manager(
-    peer_with_gateway: bool,
-    default_gateway_addr: String,
 ) {
 
     let mut existing_topics = vec![];
@@ -174,7 +171,6 @@ pub async fn ros_topic_manager(
     // read certificate from file in config
     for topic in config.ros {
         let node_name = topic.node_name;
-        let protocol = topic.protocol;
         let topic_name = format!("{}", topic.topic_name);
         let topic_type = topic.topic_type;
         let action = topic.action;

@@ -1,4 +1,3 @@
-use crate::network::dtls::parse_header_payload_pairs;
 use std::sync::Arc;
 
 use crate::pipeline::{construct_gdp_advertisement_from_bytes, proc_gdp_packet};
@@ -21,6 +20,60 @@ use futures::{
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
+
+/// parse the header of the packet using the first null byte as delimiter
+/// return a vector of (header, payload) pairs if the header is complete
+/// return the remaining (header, payload) pairs if the header is incomplete
+pub fn parse_header_payload_pairs(
+    mut buffer: Vec<u8>,
+) -> (
+    Vec<(GDPHeaderInTransit, Vec<u8>)>,
+    Option<(GDPHeaderInTransit, Vec<u8>)>,
+) {
+    let mut header_payload_pairs: Vec<(GDPHeaderInTransit, Vec<u8>)> = Vec::new();
+    // TODO: get it to default trace later
+    let default_gdp_header: GDPHeaderInTransit = GDPHeaderInTransit {
+        action: GdpAction::Noop,
+        destination: GDPName([0u8, 0, 0, 0]),
+        length: 0, // doesn't have any payload
+    };
+    if buffer.len() == 0 {
+        return (header_payload_pairs, None);
+    }
+    loop {
+        // parse the header
+        // use the first null byte \0 as delimiter
+        // split to the first \0 as delimiter
+        let header_and_remaining = buffer.splitn(2, |c| c == &0).collect::<Vec<_>>();
+        let header_buf = header_and_remaining[0];
+        let header: &str = std::str::from_utf8(header_buf).unwrap();
+        info!("received header json string: {:?}", header);
+        let gdp_header_parsed = serde_json::from_str::<GDPHeaderInTransit>(header);
+        if gdp_header_parsed.is_err() {
+            // if the header is not complete, return the remaining
+            warn!("header is not complete, return the remaining");
+            return (
+                header_payload_pairs,
+                Some((default_gdp_header, header_buf.to_vec())),
+            );
+        }
+        let gdp_header = gdp_header_parsed.unwrap();
+        let remaining = header_and_remaining[1];
+
+        if gdp_header.length > remaining.len() {
+            // if the payload is not complete, return the remaining
+            return (header_payload_pairs, Some((gdp_header, remaining.to_vec())));
+        } else if gdp_header.length == remaining.len() {
+            // if the payload is complete, return the pair
+            header_payload_pairs.push((gdp_header, remaining.to_vec()));
+            return (header_payload_pairs, None);
+        } else {
+            // if the payload is longer than the remaining, continue to parse
+            header_payload_pairs.push((gdp_header, remaining[..gdp_header.length].to_vec()));
+            buffer = remaining[gdp_header.length..].to_vec();
+        }
+    }
+}
 
 /// Works with the signalling server from https://github.com/paullouisageneau/libdatachannel/tree/master/examples/signaling-server-rust
 /// Start two shells

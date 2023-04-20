@@ -22,7 +22,6 @@ pub struct Database {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ROS {
     pub action: String,
-    pub protocol: String,
     pub node_name: String,
     pub topic_name: String,
     pub topic_type: String,
@@ -32,13 +31,8 @@ pub struct ROS {
 pub struct AppConfig {
     pub debug: bool,
     pub log_level: LogLevel,
-    pub tcp_port: String,
-    pub dtls_port: String,
-    pub grpc_port: String,
-    pub ros_protocol: String,
     pub crypto_name: String,
-    pub peer_with_gateway: bool,
-    pub default_gateway: String,
+    pub signaling_server_address: String,
     pub automatic_topic_discovery: bool,
     pub ros: Vec<ROS>,
 }
