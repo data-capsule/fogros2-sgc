@@ -2,19 +2,20 @@
 use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
-use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer};
+use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer, self};
 
 use crate::structs::{
     gdp_name_to_string, generate_random_gdp_name, get_gdp_name_from_topic, GDPName,
 };
 
+use async_datachannel::DataStream;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::select;
 
 use tokio::process::Command;
 use tokio::sync::mpsc::{self};
-use tokio::time::sleep;
+use tokio::time::{sleep, timeout};
 use tokio::time::Duration;
 use utils::app_config::AppConfig;
 // use r2r::Node::get_topic_names_and_types;
@@ -84,14 +85,49 @@ async fn create_new_remote_publisher(
 }
 
 async fn create_new_remote_subscriber(
-    topic_gdp_name: GDPName, subscriber_listening_gdp_name: GDPName, topic_name: String,
+    topic_gdp_name: GDPName, topic_name: String,
     topic_type: String, certificate: Vec<u8>,
 ) {
-    let webrtc_stream = register_webrtc_stream(
-        gdp_name_to_string(subscriber_listening_gdp_name),
-        Some(gdp_name_to_string(topic_gdp_name)),
-    )
-    .await;
+    let max_retries = 5;
+
+    // let mut retries = 0;
+    // let mut webrtc_stream = None;
+    // loop {
+    //     let subscriber_listening_gdp_name = generate_random_gdp_name();
+    //     let result = timeout(Duration::from_secs(5), 
+    //         register_webrtc_stream(
+    //             gdp_name_to_string(subscriber_listening_gdp_name),
+    //             Some(gdp_name_to_string(topic_gdp_name)),
+    //         )
+    //     ).await;
+
+    //     match result {
+    //         Ok(res) => {
+    //             info!("got results!");
+    //             webrtc_stream = Some(res);
+    //             break;
+    //         },
+    //         Err(_) => {
+    //             warn!("subscribing retry timeout, retrying...");
+    //         },
+    //     }
+
+    //     retries += 1;
+    //     if retries >= max_retries {
+    //         println!("Maximum number of retries exceeded");
+    //         break; // exit loop on max retries
+    //     }
+
+    //     println!("Retrying...");
+    // }
+
+    // let webrtc_stream= webrtc_stream.unwrap();
+    tokio::time::sleep(Duration::from_secs(5)).await;
+    let subscriber_listening_gdp_name = generate_random_gdp_name();
+    let webrtc_stream= register_webrtc_stream(
+                    gdp_name_to_string(subscriber_listening_gdp_name),
+                    Some(gdp_name_to_string(topic_gdp_name)),
+                ).await;
     info!("subscriber registered webrtc stream");
 
     let _ros_handle = topic_creator_webrtc(
@@ -186,11 +222,10 @@ pub async fn ros_topic_manager() {
                 waiting_rib_handles.push(handle);
             }
             "pub" => {
-                let subscriber_listening_gdp_name = generate_random_gdp_name();
+                
                 let handle = tokio::spawn(async move {
                     create_new_remote_subscriber(
                         topic_gdp_name,
-                        subscriber_listening_gdp_name,
                         topic_name.clone(),
                         topic_type,
                         certificate,
@@ -270,13 +305,11 @@ pub async fn ros_topic_manager() {
                             "pub" => {
                                 // create a new thread to handle that listens for the topic
                                 let topic_name = topic_name.clone();
-                                let subscriber_listening_gdp_name = generate_random_gdp_name();
                                 let certificate = certificate.clone();
                                 let topic_type = topic_type.clone();
                                 let handle = tokio::spawn(
                                     async move {
                                         create_new_remote_subscriber(topic_gdp_name,
-                                            subscriber_listening_gdp_name,
                                             topic_name,
                                             topic_type,
                                             certificate).await;

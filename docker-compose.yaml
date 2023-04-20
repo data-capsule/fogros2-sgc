@@ -9,8 +9,8 @@ services:
         volumes:
           - "./src:/src" 
           - "./scripts:/scripts" 
-        depends_on:
-          - listener 
+        # depends_on:
+        #   - listener 
         environment:
           SGC_CONFIG: "talker.toml"
           # SGC_CONFIG: "automatic.toml"
@@ -28,6 +28,8 @@ services:
         volumes:
           - "./src:/src" 
           - "./scripts:/scripts" 
+        depends_on:
+          - talker 
         environment:
           SGC_CONFIG: "listener.toml"
           # SGC_CONFIG: "automatic.toml"

@@ -133,18 +133,18 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
                     }
                 }
             }
-            _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
-                // info!("timeout!!!!")
-                match other_peer.lock().as_ref() {
-                    Some(_) => {
-                        info!("timeout, returning");
-                    }
-                    None => {
-                        warn!("timeout when waiting for peer to connect");
-                        return anyhow::Result::<_, anyhow::Error>::Ok(());
-                    }
-                }
-            }
+            // _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
+            //     // info!("timeout!!!!")
+            //     match other_peer.lock().as_ref() {
+            //         Some(_) => {
+            //             info!("timeout, returning");
+            //         }
+            //         None => {
+            //             warn!("timeout when waiting for peer to connect");
+            //             return anyhow::Result::<_, anyhow::Error>::Ok(());
+            //         }
+            //     }
+            // }
         }
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };
