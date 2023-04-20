@@ -94,7 +94,7 @@ async fn create_new_remote_subscriber(
     let mut webrtc_stream = None;
     loop {
         let subscriber_listening_gdp_name = generate_random_gdp_name();
-        let result = timeout(Duration::from_secs(5), 
+        let result = timeout(Duration::from_secs(10), 
             register_webrtc_stream(
                 gdp_name_to_string(subscriber_listening_gdp_name),
                 Some(gdp_name_to_string(topic_gdp_name)),
@@ -182,7 +182,6 @@ pub struct RosTopicStatus {
 }
 
 pub async fn ros_topic_manager() {
-    let mut existing_topics = vec![];
     let mut waiting_rib_handles = vec![];
     // get ros information from config file
     let config = AppConfig::fetch().expect("Failed to fetch config");
@@ -287,6 +286,7 @@ pub async fn ros_topic_manager() {
                             &certificate,
                         ));
                         info!("detected a new topic {:?} with action {:?}", topic, action);
+                        topic_status.insert(topic_name.clone(), RosTopicStatus { action: action.clone() });
 
                         match action.as_str() {
                             // locally subscribe, globally publish
@@ -321,15 +321,15 @@ pub async fn ros_topic_manager() {
                                 warn!("unknown action {}", action);
                             }
                         }
-                        topic_status.insert(topic_name.clone(), RosTopicStatus { action: action });
+                       
                     } else {
-                        existing_topics.push(topic.0.clone());
+                        info!(
+                            "automatic new topic {} discovery: topics already exist {:?}",
+                            topic.0, topic_status
+                        );
                     }
                 }
-                info!(
-                    "automatic new topic discovery: topics already exist {:?}",
-                    existing_topics
-                );
+                
             }
         }
     }
