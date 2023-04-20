@@ -26,6 +26,17 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+## From SGC to SGC-lite
+The updated README file can be found [HERE](./src/resources/README.md), which we removed all the setup about protocols and gateways. Only one change on the signaling server field `signaling_server_address = "ws://128.32.37.42:8000"` is required to the old config file. The default signaling server is provided by Berkeley, but feel free to make your own server by the following instructions.
+
+#### Making your own signaling server
+Signaling server faciliates the communication by exchanging the address information of webrtc. The details about how signaling server works can be found [HERE](./docs/webrtc.md).
+```
+git clone https://github.com/data-capsule/libdatachannel.git
+cd libdatachannel/examples/signaling-server-rust/
+cargo run
+```
+
 
 ## Local Demo 
 If you want to get a taste of FogROS2 SGC without setting up the environment, just run 
@@ -34,12 +45,6 @@ docker compose build && docker compose up
 ```
 with docker([install](https://docs.docker.com/get-docker/)) and docker compose([install](https://docs.docker.com/compose/install/linux/)). 
 It takes some time to build. You will see two docker containers running `talker` and `listener` are connected securely with FogROS2-SGC.
-
-## From SGC to SGC-lite
-
-
-
-
 
 
 
