@@ -1,8 +1,6 @@
-#[cfg(not(debug_assertions))]
-use human_panic::setup_panic;
+#[cfg(not(debug_assertions))] use human_panic::setup_panic;
 
-#[cfg(debug_assertions)]
-extern crate better_panic;
+#[cfg(debug_assertions)] extern crate better_panic;
 
 use std::env;
 use std::fs;

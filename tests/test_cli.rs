@@ -1,5 +1,4 @@
-#[cfg(test)]
-extern crate assert_cmd;
+#[cfg(test)] extern crate assert_cmd;
 extern crate predicates;
 use assert_cmd::prelude::*;
 

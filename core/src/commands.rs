@@ -1,12 +1,12 @@
 extern crate tokio;
 extern crate tokio_core;
-use std::env;
-use std::time::Duration;
 use crate::connection_fib::connection_fib;
 use crate::rib::local_rib_handler;
 use crate::structs::GDPStatus;
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
+use std::env;
+use std::time::Duration;
 
 use tokio::sync::mpsc::{self};
 
@@ -23,8 +23,7 @@ async fn router_async_loop() {
     let mut future_handles = Vec::new();
 
 
-    let ros_topic_manager_handle = tokio::spawn(ros_topic_manager(
-    ));
+    let ros_topic_manager_handle = tokio::spawn(ros_topic_manager());
     future_handles.push(ros_topic_manager_handle);
 
     future::join_all(future_handles).await;

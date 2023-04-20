@@ -5,8 +5,7 @@ use crate::structs::get_gdp_name_from_topic;
 use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;
 
-#[cfg(feature = "ros")]
-use r2r::QosProfile;
+#[cfg(feature = "ros")] use r2r::QosProfile;
 use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
 
 use serde_json;
@@ -14,18 +13,14 @@ use serde_json;
 use crate::structs::GDPNameRecord;
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;
-use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::UnboundedSender;
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher(
-     node_name: String,
-    topic_name: String, 
-    topic_type: String, 
-    certificate: Vec<u8>,
+    node_name: String, topic_name: String, topic_type: String, certificate: Vec<u8>,
     mut m_rx: UnboundedReceiver<GDPPacket>,
 ) {
-    
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
         &node_name,
         &topic_type,
@@ -72,10 +67,7 @@ pub async fn ros_publisher(
 
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber(
-    node_name: String,
-    topic_name: String, 
-    topic_type: String, 
-    certificate: Vec<u8>,
+    node_name: String, topic_name: String, topic_type: String, certificate: Vec<u8>,
     m_tx: UnboundedSender<GDPPacket>,
 ) {
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
@@ -110,7 +102,7 @@ pub async fn ros_subscriber(
                 let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
                 let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
                 m_tx.send(packet).unwrap();
-                
+
                 // proc_gdp_packet(packet,  // packet
                 //     &fib_tx,  //used to send packet to fib
                 //     &channel_tx, // used to send GDPChannel to fib
@@ -126,10 +118,7 @@ pub async fn ros_subscriber(
 
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
-     node_name: String,
-    topic_name: String, 
-    certificate: Vec<u8>,
-    m_tx: UnboundedSender<GDPPacket>, 
+    node_name: String, topic_name: String, certificate: Vec<u8>, m_tx: UnboundedSender<GDPPacket>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
@@ -182,8 +171,7 @@ pub async fn ros_subscriber_image(
 
 #[cfg(feature = "ros")]
 pub async fn ros_publisher_image(
-     node_name: String,
-    topic_name: String, certificate: Vec<u8>, 
+    node_name: String, topic_name: String, certificate: Vec<u8>,
     mut m_rx: UnboundedReceiver<GDPPacket>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();

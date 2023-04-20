@@ -115,7 +115,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
     };
     tokio::spawn(f_write);
     let f_read = async move {
-        tokio::select!{
+        tokio::select! {
             Some(Ok(m)) = read.next() => {
                 debug!("received {:?}", m);
                 if let Some(val) = match m {
@@ -146,7 +146,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
                     }
                 }
             }
-        } 
+        }
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };
 
@@ -170,9 +170,9 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
 
 #[allow(unused_assignments)]
 pub async fn webrtc_reader_and_writer(
-    mut stream: DataStream, 
-    ros_tx: UnboundedSender<GDPPacket>,  //send to ros
-    mut rtc_rx: UnboundedReceiver<GDPPacket>, //receive from ros
+    mut stream: DataStream,
+    ros_tx: UnboundedSender<GDPPacket>,       // send to ros
+    mut rtc_rx: UnboundedReceiver<GDPPacket>, // receive from ros
 ) {
     // tracing_subscriber::fmt::init();
     // let mut stream = register_webrtc_stream(my_id, peer_to_dial).await;
@@ -247,7 +247,7 @@ pub async fn webrtc_reader_and_writer(
                     info!("the total received payload with size {:} with gdp header length {}",  payload.len(), header.length);
 
                     if deserialized.action == GdpAction::Forward {
-                        let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload); 
+                        let packet = construct_gdp_forward_from_bytes(deserialized.destination, thread_name, payload);
                         ros_tx.send(packet).unwrap();
                         // proc_gdp_packet(packet,  // packet
                         //     &fib_tx,  //used to send packet to fib

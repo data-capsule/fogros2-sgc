@@ -1,5 +1,4 @@
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 
 // sub crates and primitives
 pub mod crypto;
