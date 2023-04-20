@@ -3,10 +3,9 @@ use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer};
-use crate::pipeline::{construct_gdp_advertisement_from_structs, proc_gdp_packet};
+
 use crate::structs::{
-    gdp_name_to_string, generate_random_gdp_name, get_gdp_name_from_topic, GDPChannel, GDPName,
-    GDPNameRecord, GDPNameRecordType, GDPPacket, GdpAction,
+    gdp_name_to_string, generate_random_gdp_name, get_gdp_name_from_topic, GDPName,
 };
 
 use serde::{Deserialize, Serialize};
@@ -14,7 +13,7 @@ use std::collections::HashMap;
 use tokio::select;
 
 use tokio::process::Command;
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use tokio::time::Duration;
 use utils::app_config::AppConfig;
@@ -28,8 +27,8 @@ pub async fn topic_creator_webrtc(
         "topic creator for topic {}, type {}, action {}",
         topic_name, topic_type, action
     );
-    let (ros_tx, mut ros_rx) = mpsc::unbounded_channel();
-    let (rtc_tx, mut rtc_rx) = mpsc::unbounded_channel();
+    let (ros_tx, ros_rx) = mpsc::unbounded_channel();
+    let (rtc_tx, rtc_rx) = mpsc::unbounded_channel();
     tokio::spawn(webrtc_reader_and_writer(stream, ros_tx.clone(), rtc_rx));
 
     let _ros_handle = match action.as_str() {
@@ -157,7 +156,6 @@ pub async fn ros_topic_manager() {
 
     // read certificate from file in config
     for topic in config.ros {
-        let node_name = topic.node_name;
         let topic_name = format!("{}", topic.topic_name);
         let topic_type = topic.topic_type;
         let action = topic.action;

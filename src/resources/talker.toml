@@ -4,11 +4,6 @@
 debug = true
 # log_level = "debug" | "info" | "warn" | "error" | "off"
 log_level = "info"
-# ros_protocol = "tcp" | "dtls" | "grpc"
-# this is overriden by the [[ros]] section
-# this is used when no [[ros]] section is defined (auto mode)
-# or routing infomation advertisement
-ros_protocol="dtls"
 # crypto_name = "test_cert" | ..." in /src/scripts/crypto
 crypto_name="test_cert"
 signaling_server_address = ""
@@ -24,12 +19,6 @@ automatic_topic_discovery = false
 # sub = publish to local topic and subscribe to remote topic
 # noop = do nothing, used to exclude certain topics in auto mode
 action = "sub"
-# node_name of fogros2-sgc node that will be created
-# doesn't quite matter what you put here as long as no name collision
-node_name = "talker"
-# this protocol will be used to communicate with the gateway
-# this overrides 
-protocol="dtls"
 # topic_name of fogros2-sgc node that will publish/subscribe to
 topic_name = "/chatter"
 # topic type of fogros2-sgc node that will publish/subscribe to

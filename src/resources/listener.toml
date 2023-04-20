@@ -19,9 +19,6 @@ automatic_topic_discovery = false
 # sub = publish to local topic and subscribe to remote topic
 # noop = do nothing, used to exclude certain topics in auto mode
 action = "pub"
-# node_name of fogros2-sgc node that will be created
-# doesn't quite matter what you put here as long as no name collision
-node_name = "talker"
 # topic_name of fogros2-sgc node that will publish/subscribe to
 topic_name = "/chatter"
 # topic type of fogros2-sgc node that will publish/subscribe to

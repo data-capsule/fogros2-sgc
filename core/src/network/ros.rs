@@ -1,8 +1,8 @@
 use crate::pipeline::{
-    construct_gdp_advertisement_from_structs, construct_gdp_forward_from_bytes, proc_gdp_packet,
+    construct_gdp_forward_from_bytes,
 };
 use crate::structs::get_gdp_name_from_topic;
-use crate::structs::{GDPChannel, GDPName, GDPPacket, GdpAction, Packet};
+use crate::structs::{GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;
 
 #[cfg(feature = "ros")] use r2r::QosProfile;
@@ -10,7 +10,7 @@ use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
 
 use serde_json;
 
-use crate::structs::GDPNameRecord;
+
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -118,7 +118,7 @@ pub async fn ros_subscriber(
 
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
-    node_name: String, topic_name: String, certificate: Vec<u8>, m_tx: UnboundedSender<GDPPacket>,
+    node_name: String, topic_name: String, certificate: Vec<u8>, _m_tx: UnboundedSender<GDPPacket>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
