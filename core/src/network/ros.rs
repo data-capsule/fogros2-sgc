@@ -1,6 +1,4 @@
-use crate::pipeline::{
-    construct_gdp_forward_from_bytes,
-};
+use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::get_gdp_name_from_topic;
 use crate::structs::{GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;

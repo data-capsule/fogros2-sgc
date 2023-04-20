@@ -2,13 +2,8 @@ extern crate tokio;
 extern crate tokio_core;
 
 
-
 use crate::topic_manager::ros_topic_manager;
 use futures::future;
-
-
-
-
 
 
 use utils::app_config::AppConfig;
