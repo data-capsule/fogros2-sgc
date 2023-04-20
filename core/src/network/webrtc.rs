@@ -114,13 +114,12 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
     };
     tokio::spawn(f_write);
     let f_read = async move {
-        tokio::select! {
-            Some(Ok(m)) = read.next() => {
+            while let Some(Ok(m)) = read.next().await {
                 debug!("received {:?}", m);
                 if let Some(val) = match m {
                     tungstenite::Message::Text(t) => {
                         Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
-                    }
+                    },
                     tungstenite::Message::Binary(b) => Some(serde_json::from_slice(&b[..]).unwrap()),
                     tungstenite::Message::Close(_) => panic!(),
                     _ => None,
@@ -145,7 +144,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
             //         }
             //     }
             // }
-        }
+        
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };
 

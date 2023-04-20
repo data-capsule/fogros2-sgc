@@ -90,45 +90,45 @@ async fn create_new_remote_subscriber(
 ) {
     let max_retries = 5;
 
-    // let mut retries = 0;
-    // let mut webrtc_stream = None;
-    // loop {
-    //     let subscriber_listening_gdp_name = generate_random_gdp_name();
-    //     let result = timeout(Duration::from_secs(5), 
-    //         register_webrtc_stream(
-    //             gdp_name_to_string(subscriber_listening_gdp_name),
-    //             Some(gdp_name_to_string(topic_gdp_name)),
-    //         )
-    //     ).await;
+    let mut retries = 0;
+    let mut webrtc_stream = None;
+    loop {
+        let subscriber_listening_gdp_name = generate_random_gdp_name();
+        let result = timeout(Duration::from_secs(5), 
+            register_webrtc_stream(
+                gdp_name_to_string(subscriber_listening_gdp_name),
+                Some(gdp_name_to_string(topic_gdp_name)),
+            )
+        ).await;
 
-    //     match result {
-    //         Ok(res) => {
-    //             info!("got results!");
-    //             webrtc_stream = Some(res);
-    //             break;
-    //         },
-    //         Err(_) => {
-    //             warn!("subscribing retry timeout, retrying...");
-    //         },
-    //     }
+        match result {
+            Ok(res) => {
+                info!("got results!");
+                webrtc_stream = Some(res);
+                break;
+            },
+            Err(_) => {
+                warn!("subscribing retry timeout, retrying...");
+            },
+        }
 
-    //     retries += 1;
-    //     if retries >= max_retries {
-    //         println!("Maximum number of retries exceeded");
-    //         break; // exit loop on max retries
-    //     }
+        retries += 1;
+        if retries >= max_retries {
+            println!("Maximum number of retries exceeded");
+            break; // exit loop on max retries
+        }
 
-    //     println!("Retrying...");
-    // }
+        println!("Retrying...");
+    }
 
-    // let webrtc_stream= webrtc_stream.unwrap();
-    tokio::time::sleep(Duration::from_secs(5)).await;
-    let subscriber_listening_gdp_name = generate_random_gdp_name();
-    let webrtc_stream= register_webrtc_stream(
-                    gdp_name_to_string(subscriber_listening_gdp_name),
-                    Some(gdp_name_to_string(topic_gdp_name)),
-                ).await;
-    info!("subscriber registered webrtc stream");
+    let webrtc_stream= webrtc_stream.unwrap();
+    // tokio::time::sleep(Duration::from_secs(5)).await;
+    // let subscriber_listening_gdp_name = generate_random_gdp_name();
+    // let webrtc_stream= register_webrtc_stream(
+    //                 gdp_name_to_string(subscriber_listening_gdp_name),
+    //                 Some(gdp_name_to_string(topic_gdp_name)),
+    //             ).await;
+    // info!("subscriber registered webrtc stream");
 
     let _ros_handle = topic_creator_webrtc(
         webrtc_stream,

@@ -4,6 +4,10 @@ FogROS2-SGC is a cloud robotics platform for connecting disjoint ROS2 networks a
 
 \[[Website](https://sites.google.com/view/fogros2-sgc)\] \[[Video](https://youtu.be/hVVFVGLcK0c)\] \[[Arxiv](https://arxiv.org/abs/2210.11691)\] (TODO: arxiv link)
 
+### Why Lite version 
+
+The FogROS2-SGC carries a bag of protocols to support heterogenous demands and requirements. In this version, we build everything with webrtc protocol to streamline the routing setup. Webrtc is generally not compatible with the previous protocols. As a result, we make a lite version with only webrtc version. 
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
@@ -30,6 +34,14 @@ docker compose build && docker compose up
 ```
 with docker([install](https://docs.docker.com/get-docker/)) and docker compose([install](https://docs.docker.com/compose/install/linux/)). 
 It takes some time to build. You will see two docker containers running `talker` and `listener` are connected securely with FogROS2-SGC.
+
+## From SGC to SGC-lite
+
+
+
+
+
+
 
 ## Build FogROS2 SGC 
 The following are instructions of building FogROS2 SGC. 
