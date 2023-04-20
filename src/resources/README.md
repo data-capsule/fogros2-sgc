@@ -8,25 +8,15 @@ The following is a talker example of the configuration file. The listener exampl
 debug = true
 # log_level = "debug" | "info" | "warn" | "error" | "off"
 log_level = "info"
-# port for various protocols
-# make sure to adapt your IP tables accordingly
-tcp_port = "9997"
-dtls_port = "9232"
-grpc_port = "50051"
-# ros_protocol = "tcp" | "dtls" | "grpc"
-# this is overriden by the [[ros]] section
-# this is used when no [[ros]] section is defined (auto mode)
-# or routing infomation advertisement
-ros_protocol="dtls"
 # crypto_name = "test_cert" | ..." in /src/scripts/crypto
 crypto_name="test_cert"
-# peer_with_gateway = true | false
-# if true, FogROS2-SGC will try to connect to the default_gateway
-# if false, FogROS2-SGC will not try to connect to the gateway
-# this option is overriden by GATEWAY_IP environment variable
-peer_with_gateway = false
-# default_gateway ip address
-default_gateway = "10.5.0.6"
+# address of the signaling server of webrtc 
+# the default parameter is provided by a berkeley server
+signaling_server_address = "ws://128.32.37.42:8000"
+# automatic_topic_discovery = true | false
+# if true, FogROS2-SGC will try to discover all topics
+# if false, FogROS2-SGC will only discover topics defined in [[ros]] section
+automatic_topic_discovery = false
 # There can be multiple [[ros]] sections
 # each section defines a ROS node name and its topic
 [[ros]]
@@ -34,13 +24,7 @@ default_gateway = "10.5.0.6"
 # pub = subscribe to local topic and publish to remote topic
 # sub = publish to local topic and subscribe to remote topic
 # noop = do nothing, used to exclude certain topics in auto mode
-action = "sub"
-# node_name of fogros2-sgc node that will be created
-# doesn't quite matter what you put here as long as no name collision
-node_name = "talker"
-# this protocol will be used to communicate with the gateway
-# this overrides 
-protocol="dtls"
+action = "pub"
 # topic_name of fogros2-sgc node that will publish/subscribe to
 topic_name = "/chatter"
 # topic type of fogros2-sgc node that will publish/subscribe to
