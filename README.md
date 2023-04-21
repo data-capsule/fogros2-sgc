@@ -31,6 +31,9 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
 ## From SGC to SGC-lite
 The updated README file can be found [HERE](./src/resources/README.md), which we removed all the setup about protocols and gateways. Only one change on the signaling server field `signaling_server_address = "ws://128.32.37.42:8000"` is required to the old config file. The default signaling server is provided by Berkeley, but feel free to make your own server by the following instructions.
 
+(Note: remember to migrate the credentials from `./scripts` to the new repo as well!)
+
+
 #### Making your own signaling server
 Signaling server faciliates the communication by exchanging the address information of webrtc. The details about how signaling server works can be found [HERE](./docs/webrtc.md).
 ```
@@ -39,6 +42,10 @@ cd libdatachannel/examples/signaling-server-rust/
 cargo run
 ```
 
+#### TODOs 
+1. we assume the publishers start before and subscriber, and subscriber retry if the publisher's info does not exist. We may find a more clever way of handling this. 
+2. video streaming
+3. testing on raspberrry pi
 
 ## Local Demo 
 If you want to get a taste of FogROS2 SGC without setting up the environment, just run 
