@@ -116,7 +116,7 @@ pub async fn ros_subscriber(
 
 #[cfg(feature = "ros")]
 pub async fn ros_subscriber_image(
-    node_name: String, topic_name: String, certificate: Vec<u8>, _m_tx: UnboundedSender<GDPPacket>,
+    node_name: String, topic_name: String, certificate: Vec<u8>, m_tx: UnboundedSender<GDPPacket>,
 ) {
     let topic_type = "sensor_msgs/CompressedImage".to_string();
     let node_gdp_name = GDPName(get_gdp_name_from_topic(
@@ -133,7 +133,6 @@ pub async fn ros_subscriber_image(
     ));
     info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
 
-    let (m_tx, _m_rx) = unbounded_channel::<GDPPacket>();
     let ctx = r2r::Context::create().expect("context creation failure");
     let mut node = r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
     let mut subscriber = node
