@@ -30,7 +30,7 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## From SGC to SGC-lite
-The updated README file can be found [HERE](./src/resources/README.md), which we removed all the setup about protocols and gateways. Only one change on the signaling server field `signaling_server_address = "ws://128.32.37.42:8000"` is required to the old config file. The default signaling server is provided by Berkeley, but feel free to make your own server by the following instructions.
+The updated configuration file format can be found [here](./src/resources/README.md), which we removed all the setup about protocols, ports, ips and gateways. Only one change on the signaling server field `signaling_server_address = "ws://128.32.37.42:8000"` is required to the old config file. The default signaling server is provided by Berkeley, but feel free to make your own server by the following instructions.
 
 (Note: remember to migrate the credentials from `./scripts` to the new repo as well!)
 
