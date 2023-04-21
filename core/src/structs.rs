@@ -228,7 +228,7 @@ pub struct GDPStatus {
 }
 
 pub fn gdp_name_to_string(GDPName(name): GDPName) -> String {
-    format!("{:?}", name)
+    format!("{},{},{},{}", name[0], name[1], name[2], name[3])
 }
 pub fn string_to_gdp_name(name: &str) -> GDPName {
     let mut bytes = [0u8; 4];

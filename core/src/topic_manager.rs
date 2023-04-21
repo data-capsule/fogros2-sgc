@@ -284,7 +284,7 @@ pub async fn ros_topic_manager() {
                             &topic_type,
                             &certificate,
                         ));
-                        info!("detected a new topic {:?} with action {:?}", topic, action);
+                        info!("detected a new topic {:?} with action {:?}, topic gdpname {:?}", topic, action, topic_gdp_name);
                         topic_status.insert(topic_name.clone(), RosTopicStatus { action: action.clone() });
 
                         match action.as_str() {
