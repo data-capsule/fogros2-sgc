@@ -14,6 +14,7 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
 
 - [From SGC to SGC-lite](#from-sgc-to-sgc-lite)
     - [Making your own signaling server](#making-your-own-signaling-server)
+    - [TODOs](#todos)
 - [Local Demo](#local-demo)
 - [Build FogROS2 SGC](#build-fogros2-sgc)
   - [Install dependencies](#install-dependencies)
