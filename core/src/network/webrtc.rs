@@ -7,7 +7,7 @@ use crate::structs::{generate_random_gdp_name, GDPName};
 use crate::structs::{GDPPacket, GdpAction, Packet};
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-const UDP_BUFFER_SIZE: usize = 17480; // 17kb
+const UDP_BUFFER_SIZE: usize = 1748000; // 17kb
 
 use async_datachannel::{DataStream, Message, PeerConnection, RtcConfig};
 use async_tungstenite::{tokio::connect_async, tungstenite};
