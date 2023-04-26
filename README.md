@@ -47,6 +47,7 @@ cargo run
 1. we assume the publishers start before and subscriber, and subscriber retry if the publisher's info does not exist. We may find a more clever way of handling this. 
 2. video streaming
 3. testing on raspberrry pi
+4. robustness of signal server (fault tolerance?)
 
 ## Local Demo 
 If you want to get a taste of FogROS2 SGC without setting up the environment, just run 
