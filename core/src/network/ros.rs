@@ -147,8 +147,7 @@ pub async fn ros_subscriber_image(
     loop {
         tokio::select! {
             Some(packet) = subscriber.next() => {
-
-                let ros_msg = packet.data;
+                let ros_msg: Vec<u8> = bincode::serialize(&packet).unwrap();
                 info!("received a ROS packet");
                 let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
                 m_tx.send(packet).unwrap();
@@ -205,15 +204,7 @@ pub async fn ros_publisher_image(
                     info!("new payload to publish locally");
                     if pkt_to_forward.gdpname == topic_gdp_name {
                         let payload = pkt_to_forward.get_byte_payload().unwrap();
-                        let ros_msg:CompressedImage = CompressedImage{
-                            header: Header{
-                                stamp: r2r::builtin_interfaces::msg::Time{sec: 0, nanosec: 0},
-                                frame_id: "0".to_owned()
-                            },
-                            format: "png".to_owned(),
-                            data: payload.to_vec(),
-                        };//serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
-                        // info!("the decoded payload to publish is {:?}", ros_msg);
+                        let ros_msg: CompressedImage = bincode::deserialize(&payload[..]).unwrap();
                         publisher.publish(&ros_msg).unwrap();
                     } else{
                         info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
