@@ -51,9 +51,9 @@ pub async fn ros_publisher(
                     info!("new payload to publish ");
                     if pkt_to_forward.gdpname == topic_gdp_name {
                         let payload = pkt_to_forward.get_byte_payload().unwrap();
-                        let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
+                        //let ros_msg = serde_json::from_str(str::from_utf8(payload).unwrap()).expect("json parsing failure");
                         // info!("the decoded payload to publish is {:?}", ros_msg);
-                        publisher.publish(ros_msg).unwrap();
+                        publisher.publish(payload.clone()).unwrap();
                     } else{
                         info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
                     }
@@ -97,7 +97,7 @@ pub async fn ros_subscriber(
         tokio::select! {
             Some(packet) = subscriber.next() => {
                 info!("received a packet {:?}", packet);
-                let ros_msg = serde_json::to_vec(&packet.unwrap()).unwrap();
+                let ros_msg = packet;
                 let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
                 m_tx.send(packet).unwrap();
 
