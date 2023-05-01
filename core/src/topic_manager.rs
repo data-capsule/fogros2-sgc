@@ -1,7 +1,6 @@
 #[cfg(feature = "ros")]
 use crate::network::ros::{ros_publisher, ros_subscriber};
 #[cfg(feature = "ros")]
-use crate::network::ros::{ros_publisher_image, ros_subscriber_image};
 use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer, self};
 
 use crate::structs::{
@@ -34,12 +33,6 @@ pub async fn topic_creator_webrtc(
 
     let _ros_handle = match action.as_str() {
         "sub" => match topic_type.as_str() {
-            "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_subscriber_image(
-                node_name,
-                topic_name,
-                certificate,
-                rtc_tx, // m_tx is the sender to the webrtc reader
-            )),
             _ => tokio::spawn(ros_subscriber(
                 node_name,
                 topic_name,
@@ -49,12 +42,6 @@ pub async fn topic_creator_webrtc(
             )),
         },
         "pub" => match topic_type.as_str() {
-            "sensor_msgs/msg/CompressedImage" => tokio::spawn(ros_publisher_image(
-                node_name,
-                topic_name,
-                certificate,
-                ros_rx,
-            )),
             _ => tokio::spawn(ros_publisher(
                 node_name,
                 topic_name,

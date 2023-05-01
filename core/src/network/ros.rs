@@ -4,8 +4,6 @@ use crate::structs::{GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;
 
 #[cfg(feature = "ros")] use r2r::QosProfile;
-use r2r::{sensor_msgs::msg::CompressedImage, std_msgs::msg::Header};
-
 use serde_json;
 
 
@@ -110,109 +108,6 @@ pub async fn ros_subscriber(
                 // ).await;
 
             }
-        }
-    }
-}
-
-#[cfg(feature = "ros")]
-pub async fn ros_subscriber_image(
-    node_name: String, topic_name: String, certificate: Vec<u8>, m_tx: UnboundedSender<GDPPacket>,
-) {
-    let topic_type = "sensor_msgs/CompressedImage".to_string();
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(
-        &node_name,
-        &topic_type,
-        &certificate,
-    ));
-    info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
-
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(
-        &topic_name,
-        &topic_type,
-        &certificate,
-    ));
-    info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
-
-    let ctx = r2r::Context::create().expect("context creation failure");
-    let mut node = r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
-    let mut subscriber = node
-        .subscribe::<r2r::sensor_msgs::msg::CompressedImage>(&topic_name, QosProfile::default())
-        .expect("topic subscribing failure");
-
-    let _handle = tokio::task::spawn_blocking(move || loop {
-        node.spin_once(std::time::Duration::from_millis(100));
-    });
-
-
-    loop {
-        tokio::select! {
-            Some(packet) = subscriber.next() => {
-                let ros_msg: Vec<u8> = bincode::serialize(&packet).unwrap();
-                info!("received a ROS packet");
-                let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
-                m_tx.send(packet).unwrap();
-                // let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
-                // proc_gdp_packet(packet,  // packet
-                //     &fib_tx,  //used to send packet to fib
-                //     &channel_tx, // used to send GDPChannel to fib
-                //     &m_tx, //the sending handle of this connection
-                //     &rib_query_tx,
-                //     format!("ros subscriber image {}-{}", topic_name, topic_type),
-                // ).await;
-
-            }
-        }
-    }
-}
-
-#[cfg(feature = "ros")]
-pub async fn ros_publisher_image(
-    node_name: String, topic_name: String, certificate: Vec<u8>,
-    mut m_rx: UnboundedReceiver<GDPPacket>,
-) {
-    let topic_type = "sensor_msgs/CompressedImage".to_string();
-    let node_gdp_name = GDPName(get_gdp_name_from_topic(
-        &node_name,
-        &topic_type,
-        &certificate,
-    ));
-    info!("ROS {} takes gdp name {:?}", node_name, node_gdp_name);
-
-    let topic_gdp_name = GDPName(get_gdp_name_from_topic(
-        &topic_name,
-        &topic_type,
-        &certificate,
-    ));
-    info!("topic {} takes gdp name {:?}", topic_name, topic_gdp_name);
-
-    let ctx = r2r::Context::create().expect("context creation failure");
-    let mut node = r2r::Node::create(ctx, &node_name, "namespace").expect("node creation failure");
-    let publisher = node
-        .create_publisher::<r2r::sensor_msgs::msg::CompressedImage>(
-            &topic_name,
-            QosProfile::default(),
-        )
-        .expect("publisher creation failure");
-
-    let _handle = tokio::task::spawn_blocking(move || loop {
-        node.spin_once(std::time::Duration::from_millis(100));
-    });
-    loop {
-        tokio::select! {
-            Some(pkt_to_forward) = m_rx.recv() => {
-                if pkt_to_forward.action == GdpAction::Forward {
-                    info!("new payload to publish locally");
-                    if pkt_to_forward.gdpname == topic_gdp_name {
-                        let payload = pkt_to_forward.get_byte_payload().unwrap();
-                        let ros_msg: CompressedImage = bincode::deserialize(&payload[..]).unwrap();
-                        publisher.publish(&ros_msg).unwrap();
-                    } else{
-                        info!("{:?} received a packet for name {:?}",pkt_to_forward.gdpname, topic_gdp_name);
-                    }
-                } else {
-                    info!("Received a packet of type {:?}, dont do anything", pkt_to_forward.action)
-                }
-            },
         }
     }
 }
