@@ -17,7 +17,7 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
   - [Install dependencies](#install-dependencies)
     - [Install Rust](#install-rust)
     - [Install ROS](#install-ros)
-    - [Build the repo](#build-the-repo)
+  - [Build the repo](#build-the-repo)
 - [Run with Different Machines](#run-with-different-machines)
     - [Certificate Generation](#certificate-generation)
     - [Run ROS2 talker and listener](#run-ros2-talker-and-listener)
