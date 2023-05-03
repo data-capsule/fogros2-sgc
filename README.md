@@ -12,9 +12,6 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [From SGC to SGC-lite](#from-sgc-to-sgc-lite)
-    - [Making your own signaling server](#making-your-own-signaling-server)
-    - [TODOs](#todos)
 - [Local Demo](#local-demo)
 - [Build FogROS2 SGC](#build-fogros2-sgc)
   - [Install dependencies](#install-dependencies)
@@ -23,9 +20,11 @@ The FogROS2-SGC carries a bag of protocols to support heterogenous demands and r
     - [Build the repo](#build-the-repo)
 - [Run with Different Machines](#run-with-different-machines)
     - [Certificate Generation](#certificate-generation)
-    - [Run with Environment Variables](#run-with-environment-variables)
     - [Run ROS2 talker and listener](#run-ros2-talker-and-listener)
-  - [TODOs and Known issues](#todos-and-known-issues)
+    - [Run with Environment Variables](#run-with-environment-variables)
+- [From SGC to SGC-lite](#from-sgc-to-sgc-lite)
+    - [Making your own signaling server](#making-your-own-signaling-server)
+    - [TODOs](#todos)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
