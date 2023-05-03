@@ -100,9 +100,9 @@ async fn create_new_remote_subscriber(
         }
 
         retries += 1;
-        if retries >= max_retries {
-            panic!("Maximum number of retries exceeded");
-        }
+        // if retries >= max_retries {
+        //     panic!("Maximum number of retries exceeded");
+        // }
 
         println!("Retrying...");
     }
