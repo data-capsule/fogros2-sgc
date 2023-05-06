@@ -4,10 +4,6 @@ FogROS2-SGC is a cloud robotics platform for connecting disjoint ROS2 networks a
 
 \[[Website](https://sites.google.com/view/fogros2-sgc)\] \[[Video](https://youtu.be/hVVFVGLcK0c)\] \[[Arxiv](https://arxiv.org/abs/2210.11691)\] (TODO: arxiv link)
 
-### Why Lite version 
-
-The FogROS2-SGC carries a bag of protocols to support heterogenous demands and requirements. In this version, we build everything with webrtc protocol to streamline the routing setup. Webrtc is generally not compatible with the previous protocols. As a result, we make a lite version with only webrtc version. 
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
@@ -35,7 +31,7 @@ If you want to get a taste of FogROS2 SGC without setting up the environment, ju
 ```
 docker compose build && docker compose up 
 ```
-with docker([install](https://docs.docker.com/get-docker/)) and docker compose([install](https://docs.docker.com/compose/install/linux/)). 
+with docker ([install](https://docs.docker.com/get-docker/)) and docker compose ([install](https://docs.docker.com/compose/install/linux/)). 
 It takes some time to build. You will see two docker containers running `talker` and `listener` are connected securely with FogROS2-SGC.
 
 
@@ -128,11 +124,12 @@ cargo run router
 The talker and listener toml configuration file can be found [here](./src/resources/README.md). The configuration is currently coded with a Berkeley's signaling server that facilitates the routing inforamtion exchange. See [Making your own signaling server](#making-your-own-signaling-server) section for creating your own signaling server.
 The system should also work if you don't specify the configuration file, then it uses automatic mode that 
 constantly checking for new topics. We note that it is only a convenient interface and not FogROS2-SGC is designed for.
+As long as the talker and listener use the same crypto, the system should work.
 
-To disable the logs and run with benchmark mode, run with `release` option by 
-```
+To disable the logs and run with high optimization, run with `release` option by 
+`
 cargo run --release router
-```
+`
 instead.
 
 
@@ -149,6 +146,13 @@ git clone https://github.com/data-capsule/libdatachannel.git
 cd libdatachannel/examples/signaling-server-rust/
 cargo run
 ```
+
+#### Why Lite version 
+
+The FogROS2-SGC carries a bag of protocols to support heterogenous demands and requirements. 
+In this version, we streamline the routing setup by [webrtc](./docs/webrtc.md) instead of building all protocols with raw DTLS sockets.
+webrtc is generally not compatible with the previous protocol. As a result, we make a lite version with only webrtc version. 
+
 
 #### TODOs 
 1. we assume the publishers start before and subscriber, and subscriber retry if the publisher's info does not exist. We may find a more clever way of handling this. 
