@@ -109,7 +109,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
                 id: other_peer_c.lock().as_ref().cloned().unwrap(),
             };
             let s = serde_json::to_string(&m).unwrap();
-            debug!("Sending {:?}", s);
+            info!("Sending {:?}", s);
             write.send(tungstenite::Message::text(s)).await.unwrap();
         }
         anyhow::Result::<_, anyhow::Error>::Ok(())
@@ -117,7 +117,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
     tokio::spawn(f_write);
     let f_read = async move {
             while let Some(Ok(m)) = read.next().await {
-                debug!("received {:?}", m);
+                info!("received {:?}", m);
                 if let Some(val) = match m {
                     tungstenite::Message::Text(t) => {
                         Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
@@ -127,7 +127,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
                     _ => None,
                 } {
                     let c: SignalingMessage = serde_json::from_value(val).unwrap();
-                    println!("msg {:?}", c);
+                    info!("msg {:?}", c);
                     other_peer.lock().replace(c.id);
                     if tx_sig_inbound.send(c.payload).await.is_err() {
                         panic!()

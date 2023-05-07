@@ -62,7 +62,7 @@ Setup your environment with [these instructions](https://docs.ros.org/en/rolling
 Every terminal should be configured with 
 ```
 source /opt/ros/rolling/setup.bash
-````
+```
 
 If you have custom types in a specific ROS colcon directory, `source` the `setup.bash` in that directory. 
 
@@ -139,6 +139,13 @@ The updated configuration file format can be found [here](./src/resources/README
 (Note: remember to migrate the credentials from `./scripts` to the new repo as well!)
 
 
+#### Why Lite version 
+
+The FogROS2-SGC carries a bag of protocols to support heterogenous demands and requirements. 
+In this version, we streamline the routing setup by [webrtc](./docs/webrtc.md) instead of building all protocols with raw DTLS sockets.
+webrtc is generally not compatible with the previous protocol. As a result, we make a lite version with only webrtc version. 
+
+
 #### Making your own signaling server
 Signaling server faciliates the communication by exchanging the address information of webrtc. The details about how signaling server works can be found [HERE](./docs/webrtc.md).
 ```
@@ -147,12 +154,9 @@ cd libdatachannel/examples/signaling-server-rust/
 cargo run
 ```
 
-#### Why Lite version 
-
-The FogROS2-SGC carries a bag of protocols to support heterogenous demands and requirements. 
-In this version, we streamline the routing setup by [webrtc](./docs/webrtc.md) instead of building all protocols with raw DTLS sockets.
-webrtc is generally not compatible with the previous protocol. As a result, we make a lite version with only webrtc version. 
-
+#### Notes on using Berkeley's Public Servers
+Berkeley's public servers are for experimental purposes and do not intend to be used for production system. We do not provide any guarantee on avaialbility. Please use your own signaling server for benchmarking and deployment.
+The security guarnatees of FogROS2-SGC prevents other users/Berkeley from learning sensitive information, such as your ROS2 topic name and type, and on the actual data payload. What is visible is a random 256 bit name are published and subscribed by other random 256 bit names. 
 
 #### TODOs 
 1. we assume the publishers start before and subscriber, and subscriber retry if the publisher's info does not exist. We may find a more clever way of handling this. 

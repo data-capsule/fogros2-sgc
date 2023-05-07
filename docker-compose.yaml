@@ -11,6 +11,8 @@ services:
           - "./scripts:/scripts" 
         depends_on:
           - listener 
+        # deploy:
+        #   replicas: 2
         environment:
           # SGC_CONFIG: "talker.toml"
           SGC_CONFIG: "automatic.toml"
@@ -30,6 +32,8 @@ services:
           - "./scripts:/scripts" 
         # depends_on:
         #   - talker 
+        # deploy:
+        #   replicas: 2
         environment:
           # SGC_CONFIG: "listener.toml"
           SGC_CONFIG: "automatic.toml"
