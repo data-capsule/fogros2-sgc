@@ -121,9 +121,9 @@ async fn create_new_remote_publisher(
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));
-    add_entity_to_database_as_transaction("redis://127.0.0.1", &publisher_topic, gdp_name_to_string(publisher_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
+    add_entity_to_database_as_transaction("redis://fogros2_sgc_lite-redis-1", &publisher_topic, gdp_name_to_string(publisher_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
     info!("publisher {} added to database with topic {}", gdp_name_to_string(publisher_listening_gdp_name), publisher_topic);
-    let subscribers = get_entity_from_database("redis://127.0.0.1", &subscriber_topic).expect("Cannot get subscriber from database");
+    let subscribers = get_entity_from_database("redis://fogros2_sgc_lite-redis-1", &subscriber_topic).expect("Cannot get subscriber from database");
     
     // signaling url is  [topic_name]/[local name]/[remote name]
     // dialing url is [topic_name]/[remote name]/[local name]
@@ -168,9 +168,9 @@ async fn create_new_remote_subscriber(
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));
-    add_entity_to_database_as_transaction("127.0.0.1", &subscriber_topic, gdp_name_to_string(subscriber_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
+    add_entity_to_database_as_transaction("redis://fogros2_sgc_lite-redis-1", &subscriber_topic, gdp_name_to_string(subscriber_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
     info!("publisher added to database");
-    let publishers = get_entity_from_database("127.0.0.1", &publisher_topic).expect("Cannot get subscriber from database");
+    let publishers = get_entity_from_database("redis://fogros2_sgc_lite-redis-1", &publisher_topic).expect("Cannot get subscriber from database");
     
     // signaling url is  [topic_name]/[local name]/[remote name]
     // dialing url is [topic_name]/[remote name]/[local name]

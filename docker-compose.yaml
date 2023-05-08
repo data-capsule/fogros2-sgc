@@ -45,3 +45,12 @@ services:
           bash -c "source /opt/ros/humble/setup.bash; 
           ros2 run demo_nodes_py listener & 
           /gdp-router router"
+    redis: 
+      image: redislabs/redismod
+      # ports:
+      #   - '6379:6379' 
+
+    redisinsight:
+      image: redislabs/redisinsight:latest
+      ports:
+      - '8001:8001'
