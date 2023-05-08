@@ -10,7 +10,7 @@ services:
           - "./src:/src" 
           - "./scripts:/scripts" 
         depends_on:
-          - listener 
+          - redis 
         # deploy:
         #   replicas: 2
         environment:
@@ -30,8 +30,9 @@ services:
         volumes:
           - "./src:/src" 
           - "./scripts:/scripts" 
-        # depends_on:
-        #   - talker 
+        depends_on:
+          - talker 
+          - redis
         # deploy:
         #   replicas: 2
         environment:

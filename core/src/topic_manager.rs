@@ -130,8 +130,9 @@ async fn create_new_remote_publisher(
     for subscriber in subscribers {
         info!("subscriber {}", subscriber);
         let signaling_url = format!("{}/{}/{}", topic_name, gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+        info!("publisher listening for signaling url {}", signaling_url);
         let dialing_url = format!("{}/{}/{}", topic_name, subscriber, gdp_name_to_string(publisher_listening_gdp_name));
-        let webrtc_stream = register_webrtc_stream(signaling_url, Some(dialing_url)).await;
+        let webrtc_stream = register_webrtc_stream(signaling_url, None).await;
         info!("publisher registered webrtc stream");
         let _ros_handle = ros_topic_creator(
             webrtc_stream,
@@ -176,8 +177,9 @@ async fn create_new_remote_subscriber(
     // dialing url is [topic_name]/[remote name]/[local name]
     for publisher in publishers {
         info!("publisher {}", publisher);
-        let dialing_url = format!("{}/{}/{}", topic_name, gdp_name_to_string(subscriber_listening_gdp_name), publisher);
+        let dialing_url = format!("{}/{}/{}", topic_name,publisher, gdp_name_to_string(subscriber_listening_gdp_name));
         let signaling_url = format!("{}/{}/{}", topic_name, publisher, gdp_name_to_string(subscriber_listening_gdp_name));
+        info!("subscriber dialing for {} from signaling url {}", dialing_url, signaling_url);
         let webrtc_stream = register_webrtc_stream(signaling_url, Some(dialing_url)).await;
         info!("subscriber registered webrtc stream");
         let _ros_handle = ros_topic_creator(

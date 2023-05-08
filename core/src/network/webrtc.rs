@@ -123,7 +123,10 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
                         Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
                     },
                     tungstenite::Message::Binary(b) => Some(serde_json::from_slice(&b[..]).unwrap()),
-                    tungstenite::Message::Close(_) => panic!(),
+                    tungstenite::Message::Close(e) => {
+                        warn!("close message {:?}", e);
+                        continue;
+                    },
                     _ => None,
                 } {
                     let c: SignalingMessage = serde_json::from_value(val).unwrap();
