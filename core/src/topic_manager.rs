@@ -17,9 +17,47 @@ use tokio::sync::mpsc::{self};
 use tokio::time::{sleep, timeout};
 use tokio::time::Duration;
 use utils::app_config::AppConfig;
-// use r2r::Node::get_topic_names_and_types;
+use redis::{self, Client, Commands, PubSubCommands};
+use redis_async::{client, resp::FromResp};
+use futures::StreamExt;
 
-pub async fn topic_creator_webrtc(
+/// determine the action of a new topic
+/// pub/sub/noop
+/// Currently it uses cli to get the information
+/// TODO: use r2r/rcl to get the information
+async fn determine_topic_action(topic_name: String) -> String {
+    let output = Command::new("ros2")
+        .arg("topic")
+        .arg("info")
+        .arg(topic_name.as_str())
+        .output()
+        .await
+        .unwrap();
+    let output_str = String::from_utf8(output.stdout).unwrap();
+    info!("topic info of topic {}: {}", topic_name, output_str);
+    if output_str.contains("Publisher count: 0") {
+        info!(
+            "topic {} has no local publisher, mark as remote topic publisher",
+            topic_name
+        );
+        return "pub".to_string();
+    } else if output_str.contains("Subscription count: 0") {
+        info!(
+            "topic {} has no local subscriber, mark as remote topic subscriber",
+            topic_name
+        );
+        return "sub".to_string();
+    } else {
+        info!(
+            "topic {} has local publishers and subscribers, mark as noop",
+            topic_name
+        );
+        return "noop".to_string();
+    }
+}
+
+
+pub async fn ros_topic_creator(
     stream: async_datachannel::DataStream, node_name: String, topic_name: String,
     topic_type: String, action: String, certificate: Vec<u8>,
 ) {
@@ -60,7 +98,7 @@ async fn create_new_remote_publisher(
 ) {
     let webrtc_stream = register_webrtc_stream(gdp_name_to_string(topic_gdp_name), None).await;
     info!("publisher registered webrtc stream");
-    let _ros_handle = topic_creator_webrtc(
+    let _ros_handle = ros_topic_creator(
         webrtc_stream,
         format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
         topic_name.clone(),
@@ -75,9 +113,7 @@ async fn create_new_remote_subscriber(
     topic_gdp_name: GDPName, topic_name: String,
     topic_type: String, certificate: Vec<u8>,
 ) {
-    let max_retries = 5;
 
-    let mut retries = 0;
     let mut webrtc_stream = None;
     loop {
         let subscriber_listening_gdp_name = generate_random_gdp_name();
@@ -97,26 +133,14 @@ async fn create_new_remote_subscriber(
             Err(_) => {
                 warn!("subscribing retry timeout, retrying...");
             },
-        }
-
-        retries += 1;
-        // if retries >= max_retries {
-        //     panic!("Maximum number of retries exceeded");
-        // }
+        };
 
         println!("Retrying...");
     }
 
     let webrtc_stream= webrtc_stream.unwrap();
-    // tokio::time::sleep(Duration::from_secs(5)).await;
-    // let subscriber_listening_gdp_name = generate_random_gdp_name();
-    // let webrtc_stream= register_webrtc_stream(
-    //                 gdp_name_to_string(subscriber_listening_gdp_name),
-    //                 Some(gdp_name_to_string(topic_gdp_name)),
-    //             ).await;
-    // info!("subscriber registered webrtc stream");
 
-    let _ros_handle = topic_creator_webrtc(
+    let _ros_handle = ros_topic_creator(
         webrtc_stream,
         format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
         topic_name.clone(),
@@ -125,41 +149,6 @@ async fn create_new_remote_subscriber(
         certificate.clone(),
     )
     .await;
-}
-
-/// determine the action of a new topic
-/// pub/sub/noop
-/// Currently it uses cli to get the information
-/// TODO: use r2r/rcl to get the information
-async fn determine_topic_action(topic_name: String) -> String {
-    let output = Command::new("ros2")
-        .arg("topic")
-        .arg("info")
-        .arg(topic_name.as_str())
-        .output()
-        .await
-        .unwrap();
-    let output_str = String::from_utf8(output.stdout).unwrap();
-    info!("topic info of topic {}: {}", topic_name, output_str);
-    if output_str.contains("Publisher count: 0") {
-        info!(
-            "topic {} has no local publisher, mark as remote topic publisher",
-            topic_name
-        );
-        return "pub".to_string();
-    } else if output_str.contains("Subscription count: 0") {
-        info!(
-            "topic {} has no local subscriber, mark as remote topic subscriber",
-            topic_name
-        );
-        return "sub".to_string();
-    } else {
-        info!(
-            "topic {} has local publishers and subscribers, mark as noop",
-            topic_name
-        );
-        return "noop".to_string();
-    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -174,6 +163,30 @@ pub async fn ros_topic_manager() {
     // bookkeeping the status of ros topics
     let mut topic_status = HashMap::new();
     let _ros_topic_manager_gdp_name = generate_random_gdp_name();
+
+    let pubsub_con = client::pubsub_connect("127.0.0.1", 6379).await.expect("Cannot connect to Redis");
+    let topic = "__keyspace@0__:mykey".to_string();
+    let mut msgs = pubsub_con
+    .psubscribe(&topic)
+    .await
+    .expect("Cannot subscribe to topic");
+
+    // let topic = "test".to_string();
+    // let mut msgs = pubsub_con
+    // .subscribe(&topic)
+    // .await
+    // .expect("Cannot subscribe to topic");
+
+
+    while let Some(message) = msgs.next().await {
+        match message {
+            Ok(message) => info!("KVS {}", String::from_resp(message).unwrap()),
+            Err(e) => {
+                eprintln!("ERROR: {}", e);
+                break;
+            }
+        }
+    }
 
     // read certificate from file in config
     for topic in config.ros {
@@ -207,7 +220,6 @@ pub async fn ros_topic_manager() {
                 waiting_rib_handles.push(handle);
             }
             "pub" => {
-                
                 let handle = tokio::spawn(async move {
                     create_new_remote_subscriber(
                         topic_gdp_name,
@@ -289,6 +301,7 @@ pub async fn ros_topic_manager() {
 
                             // locally publish, globally subscribe
                             "pub" => {
+                                // subscribe to a pattern that matches the key you're interested in
                                 // create a new thread to handle that listens for the topic
                                 let topic_name = topic_name.clone();
                                 let certificate = certificate.clone();
