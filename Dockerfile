@@ -18,6 +18,14 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 
 FROM chef AS builder 
+
+WORKDIR /
+RUN git clone https://github.com/data-capsule/libdatachannel.git
+WORKDIR /libdatachannel/examples/signaling-server-rust/
+RUN cargo build --release
+RUN mv /libdatachannel/examples/signaling-server-rust/target/release/libdatachannel_signaling_server_example /signaling_server
+
+WORKDIR /app
 COPY --from=planner /app/recipe.json recipe.json
 RUN . /opt/ros/humble/setup.sh && cargo chef cook --recipe-path recipe.json
 # to run with release mode, uncomment the following line
@@ -34,6 +42,7 @@ RUN . /opt/ros/humble/setup.sh && cargo build
 # build the final image
 FROM chef
 WORKDIR /
+COPY --from=builder  /signaling_server /signaling_server
 COPY --from=builder /app/bench /fog_ws
 COPY --from=builder /app/src /src 
 COPY --from=builder /app/scripts /scripts

@@ -47,12 +47,24 @@ services:
           bash -c "source /opt/ros/humble/setup.bash; 
           ros2 run demo_nodes_py listener & 
           /gdp-router router"
+          
     redis: 
       image: redislabs/redismod
-      # ports:
-      #   - '6379:6379' 
+      ports:
+        - '8002:6379'  # use 8002 for public interface of redis
+
+    signal:
+      restart: always
+      build: 
+        context: ./
+        dockerfile: ./Dockerfile
+      ports:
+        - '8000:8000'  # use 8000 for public interface of signaling server
+      command: >
+        /signaling_server
 
     redisinsight:
+      restart: always
       image: redislabs/redisinsight:latest
       ports:
-      - '8001:8001'
+      - '8001:8001' # use 8002 for public interface of redis insight

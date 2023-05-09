@@ -217,7 +217,7 @@ async fn create_new_remote_subscriber(
 ) {
     let subscriber_listening_gdp_name = generate_random_gdp_name();
     let redis_url = "redis://fogros2_sgc_lite-redis-1";
-
+    allow_keyspace_notification(redis_url);
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));

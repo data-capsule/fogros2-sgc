@@ -148,7 +148,8 @@ In this version, we streamline the routing setup by [webrtc](./docs/webrtc.md) i
 webrtc is generally not compatible with the previous protocol. As a result, we make a lite version with only webrtc version. 
 
 
-#### Making your own signaling server
+#### Deploying Your Own Routing Infrastructure
+The simplest routing infrastructure consists a signaling server and a routing information base(RIB) based on redis. 
 Signaling server faciliates the communication by exchanging the address information of webrtc. The details about how signaling server works can be found [HERE](./docs/webrtc.md).
 ```
 git clone https://github.com/data-capsule/libdatachannel.git
