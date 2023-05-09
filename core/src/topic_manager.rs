@@ -76,6 +76,19 @@ fn get_entity_from_database(redis_url: &str, key: &str) -> RedisResult<Vec<Strin
     Ok(list)
 }
 
+fn allow_keyspace_notification(redis_url: &str) -> RedisResult<()> {
+    let client = Client::open(redis_url)?;
+    let mut con = client.get_connection()?;
+    let _: () = redis::cmd("CONFIG")
+        .arg("SET")
+        .arg("notify-keyspace-events")
+        .arg("KEA")
+        .query(&mut con)
+        .expect("failed to execute SET for notify-keyspace-events");
+
+    Ok(())
+}
+
 pub async fn ros_topic_creator(
     stream: async_datachannel::DataStream, node_name: String, topic_name: String,
     topic_type: String, action: String, certificate: Vec<u8>,
@@ -116,14 +129,16 @@ pub async fn ros_topic_creator(
 async fn create_new_remote_publisher(
     topic_gdp_name: GDPName, topic_name: String, topic_type: String, certificate: Vec<u8>,
 ) {
+    let redis_url = "redis://fogros2_sgc_lite-redis-1";
+    allow_keyspace_notification(redis_url);
     let publisher_listening_gdp_name = generate_random_gdp_name();
 
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));
-    add_entity_to_database_as_transaction("redis://fogros2_sgc_lite-redis-1", &publisher_topic, gdp_name_to_string(publisher_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
+    add_entity_to_database_as_transaction(redis_url, &publisher_topic, gdp_name_to_string(publisher_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
     info!("publisher {} added to database with topic {}", gdp_name_to_string(publisher_listening_gdp_name), publisher_topic);
-    let subscribers = get_entity_from_database("redis://fogros2_sgc_lite-redis-1", &subscriber_topic).expect("Cannot get subscriber from database");
+    let subscribers = get_entity_from_database(redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
     
     // signaling url is  [topic_name]/[local name]/[remote name]
     // dialing url is [topic_name]/[remote name]/[local name]
@@ -144,7 +159,47 @@ async fn create_new_remote_publisher(
         )
         .await;
     }
+
     //todo: check on the subscriber topic 
+
+    let pubsub_con = client::pubsub_connect("fogros2_sgc_lite-redis-1", 6379).await.expect("Cannot connect to Redis");
+    let topic = format!("__keyspace@0__:{}", subscriber_topic);
+    let mut msgs = pubsub_con
+    .psubscribe(&topic)
+    .await
+    .expect("Cannot subscribe to topic");
+
+    while let Some(message) = msgs.next().await {
+        match message {
+            Ok(message) => {
+                info!("KVS {}", String::from_resp(message).unwrap());
+                let subscribers = get_entity_from_database(redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+                info!("subscriber {:?}", subscribers);
+                let subscriber = subscribers.last().unwrap(); //first or last?
+                let signaling_url = format!("{}/{}/{}", topic_name, gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                info!("publisher listening for signaling url {}", signaling_url);
+                let dialing_url = format!("{}/{}/{}", topic_name, subscriber, gdp_name_to_string(publisher_listening_gdp_name));
+                let webrtc_stream = register_webrtc_stream(signaling_url, None).await;
+                info!("publisher registered webrtc stream");
+                let _ros_handle = ros_topic_creator(
+                    webrtc_stream,
+                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+                    topic_name.clone(),
+                    topic_type.clone(),
+                    "sub".to_string(),
+                    certificate.clone(),
+                )
+                .await;
+
+            
+            },
+            Err(e) => {
+                eprintln!("ERROR: {}", e);
+                break;
+            }
+        }
+    }
+
     
 
     // let webrtc_stream = register_webrtc_stream(gdp_name_to_string(topic_gdp_name), None).await;
@@ -165,13 +220,14 @@ async fn create_new_remote_subscriber(
     topic_type: String, certificate: Vec<u8>,
 ) {
     let subscriber_listening_gdp_name = generate_random_gdp_name();
+    let redis_url = "redis://fogros2_sgc_lite-redis-1";
 
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));
-    add_entity_to_database_as_transaction("redis://fogros2_sgc_lite-redis-1", &subscriber_topic, gdp_name_to_string(subscriber_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
+    add_entity_to_database_as_transaction(redis_url, &subscriber_topic, gdp_name_to_string(subscriber_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
     info!("publisher added to database");
-    let publishers = get_entity_from_database("redis://fogros2_sgc_lite-redis-1", &publisher_topic).expect("Cannot get subscriber from database");
+    let publishers = get_entity_from_database(redis_url, &publisher_topic).expect("Cannot get subscriber from database");
     
     // signaling url is  [topic_name]/[local name]/[remote name]
     // dialing url is [topic_name]/[remote name]/[local name]
