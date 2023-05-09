@@ -172,7 +172,7 @@ async fn create_new_remote_publisher(
                 info!("KVS {}", String::from_resp(message).unwrap());
                 let subscribers = get_entity_from_database(redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
                 info!("get a list of subscribers from KVS {:?}", subscribers);
-                let subscriber = subscribers.last().unwrap(); //first or last?
+                let subscriber = subscribers.first().unwrap(); //first or last?
                 let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
                 info!("publisher listening for signaling url {}", publisher_url);
                 let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
@@ -262,7 +262,7 @@ async fn create_new_remote_subscriber(
                 info!("KVS {}", String::from_resp(message).unwrap());
                 let publishers = get_entity_from_database(redis_url, &publisher_topic).expect("Cannot get publisher from database");
                 info!("get a list of publishers from KVS {:?}", publishers);
-                let publisher = publishers.last().unwrap(); //first or last?
+                let publisher = publishers.first().unwrap(); //first or last?
 
                 // subscriber's address
                 let my_signaling_url = format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name), publisher);
