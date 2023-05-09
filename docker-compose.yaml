@@ -11,6 +11,7 @@ services:
           - "./scripts:/scripts" 
         depends_on:
           - redis 
+          # - listener
         # deploy:
         #   replicas: 2
         environment:

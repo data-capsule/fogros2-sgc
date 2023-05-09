@@ -161,7 +161,6 @@ async fn create_new_remote_publisher(
     }
 
     //todo: check on the subscriber topic 
-
     let pubsub_con = client::pubsub_connect("fogros2_sgc_lite-redis-1", 6379).await.expect("Cannot connect to Redis");
     let topic = format!("__keyspace@0__:{}", subscriber_topic);
     let mut msgs = pubsub_con
@@ -179,7 +178,9 @@ async fn create_new_remote_publisher(
                 let signaling_url = format!("{}/{}/{}", topic_name, gdp_name_to_string(publisher_listening_gdp_name), subscriber);
                 info!("publisher listening for signaling url {}", signaling_url);
                 let dialing_url = format!("{}/{}/{}", topic_name, subscriber, gdp_name_to_string(publisher_listening_gdp_name));
-                let webrtc_stream = register_webrtc_stream(signaling_url, None).await;
+                info!("my id: {}, peer to dial: {}", dialing_url, signaling_url);
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                let webrtc_stream = register_webrtc_stream(dialing_url, Some(signaling_url)).await;
                 info!("publisher registered webrtc stream");
                 let _ros_handle = ros_topic_creator(
                     webrtc_stream,
@@ -235,8 +236,8 @@ async fn create_new_remote_subscriber(
         info!("publisher {}", publisher);
         let dialing_url = format!("{}/{}/{}", topic_name,publisher, gdp_name_to_string(subscriber_listening_gdp_name));
         let signaling_url = format!("{}/{}/{}", topic_name, publisher, gdp_name_to_string(subscriber_listening_gdp_name));
-        info!("subscriber dialing for {} from signaling url {}", dialing_url, signaling_url);
-        let webrtc_stream = register_webrtc_stream(signaling_url, Some(dialing_url)).await;
+        info!("my id: {}, peer to dial: None {:?} ", signaling_url, dialing_url);
+        let webrtc_stream = register_webrtc_stream(signaling_url, None).await;
         info!("subscriber registered webrtc stream");
         let _ros_handle = ros_topic_creator(
             webrtc_stream,
