@@ -144,10 +144,9 @@ async fn create_new_remote_publisher(
     // dialing url is [topic_name]/[remote name]/[local name]
     for subscriber in subscribers {
         info!("subscriber {}", subscriber);
-        let signaling_url = format!("{}/{}/{}", topic_name, gdp_name_to_string(publisher_listening_gdp_name), subscriber);
-        info!("publisher listening for signaling url {}", signaling_url);
-        let dialing_url = format!("{}/{}/{}", topic_name, subscriber, gdp_name_to_string(publisher_listening_gdp_name));
-        let webrtc_stream = register_webrtc_stream(signaling_url, None).await;
+        let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+        info!("publisher listening for signaling url {}", publisher_url);
+        let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
         info!("publisher registered webrtc stream");
         let _ros_handle = ros_topic_creator(
             webrtc_stream,
@@ -160,7 +159,6 @@ async fn create_new_remote_publisher(
         .await;
     }
 
-    //todo: check on the subscriber topic 
     let pubsub_con = client::pubsub_connect("fogros2_sgc_lite-redis-1", 6379).await.expect("Cannot connect to Redis");
     let topic = format!("__keyspace@0__:{}", subscriber_topic);
     let mut msgs = pubsub_con
@@ -173,14 +171,11 @@ async fn create_new_remote_publisher(
             Ok(message) => {
                 info!("KVS {}", String::from_resp(message).unwrap());
                 let subscribers = get_entity_from_database(redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
-                info!("subscriber {:?}", subscribers);
+                info!("get a list of subscribers from KVS {:?}", subscribers);
                 let subscriber = subscribers.last().unwrap(); //first or last?
-                let signaling_url = format!("{}/{}/{}", topic_name, gdp_name_to_string(publisher_listening_gdp_name), subscriber);
-                info!("publisher listening for signaling url {}", signaling_url);
-                let dialing_url = format!("{}/{}/{}", topic_name, subscriber, gdp_name_to_string(publisher_listening_gdp_name));
-                info!("my id: {}, peer to dial: {}", dialing_url, signaling_url);
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                let webrtc_stream = register_webrtc_stream(dialing_url, Some(signaling_url)).await;
+                let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                info!("publisher listening for signaling url {}", publisher_url);
+                let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
                 info!("publisher registered webrtc stream");
                 let _ros_handle = ros_topic_creator(
                     webrtc_stream,
@@ -234,10 +229,12 @@ async fn create_new_remote_subscriber(
     // dialing url is [topic_name]/[remote name]/[local name]
     for publisher in publishers {
         info!("publisher {}", publisher);
-        let dialing_url = format!("{}/{}/{}", topic_name,publisher, gdp_name_to_string(subscriber_listening_gdp_name));
-        let signaling_url = format!("{}/{}/{}", topic_name, publisher, gdp_name_to_string(subscriber_listening_gdp_name));
-        info!("my id: {}, peer to dial: None {:?} ", signaling_url, dialing_url);
-        let webrtc_stream = register_webrtc_stream(signaling_url, None).await;
+        // subscriber's address
+        let my_signaling_url = format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name), publisher);
+        // publisher's address
+        let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
+        info!("publisher: my id: {}, peer to dial ", my_signaling_url);
+        let webrtc_stream = register_webrtc_stream(my_signaling_url, Some(peer_dialing_url)).await;
         info!("subscriber registered webrtc stream");
         let _ros_handle = ros_topic_creator(
             webrtc_stream,
@@ -250,22 +247,68 @@ async fn create_new_remote_subscriber(
         .await;
     }
 
-    let webrtc_stream = register_webrtc_stream(
-        gdp_name_to_string(subscriber_listening_gdp_name),
-        Some(gdp_name_to_string(topic_gdp_name)),
-    ).await;
+
+
+    let pubsub_con = client::pubsub_connect("fogros2_sgc_lite-redis-1", 6379).await.expect("Cannot connect to Redis");
+    let topic = format!("__keyspace@0__:{}", publisher_topic);
+    let mut msgs = pubsub_con
+    .psubscribe(&topic)
+    .await
+    .expect("Cannot subscribe to topic");
+
+    while let Some(message) = msgs.next().await {
+        match message {
+            Ok(message) => {
+                info!("KVS {}", String::from_resp(message).unwrap());
+                let publishers = get_entity_from_database(redis_url, &publisher_topic).expect("Cannot get publisher from database");
+                info!("get a list of publishers from KVS {:?}", publishers);
+                let publisher = publishers.last().unwrap(); //first or last?
+
+                // subscriber's address
+                let my_signaling_url = format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name), publisher);
+                // publisher's address
+                let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
+                // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
+                let webrtc_stream = register_webrtc_stream(my_signaling_url, Some(peer_dialing_url)).await;
+                info!("subscriber registered webrtc stream");
+
+                let _ros_handle = ros_topic_creator(
+                    webrtc_stream,
+                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+                    topic_name.clone(),
+                    topic_type.clone(),
+                    "sub".to_string(),
+                    certificate.clone(),
+                )
+                .await;
+
+            
+            },
+            Err(e) => {
+                eprintln!("ERROR: {}", e);
+                break;
+            }
+        }
+    }
+    
+
+    // let webrtc_stream = register_webrtc_stream(
+    //     gdp_name_to_string(subscriber_listening_gdp_name),
+    //     Some(gdp_name_to_string(topic_gdp_name)),
+    // ).await;
 
 
 
-    let _ros_handle = ros_topic_creator(
-        webrtc_stream,
-        format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-        topic_name.clone(),
-        topic_type.clone(),
-        "pub".to_string(),
-        certificate.clone(),
-    )
-    .await;
+    // let _ros_handle = ros_topic_creator(
+    //     webrtc_stream,
+    //     format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+    //     topic_name.clone(),
+    //     topic_type.clone(),
+    //     "pub".to_string(),
+    //     certificate.clone(),
+    // )
+    // .await;
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
