@@ -149,10 +149,10 @@ webrtc is generally not compatible with the previous protocol. As a result, we m
 
 
 #### Deploying Your Own Routing Infrastructure
-The simplest routing infrastructure consists a signaling server and a routing information base(RIB) based on redis. 
+The simplest routing infrastructure consists a signaling server and a routing information base(RIB). 
 This can be done by running 
 ```
-docker compose up -d signal redis
+docker compose up -d signal rib
 ```
 The only requirement is to expose port 8000 and 8002 to other robots/machines. 
 
