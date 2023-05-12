@@ -7,8 +7,8 @@ RUN cargo install cargo-chef
 
 RUN apt-get update && apt-get install -y build-essential curl pkg-config libssl-dev protobuf-compiler clang libssl-dev wget ros-humble-rmw-cyclonedds-cpp
 # https://stackoverflow.com/questions/72378647/spl-token-error-while-loading-shared-libraries-libssl-so-1-1-cannot-open-shar
-RUN wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.17_amd64.deb
-RUN dpkg -i libssl1.1_1.1.1f-1ubuntu2.17_amd64.deb
+RUN wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.18_amd64.deb
+RUN dpkg -i libssl1.1_1.1.1f-1ubuntu2.18_amd64.deb
 
 WORKDIR app
 
