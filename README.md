@@ -20,7 +20,7 @@ FogROS2-SGC is a cloud robotics platform for connecting disjoint ROS2 networks a
     - [Run with Environment Variables](#run-with-environment-variables)
 - [From SGC to SGC-lite](#from-sgc-to-sgc-lite)
     - [Why Lite version](#why-lite-version)
-    - [Making your own signaling server](#making-your-own-signaling-server)
+    - [Deploying Your Own Routing Infrastructure](#deploying-your-own-routing-infrastructure)
     - [Notes on using Berkeley's Public Servers](#notes-on-using-berkeleys-public-servers)
     - [TODOs](#todos)
 
