@@ -32,6 +32,7 @@ pub struct AppConfig {
     pub log_level: LogLevel,
     pub crypto_name: String,
     pub signaling_server_address: String,
+    pub routing_information_base_address: String, 
     pub automatic_topic_discovery: bool,
     pub ros: Vec<ROS>,
 }
