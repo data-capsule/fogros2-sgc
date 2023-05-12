@@ -22,6 +22,21 @@ use redis::{self, Client, Commands, PubSubCommands, RedisResult, transaction};
 use redis_async::{client, resp::FromResp};
 use futures::StreamExt;
 
+
+fn get_redis_url() -> String {
+    let config = AppConfig::fetch().expect("Failed to fetch config");
+    format!("redis://{}", config.routing_information_base_address)
+}
+
+fn get_redis_address_and_port() -> (String, u16) {
+    let config = AppConfig::fetch().expect("Failed to fetch config");
+    let url = config.routing_information_base_address; 
+    let mut split = url.split(":");
+    let address = split.next().unwrap().to_string();
+    let port = split.next().unwrap().parse::<u16>().unwrap();
+    (address, port)
+}
+
 /// determine the action of a new topic
 /// pub/sub/noop
 /// Currently it uses cli to get the information
@@ -129,16 +144,16 @@ pub async fn ros_topic_creator(
 async fn create_new_remote_publisher(
     topic_gdp_name: GDPName, topic_name: String, topic_type: String, certificate: Vec<u8>,
 ) {
-    let redis_url = "redis://fogros2_sgc_lite-redis-1";
-    allow_keyspace_notification(redis_url);
+    let redis_url = get_redis_url();
+    allow_keyspace_notification(&redis_url);
     let publisher_listening_gdp_name = generate_random_gdp_name();
 
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));
-    add_entity_to_database_as_transaction(redis_url, &publisher_topic, gdp_name_to_string(publisher_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
+    add_entity_to_database_as_transaction(&redis_url, &publisher_topic, gdp_name_to_string(publisher_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
     info!("publisher {} added to database with topic {}", gdp_name_to_string(publisher_listening_gdp_name), publisher_topic);
-    let subscribers = get_entity_from_database(redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+    let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
     
     // signaling url is  [topic_name]/[local name]/[remote name]
     // dialing url is [topic_name]/[remote name]/[local name]
@@ -159,7 +174,8 @@ async fn create_new_remote_publisher(
         .await;
     }
 
-    let pubsub_con = client::pubsub_connect("fogros2_sgc_lite-redis-1", 6379).await.expect("Cannot connect to Redis");
+    let redis_addr_and_port = get_redis_address_and_port();
+    let pubsub_con = client::pubsub_connect(redis_addr_and_port.0, redis_addr_and_port.1).await.expect("Cannot connect to Redis");
     let topic = format!("__keyspace@0__:{}", subscriber_topic);
     let mut msgs = pubsub_con
     .psubscribe(&topic)
@@ -170,7 +186,7 @@ async fn create_new_remote_publisher(
         match message {
             Ok(message) => {
                 info!("KVS {}", String::from_resp(message).unwrap());
-                let subscribers = get_entity_from_database(redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+                let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
                 info!("get a list of subscribers from KVS {:?}", subscribers);
                 let subscriber = subscribers.first().unwrap(); //first or last?
                 let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
@@ -216,14 +232,14 @@ async fn create_new_remote_subscriber(
     topic_type: String, certificate: Vec<u8>,
 ) {
     let subscriber_listening_gdp_name = generate_random_gdp_name();
-    let redis_url = "redis://fogros2_sgc_lite-redis-1";
-    allow_keyspace_notification(redis_url);
+    let redis_url = get_redis_url();
+    allow_keyspace_notification(&redis_url);
     // currently open another synchronous connection for put and get
     let publisher_topic = format!("{}-pub", gdp_name_to_string(topic_gdp_name));
     let subscriber_topic = format!("{}-sub", gdp_name_to_string(topic_gdp_name));
-    add_entity_to_database_as_transaction(redis_url, &subscriber_topic, gdp_name_to_string(subscriber_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
+    add_entity_to_database_as_transaction(&redis_url, &subscriber_topic, gdp_name_to_string(subscriber_listening_gdp_name).as_str()).expect("Cannot add publisher to database");
     info!("publisher added to database");
-    let publishers = get_entity_from_database(redis_url, &publisher_topic).expect("Cannot get subscriber from database");
+    let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get subscriber from database");
     
     // signaling url is  [topic_name]/[local name]/[remote name]
     // dialing url is [topic_name]/[remote name]/[local name]
@@ -248,8 +264,8 @@ async fn create_new_remote_subscriber(
     }
 
 
-
-    let pubsub_con = client::pubsub_connect("fogros2_sgc_lite-redis-1", 6379).await.expect("Cannot connect to Redis");
+    let redis_addr_and_port = get_redis_address_and_port();
+    let pubsub_con = client::pubsub_connect(redis_addr_and_port.0, redis_addr_and_port.1).await.expect("Cannot connect to Redis");
     let topic = format!("__keyspace@0__:{}", publisher_topic);
     let mut msgs = pubsub_con
     .psubscribe(&topic)
@@ -260,7 +276,7 @@ async fn create_new_remote_subscriber(
         match message {
             Ok(message) => {
                 info!("KVS {}", String::from_resp(message).unwrap());
-                let publishers = get_entity_from_database(redis_url, &publisher_topic).expect("Cannot get publisher from database");
+                let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get publisher from database");
                 info!("get a list of publishers from KVS {:?}", publishers);
                 let publisher = publishers.first().unwrap(); //first or last?
 

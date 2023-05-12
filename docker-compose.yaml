@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-    redis: 
+    rib: 
       image: redislabs/redismod
       ports:
         - '8002:6379'  # use 8002 for public interface of redis
@@ -31,7 +31,7 @@ services:
           - "./src:/src" 
           - "./scripts:/scripts" 
         depends_on:
-          - redis 
+          - rib 
           - signal
         # deploy:
         #   replicas: 2
@@ -52,7 +52,7 @@ services:
           - "./src:/src" 
           - "./scripts:/scripts" 
         depends_on:
-          - redis
+          - rib
           - signal
         environment:
           SGC_CONFIG: "automatic-docker.toml"
