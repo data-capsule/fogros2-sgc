@@ -25,8 +25,8 @@ fn main() -> Result<()> {
             .install();
     }
 
-    ::std::env::set_var("RUST_LOG", "info");
-    env_logger::init();
+    // ::std::env::set_var("RUST_LOG", "info");
+    // env_logger::init();
 
     // Initialize Configuration
     let include_path = match env::var_os("SGC_CONFIG") {

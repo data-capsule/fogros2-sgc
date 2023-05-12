@@ -8,7 +8,7 @@ use futures::future;
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
-
+use console_subscriber;
 /// inspired by https://stackoverflow.com/questions/71314504/how-do-i-simultaneously-read-messages-from-multiple-tokio-channels-in-a-single-t
 /// TODO: later put to another file
 #[tokio::main]
@@ -27,9 +27,9 @@ async fn router_async_loop() {
 /// Show the configuration file
 pub fn router() -> Result<()> {
     warn!("router is started!");
+    // RUSTFLAGS="--cfg tokio_unstable" cargo build
+    console_subscriber::init();
 
-    // NOTE: uncomment to use pnet
-    // libpnet::pnet_proc_loop();
     router_async_loop();
 
     Ok(())

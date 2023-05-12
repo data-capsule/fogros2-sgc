@@ -24,7 +24,6 @@ openssl = "0.10.42"
 regex="1.7.0"
 serde = "1.0.149"
 serde_json = "*"
-tokio = { version = "1.22", features = ["full"] }
 tokio-core = "0.1"
 futures = "0.3.19"
 tokio-openssl = '0.6'
@@ -36,7 +35,6 @@ lazy_static = "1.4"
 hyper = { version = "0.14.16", features = ["full"] }
 async-datachannel = "0.4.0"
 async-tungstenite = { version = "0.17.2", features = ["tokio-openssl"] }
-tracing-subscriber = "0.3.16"
 parking_lot = "0.12.1"
 tracing = "0.1.37"
 bincode = "1.3.3"
@@ -44,6 +42,9 @@ bincode = "1.3.3"
 r2r = {git = "https://github.com/KeplerC/r2r.git"}
 redis ={ version = "0.23.0" }
 redis-async = "0.16.0"
+tokio = { version = "1.22", features = ["full", "tracing"] }
+tracing-subscriber = "0.3.17"
+console-subscriber = "0.1.9"
 # deprecated dependencies 
 # pnet= { version = "0.31.0", features = ["std"] }
 # pnet_macros_support =  { version = "0.31.0" }
