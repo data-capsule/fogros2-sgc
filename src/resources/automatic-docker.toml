@@ -1,0 +1,37 @@
+# FogROS2-SGC configuration file
+# debug = true | false 
+# setting up debug to true will print out debug messages
+debug = true
+# log_level = "debug" | "info" | "warn" | "error" | "off"
+log_level = "info"
+# crypto_name = "test_cert" | ..." in /src/scripts/crypto
+crypto_name="test_cert"
+# address of the signaling server of webrtc 
+# the default parameter is provided by a berkeley server
+signaling_server_address = "ws://signal:8000"
+# automatic_topic_discovery = true | false
+# if true, FogROS2-SGC will try to discover all topics
+# if false, FogROS2-SGC will only discover topics defined in [[ros]] section
+automatic_topic_discovery = true
+# There can be multiple [[ros]] sections
+# each section defines a ROS node name and its topic
+[[ros]]
+# action = "sub" | "pub | "noop"
+# pub = subscribe to local topic and publish to remote topic
+# sub = publish to local topic and subscribe to remote topic
+# noop = do nothing, used to exclude certain topics in auto mode
+action = "noop"
+# topic_name of fogros2-sgc node that will publish/subscribe to
+topic_name = "/rosout"
+# topic type of fogros2-sgc node that will publish/subscribe to
+topic_type = "rcl_interfaces/msg/Log"
+[[ros]]
+# action = "sub" | "pub | "noop"
+# pub = subscribe to local topic and publish to remote topic
+# sub = publish to local topic and subscribe to remote topic
+# noop = do nothing, used to exclude certain topics in auto mode
+action = "noop"
+# topic_name of fogros2-sgc node that will publish/subscribe to
+topic_name = "/parameter_events"
+# topic type of fogros2-sgc node that will publish/subscribe to
+topic_type = "rcl_interfaces/msg/ParameterEvent"

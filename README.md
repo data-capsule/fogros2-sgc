@@ -150,12 +150,13 @@ webrtc is generally not compatible with the previous protocol. As a result, we m
 
 #### Deploying Your Own Routing Infrastructure
 The simplest routing infrastructure consists a signaling server and a routing information base(RIB) based on redis. 
+This can be done by running 
+```
+docker compose up -d signal redis
+```
+The only requirement is to expose port 8000 and 8002 to other robots/machines. 
+
 Signaling server faciliates the communication by exchanging the address information of webrtc. The details about how signaling server works can be found [HERE](./docs/webrtc.md).
-```
-git clone https://github.com/data-capsule/libdatachannel.git
-cd libdatachannel/examples/signaling-server-rust/
-cargo run
-```
 
 #### Notes on using Berkeley's Public Servers
 Berkeley's public servers are for experimental purposes and do not intend to be used for production system. We do not provide any guarantee on avaialbility. Please use your own signaling server for benchmarking and deployment.

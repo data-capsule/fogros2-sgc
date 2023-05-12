@@ -1,53 +1,6 @@
 version: "3"
 
 services:
-    talker:
-        restart: always
-        build: 
-          context: ./
-          dockerfile: ./Dockerfile
-        volumes:
-          - "./src:/src" 
-          - "./scripts:/scripts" 
-        depends_on:
-          - redis 
-          # - listener
-        # deploy:
-        #   replicas: 2
-        environment:
-          # SGC_CONFIG: "talker.toml"
-          SGC_CONFIG: "automatic.toml"
-          RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
-          CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
-        command: >
-          bash -c "source /opt/ros/humble/setup.bash; 
-          ros2 run demo_nodes_py talker & 
-          /gdp-router router"
-    listener:
-        restart: always
-        build: 
-          context: ./
-          dockerfile: ./Dockerfile
-        volumes:
-          - "./src:/src" 
-          - "./scripts:/scripts" 
-        depends_on:
-          - talker 
-          - redis
-        # deploy:
-        #   replicas: 2
-        environment:
-          # SGC_CONFIG: "listener.toml"
-          SGC_CONFIG: "automatic.toml"
-          RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
-          CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
-        # TODO: this is a hack to make sure the subscriber is started after the publisher
-        # will also test the scenario that is opposite
-        command: >
-          bash -c "source /opt/ros/humble/setup.bash; 
-          ros2 run demo_nodes_py listener & 
-          /gdp-router router"
-          
     redis: 
       image: redislabs/redismod
       ports:
@@ -68,3 +21,47 @@ services:
       image: redislabs/redisinsight:latest
       ports:
       - '8001:8001' # use 8002 for public interface of redis insight
+
+    talker:
+        restart: always
+        build: 
+          context: ./
+          dockerfile: ./Dockerfile
+        volumes:
+          - "./src:/src" 
+          - "./scripts:/scripts" 
+        depends_on:
+          - redis 
+          - signal
+        # deploy:
+        #   replicas: 2
+        environment:
+          SGC_CONFIG: "automatic-docker.toml"
+          RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
+          CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
+        command: >
+          bash -c "source /opt/ros/humble/setup.bash; 
+          ros2 run demo_nodes_py talker & 
+          /gdp-router router"
+    listener:
+        restart: always
+        build: 
+          context: ./
+          dockerfile: ./Dockerfile
+        volumes:
+          - "./src:/src" 
+          - "./scripts:/scripts" 
+        depends_on:
+          - redis
+          - signal
+        environment:
+          SGC_CONFIG: "automatic-docker.toml"
+          RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
+          CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
+        # TODO: this is a hack to make sure the subscriber is started after the publisher
+        # will also test the scenario that is opposite
+        command: >
+          bash -c "source /opt/ros/humble/setup.bash; 
+          ros2 run demo_nodes_py listener & 
+          /gdp-router router"
+          
