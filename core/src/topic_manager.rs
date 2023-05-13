@@ -183,6 +183,8 @@ async fn create_new_remote_publisher(
     //     )
     //     .await;
     // }
+
+
     let tasks = subscribers.into_iter().map(|subscriber| {
         let topic_name_clone = topic_name.clone();
         let topic_type_clone = topic_type.clone();
@@ -209,42 +211,47 @@ async fn create_new_remote_publisher(
         })
     });
 
+    loop{
+        let tasks = tasks.clone();
+        tokio::select! {
+            _ = future::select_all(tasks.into_iter()) => {
+                info!("finished creating new remote publisher pooling lists");
+            }, 
+            Some(message) = msgs.next() => {
+                match message {
+                    Ok(message) => {
+                        info!("KVS {}", String::from_resp(message).unwrap());
+                        let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+                        info!("get a list of subscribers from KVS {:?}", subscribers);
+                        let subscriber = subscribers.first().unwrap(); //first or last?
+                        let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                        info!("publisher listening for signaling url {}", publisher_url);
+                        let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
+                        info!("publisher registered webrtc stream");
+                        let _ros_handle = ros_topic_creator(
+                            webrtc_stream,
+                            format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+                            topic_name.clone(),
+                            topic_type.clone(),
+                            "sub".to_string(),
+                            certificate.clone(),
+                        )
+                        .await;
 
-    // Wait for all tasks to complete
-    // futures::future::join_all(tasks).await;
-    // let (finished_task, _, remaining_tasks) = tokio::select(tasks.into_iter()).await;
-    future::select_all(tasks.into_iter()).await;
-    info!("finished creating new remote publisher pooling lists");
-
-    while let Some(message) = msgs.next().await {
-        match message {
-            Ok(message) => {
-                info!("KVS {}", String::from_resp(message).unwrap());
-                let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
-                info!("get a list of subscribers from KVS {:?}", subscribers);
-                let subscriber = subscribers.first().unwrap(); //first or last?
-                let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
-                info!("publisher listening for signaling url {}", publisher_url);
-                let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
-                info!("publisher registered webrtc stream");
-                let _ros_handle = ros_topic_creator(
-                    webrtc_stream,
-                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-                    topic_name.clone(),
-                    topic_type.clone(),
-                    "sub".to_string(),
-                    certificate.clone(),
-                )
-                .await;
-
-            
-            },
-            Err(e) => {
-                eprintln!("ERROR: {}", e);
-                break;
+                    
+                    },
+                    Err(e) => {
+                        eprintln!("ERROR: {}", e);
+                    }
+                }
             }
         }
     }
+    // Wait for all tasks to complete
+    // futures::future::join_all(tasks).await;
+    // let (finished_task, _, remaining_tasks) = tokio::select(tasks.into_iter()).await;
+    
+
 
     
 
@@ -338,46 +345,50 @@ async fn create_new_remote_subscriber(
 
     // Wait for all tasks to complete
     // futures::future::join_all(tasks).await;
-    future::select_all(tasks.into_iter()).await;
-    info!("finished creating new remote subscriber pooling lists");
-
-
-    while let Some(message) = msgs.next().await {
-        match message {
-            Ok(message) => {
-                info!("KVS {}", String::from_resp(message).unwrap());
-                let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get publisher from database");
-                info!("get a list of publishers from KVS {:?}", publishers);
-                let publisher = publishers.first().unwrap(); //first or last?
-
-                // subscriber's address
-                let my_signaling_url = format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name), publisher);
-                // publisher's address
-                let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
-                // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
-                info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
-                let webrtc_stream = register_webrtc_stream(my_signaling_url, Some(peer_dialing_url)).await;
-                info!("subscriber registered webrtc stream");
-
-                let _ros_handle = ros_topic_creator(
-                    webrtc_stream,
-                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-                    topic_name.clone(),
-                    topic_type.clone(),
-                    "sub".to_string(),
-                    certificate.clone(),
-                )
-                .await;
-
-            
-            },
-            Err(e) => {
-                eprintln!("ERROR: {}", e);
-                break;
+    
+    
+    loop{
+        let tasks = tasks.clone();
+        tokio::select! {
+            _ = future::select_all(tasks.into_iter()) => {
+                info!("finished creating new remote subscriber pooling lists");
+            }, 
+            Some(message) = msgs.next() => {
+                match message {
+                    Ok(message) => {
+                        info!("KVS {}", String::from_resp(message).unwrap());
+                        let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get publisher from database");
+                        info!("get a list of publishers from KVS {:?}", publishers);
+                        let publisher = publishers.first().unwrap(); //first or last?
+        
+                        // subscriber's address
+                        let my_signaling_url = format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name), publisher);
+                        // publisher's address
+                        let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
+                        // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                        info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
+                        let webrtc_stream = register_webrtc_stream(my_signaling_url, Some(peer_dialing_url)).await;
+                        info!("subscriber registered webrtc stream");
+        
+                        let _ros_handle = ros_topic_creator(
+                            webrtc_stream,
+                            format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+                            topic_name.clone(),
+                            topic_type.clone(),
+                            "sub".to_string(),
+                            certificate.clone(),
+                        )
+                        .await;
+        
+                    
+                    },
+                    Err(e) => {
+                        eprintln!("ERROR: {}", e);
+                    }
+                }
             }
         }
     }
-    
 
     // let webrtc_stream = register_webrtc_stream(
     //     gdp_name_to_string(subscriber_listening_gdp_name),
