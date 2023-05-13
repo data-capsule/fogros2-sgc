@@ -20,7 +20,7 @@ use tokio::time::Duration;
 use utils::app_config::AppConfig;
 use redis::{self, Client, Commands, PubSubCommands, RedisResult, transaction};
 use redis_async::{client, resp::FromResp};
-use futures::StreamExt;
+use futures::{StreamExt, future};
 
 
 fn get_redis_url() -> String {
@@ -194,6 +194,7 @@ async fn create_new_remote_publisher(
             let publisher_url =
                 format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name_clone), subscriber);
             info!("publisher listening for signaling url {}", publisher_url);
+            
             let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
             info!("publisher registered webrtc stream");
             let _ros_handle = ros_topic_creator(
@@ -210,7 +211,9 @@ async fn create_new_remote_publisher(
 
 
     // Wait for all tasks to complete
-    futures::future::join_all(tasks).await;
+    // futures::future::join_all(tasks).await;
+    // let (finished_task, _, remaining_tasks) = tokio::select(tasks.into_iter()).await;
+    future::select_all(tasks.into_iter()).await;
     info!("finished creating new remote publisher pooling lists");
 
     while let Some(message) = msgs.next().await {
@@ -334,7 +337,8 @@ async fn create_new_remote_subscriber(
     });
 
     // Wait for all tasks to complete
-    futures::future::join_all(tasks).await;
+    // futures::future::join_all(tasks).await;
+    future::select_all(tasks.into_iter()).await;
     info!("finished creating new remote subscriber pooling lists");
 
 

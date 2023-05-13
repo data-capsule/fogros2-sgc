@@ -110,7 +110,7 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
             };
             let s = serde_json::to_string(&m).unwrap();
             info!("Sending {:?}", s);
-            write.send(tungstenite::Message::text(s)).await.unwrap();
+            write.send(tungstenite::Message::text(s)).await;
         }
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };

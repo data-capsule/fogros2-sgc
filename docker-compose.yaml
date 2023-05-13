@@ -36,7 +36,7 @@ services:
         # deploy:
         #   replicas: 2
         environment:
-          SGC_CONFIG: "automatic-docker.toml"
+          SGC_CONFIG: "automatic.toml"
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         command: >
@@ -55,7 +55,7 @@ services:
           - rib
           - signal
         environment:
-          SGC_CONFIG: "automatic-docker.toml"
+          SGC_CONFIG: "automatic.toml"
           RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
           CYCLONEDDS_URI: "file:///fog_ws/cyclonedds.ubuntu.2204.xml"
         # TODO: this is a hack to make sure the subscriber is started after the publisher
