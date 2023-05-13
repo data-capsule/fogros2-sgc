@@ -328,6 +328,9 @@ async fn create_new_remote_subscriber(
             let peer_dialing_url =
                 format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name_clone));
             info!("publisher: my id: {}, peer to dial ", my_signaling_url);
+            // workaround to prevent subscriber from dialing before publisher is listening
+            tokio::time::sleep(Duration::from_millis(200)).await;
+
             let webrtc_stream =
                 register_webrtc_stream(my_signaling_url, Some(peer_dialing_url)).await;
             info!("subscriber registered webrtc stream");
@@ -367,6 +370,8 @@ async fn create_new_remote_subscriber(
                         let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
                         // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
                         info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
+                        // workaround to prevent subscriber from dialing before publisher is listening
+                        tokio::time::sleep(Duration::from_millis(200)).await;
                         let webrtc_stream = register_webrtc_stream(my_signaling_url, Some(peer_dialing_url)).await;
                         info!("subscriber registered webrtc stream");
         
