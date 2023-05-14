@@ -420,19 +420,6 @@ pub async fn ros_topic_manager() {
         });
     }
 
-    // if automatic topic discovery is disabled, return
-    if !config.automatic_topic_discovery {
-        info!("automatic topic discovery is disabled");
-        loop {
-            // workaround to prevent the ros topic manager from returning
-            // thus cleaning up the stack, etc.
-            // TODO: is there any better way to do this?
-            tokio::time::sleep(Duration::from_secs(10)).await;
-        }
-    } else {
-        info!("automatic topic discovery is enabled. May be unstable!");
-    }
-
     let certificate = std::fs::read(format!(
         "./scripts/crypto/{}/{}-private.pem",
         config.crypto_name, config.crypto_name
@@ -445,6 +432,14 @@ pub async fn ros_topic_manager() {
     loop {
         select! {
             _ = sleep(Duration::from_millis(5000)) => {
+
+                if !config.automatic_topic_discovery {
+                    info!("automatic topic discovery is disabled");
+                    continue;
+                } else {
+                    info!("automatic topic discovery is enabled. May be unstable!");
+                }
+
                 let current_topics = node.get_topic_names_and_types().unwrap();
 
                 // check if there is a new topic by comparing current topics with
