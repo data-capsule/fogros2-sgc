@@ -163,7 +163,6 @@ Berkeley's public servers are for experimental purposes and do not intend to be 
 The security guarnatees of FogROS2-SGC prevents other users/Berkeley from learning sensitive information, such as your ROS2 topic name and type, and on the actual data payload. What is visible is a random 256 bit name are published and subscribed by other random 256 bit names. 
 
 #### TODOs 
-1. we assume the publishers start before and subscriber, and subscriber retry if the publisher's info does not exist. We may find a more clever way of handling this. 
-2. video streaming
-3. testing on raspberrry pi
-4. robustness of signal server (fault tolerance?)
+1. multiple webrtc channels may have multiple topic subscribers/publishers at the same time 
+2. removal of stale records 
+3. expiration 

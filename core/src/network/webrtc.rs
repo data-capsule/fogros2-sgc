@@ -87,7 +87,7 @@ struct SignalingMessage {
     payload: Message,
 }
 
-pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>) -> DataStream {
+pub async fn register_webrtc_stream(my_id: &str, peer_to_dial: Option<String>) -> DataStream {
     let config = AppConfig::fetch().expect("Failed to fetch config");
     let ice_servers = vec!["stun:stun.l.google.com:19302"];
     let conf = RtcConfig::new(&ice_servers);
@@ -110,7 +110,13 @@ pub async fn register_webrtc_stream(my_id: String, peer_to_dial: Option<String>)
             };
             let s = serde_json::to_string(&m).unwrap();
             info!("Sending {:?}", s);
-            write.send(tungstenite::Message::text(s)).await;
+            match write.send(tungstenite::Message::text(s)).await {
+                Ok(_) => (),
+                Err(e) => {
+                    error!("Error sending {:?}", e);
+                    break;
+                }
+            }
         }
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };

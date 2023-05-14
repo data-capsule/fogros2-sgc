@@ -97,7 +97,7 @@ pub async fn ros_subscriber(
                 info!("received a packet {:?}", packet);
                 let ros_msg = packet;
                 let packet = construct_gdp_forward_from_bytes(topic_gdp_name, node_gdp_name, ros_msg );
-                m_tx.send(packet).unwrap();
+                m_tx.send(packet);
 
                 // proc_gdp_packet(packet,  // packet
                 //     &fib_tx,  //used to send packet to fib
