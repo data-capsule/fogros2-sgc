@@ -281,7 +281,7 @@ async fn create_new_remote_subscriber(
             // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
             info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
             // workaround to prevent subscriber from dialing before publisher is listening
-            // tokio::time::sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(500)).await;
 
             let webrtc_stream =
                 register_webrtc_stream(&my_signaling_url, Some(peer_dialing_url)).await;
@@ -298,10 +298,12 @@ async fn create_new_remote_subscriber(
         })
     });
 
-    // Wait for all tasks to complete
-    futures::future::join_all(tasks).await;
+    
+    // // Wait for all tasks to complete
+    // futures::future::join_all(tasks).await;
     
     
+
     loop{
         tokio::select! {
             Some(message) = msgs.next() => {
@@ -334,7 +336,7 @@ async fn create_new_remote_subscriber(
                             format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
                             topic_name.clone(),
                             topic_type.clone(),
-                            "sub".to_string(),
+                            "pub".to_string(),
                             certificate.clone(),
                         )
                         .await;
@@ -348,7 +350,6 @@ async fn create_new_remote_subscriber(
             }
         }
     }
-
 
 }
 
