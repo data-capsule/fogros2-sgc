@@ -37,7 +37,16 @@ pub fn get_redis_address_and_port() -> (String, u16) {
     (address, port)
 }
 
+pub fn clear_topic_key(topic: &str) {
+    let (address, port) = get_redis_address_and_port();
+    let client = redis::Client::open(format!("redis://{}:{}", address, port)).unwrap();
+    let mut con = client.get_connection().unwrap();
+    let publisher_topic = format!("{}-pub", topic);
+    let subscriber_topic = format!("{}-sub", topic);
 
+    redis::cmd("DEL").arg(publisher_topic).execute(&mut con);
+    redis::cmd("DEL").arg(subscriber_topic).execute(&mut con);
+}
 
 // add a publisher/subscriber to the database
 pub fn add_entity_to_database_as_transaction(redis_url: &str, key: &str, value: &str) -> RedisResult<()> {
@@ -46,7 +55,6 @@ pub fn add_entity_to_database_as_transaction(redis_url: &str, key: &str, value: 
     let (new_val,) : (isize,) = redis::transaction(&mut con, &[key], |con, pipe| {
         pipe
             .lpush(key, value)
-            .expire(key, 120)
             .query(con)
     })?;
     println!("The incremented number is: {}", new_val);

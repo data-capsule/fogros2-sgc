@@ -171,11 +171,8 @@ async fn create_new_remote_publisher(
     });
 
     loop{
-        let tasks = tasks.clone();
+        // let tasks = tasks.clone();
         tokio::select! {
-            _ = future::select_all(tasks.into_iter()) => {
-                info!("finished creating new remote publisher pooling lists");
-            }, 
             Some(message) = msgs.next() => {
                 match message {
                     Ok(message) => {
@@ -381,6 +378,8 @@ pub async fn ros_topic_manager() {
             &topic_type,
             &certificate,
         ));
+
+        clear_topic_key(&gdp_name_to_string(topic_gdp_name));
 
         match action.as_str() {
             "sub" => {
