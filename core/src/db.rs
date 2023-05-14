@@ -44,7 +44,10 @@ pub fn add_entity_to_database_as_transaction(redis_url: &str, key: &str, value: 
     let client = Client::open(redis_url)?;
     let mut con = client.get_connection()?;
     let (new_val,) : (isize,) = redis::transaction(&mut con, &[key], |con, pipe| {
-        pipe.lpush(key, value).query(con)
+        pipe
+            .lpush(key, value)
+            .expire(key, 120)
+            .query(con)
     })?;
     println!("The incremented number is: {}", new_val);
     Ok(())
