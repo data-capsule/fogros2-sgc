@@ -379,7 +379,7 @@ pub async fn ros_topic_manager() {
             &certificate,
         ));
 
-        clear_topic_key(&gdp_name_to_string(topic_gdp_name));
+        // clear_topic_key(&gdp_name_to_string(topic_gdp_name));
 
         match action.as_str() {
             "sub" => {
