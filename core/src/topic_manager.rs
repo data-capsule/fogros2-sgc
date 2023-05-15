@@ -118,24 +118,6 @@ async fn create_new_remote_publisher(
 
     let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
     info!("subscriber list {:?}", subscribers);
-    // signaling url is  [topic_name]/[local name]/[remote name]
-    // dialing url is [topic_name]/[remote name]/[local name]
-    // for subscriber in subscribers {
-    //     info!("subscriber {}", subscriber);
-    //     let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
-    //     info!("publisher listening for signaling url {}", publisher_url);
-    //     let webrtc_stream = register_webrtc_stream(publisher_url, None).await;
-    //     info!("publisher registered webrtc stream");
-    //     let _ros_handle = ros_topic_creator(
-    //         webrtc_stream,
-    //         format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-    //         topic_name.clone(),
-    //         topic_type.clone(),
-    //         "sub".to_string(),
-    //         certificate.clone(),
-    //     )
-    //     .await;
-    // }
 
 
     let tasks = subscribers.into_iter().map(|subscriber| {
@@ -169,6 +151,10 @@ async fn create_new_remote_publisher(
 
         })
     });
+
+    // Wait for all tasks to complete
+    futures::future::join_all(tasks).await;
+    info!("all the subscribers are checked!");
 
     loop{
         // let tasks = tasks.clone();
@@ -206,25 +192,6 @@ async fn create_new_remote_publisher(
             }
         }
     }
-    // Wait for all tasks to complete
-    // futures::future::join_all(tasks).await;
-    // let (finished_task, _, remaining_tasks) = tokio::select(tasks.into_iter()).await;
-    
-
-
-    
-
-    // let webrtc_stream = register_webrtc_stream(gdp_name_to_string(topic_gdp_name), None).await;
-    // info!("publisher registered webrtc stream");
-    // let _ros_handle = ros_topic_creator(
-    //     webrtc_stream,
-    //     format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-    //     topic_name.clone(),
-    //     topic_type,
-    //     "sub".to_string(),
-    //     certificate.clone(),
-    // )
-    // .await;
 }
 
 async fn create_new_remote_subscriber(
@@ -296,9 +263,9 @@ async fn create_new_remote_subscriber(
     });
 
     
-    // // Wait for all tasks to complete
-    // futures::future::join_all(tasks).await;
-    
+    // Wait for all tasks to complete
+    futures::future::join_all(tasks).await;
+    info!("all the mailboxes are checked!");
     
 
     loop{
