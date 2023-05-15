@@ -151,47 +151,83 @@ async fn create_new_remote_publisher(
 
         })
     });
+    let mut tasks = tasks.collect::<Vec<_>>();
+
+    let message_handling_task_handle = tokio::spawn(async move {
+    loop {
+        let message = msgs.next().await;
+        match message {
+            Some(message) => {
+                info!("KVS {}", String::from_resp(message.unwrap()).unwrap());
+                let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+                info!("get a list of subscribers from KVS {:?}", subscribers);
+                let subscriber = subscribers.first().unwrap(); //first or last?
+                let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                info!("publisher listening for signaling url {}", publisher_url);
+
+                add_entity_to_database_as_transaction(&redis_url, &publisher_topic, &publisher_url).expect("Cannot add publisher to database");
+                info!("publisher {} added to database of channel {}", &publisher_url, publisher_topic);
+
+                let webrtc_stream = register_webrtc_stream(&publisher_url, None).await;
+                info!("publisher registered webrtc stream");
+                let _ros_handle = ros_topic_creator(
+                    webrtc_stream,
+                    format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+                    topic_name.clone(),
+                    topic_type.clone(),
+                    "sub".to_string(),
+                    certificate.clone(),
+                )
+                .await;
+            }
+            None => {
+                info!("message is none");
+            }
+        }
+        }
+    });
+    tasks.push(message_handling_task_handle);
 
     // Wait for all tasks to complete
     futures::future::join_all(tasks).await;
     info!("all the subscribers are checked!");
 
-    loop{
-        // let tasks = tasks.clone();
-        tokio::select! {
-            Some(message) = msgs.next() => {
-                match message {
-                    Ok(message) => {
-                        info!("KVS {}", String::from_resp(message).unwrap());
-                        let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
-                        info!("get a list of subscribers from KVS {:?}", subscribers);
-                        let subscriber = subscribers.first().unwrap(); //first or last?
-                        let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
-                        info!("publisher listening for signaling url {}", publisher_url);
+    // loop{
+    //     // let tasks = tasks.clone();
+    //     tokio::select! {
+    //         Some(message) = msgs.next() => {
+    //             match message {
+    //                 Ok(message) => {
+    //                     info!("KVS {}", String::from_resp(message).unwrap());
+    //                     let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+    //                     info!("get a list of subscribers from KVS {:?}", subscribers);
+    //                     let subscriber = subscribers.first().unwrap(); //first or last?
+    //                     let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+    //                     info!("publisher listening for signaling url {}", publisher_url);
 
-                        add_entity_to_database_as_transaction(&redis_url, &publisher_topic, &publisher_url).expect("Cannot add publisher to database");
-                        info!("publisher {} added to database of channel {}", &publisher_url, publisher_topic);
+    //                     add_entity_to_database_as_transaction(&redis_url, &publisher_topic, &publisher_url).expect("Cannot add publisher to database");
+    //                     info!("publisher {} added to database of channel {}", &publisher_url, publisher_topic);
   
-                        let webrtc_stream = register_webrtc_stream(&publisher_url, None).await;
-                        info!("publisher registered webrtc stream");
-                        let _ros_handle = ros_topic_creator(
-                            webrtc_stream,
-                            format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
-                            topic_name.clone(),
-                            topic_type.clone(),
-                            "sub".to_string(),
-                            certificate.clone(),
-                        )
-                        .await;
+    //                     let webrtc_stream = register_webrtc_stream(&publisher_url, None).await;
+    //                     info!("publisher registered webrtc stream");
+    //                     let _ros_handle = ros_topic_creator(
+    //                         webrtc_stream,
+    //                         format!("{}_{}", "ros_manager_node", rand::random::<u32>()),
+    //                         topic_name.clone(),
+    //                         topic_type.clone(),
+    //                         "sub".to_string(),
+    //                         certificate.clone(),
+    //                     )
+    //                     .await;
               
-                    },
-                    Err(e) => {
-                        eprintln!("ERROR: {}", e);
-                    }
-                }
-            }
-        }
-    }
+    //                 },
+    //                 Err(e) => {
+    //                     eprintln!("ERROR: {}", e);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 async fn create_new_remote_subscriber(
