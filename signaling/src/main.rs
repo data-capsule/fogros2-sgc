@@ -12,6 +12,7 @@ extern crate tungstenite;
 extern crate futures_util;
 extern crate futures_channel;
 extern crate json;
+extern crate redis;
 
 use std::env;
 use std::collections::HashMap;
@@ -28,6 +29,16 @@ use futures_channel::mpsc;
 type Id = String;
 type Tx = mpsc::UnboundedSender<Message>;
 type ClientsMap = Arc<Mutex<HashMap<Id, Tx>>>;
+
+fn remove_client_from_rib(client_id: &str){
+    let client = redis::Client::open("redis://fogros2-sgc-lite-rib-1").expect("redis client open failed");
+    let mut con = client.get_connection().unwrap();
+    // let (new_val,) : (isize,) = redis::transaction(&mut con, &[key], |con, pipe| {
+    //     pipe
+    //         .lrem(key, value)
+    //         .query(con)
+    // });
+}
 
 async fn handle(clients: ClientsMap, stream: TcpStream) {
     let mut client_id = Id::new();
@@ -78,6 +89,7 @@ async fn handle(clients: ClientsMap, stream: TcpStream) {
 
     println!("Client {} disconnected", &client_id);
     clients.lock().unwrap().remove(&client_id);
+    remove_client_from_rib(&client_id);
 }
 
 #[tokio::main]

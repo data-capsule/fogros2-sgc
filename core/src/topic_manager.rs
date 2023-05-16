@@ -131,7 +131,7 @@ async fn create_new_remote_publisher(
         tokio::spawn(async move {
             info!("subscriber {}", subscriber);
             let publisher_url =
-                format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name_clone), subscriber);
+                format!("{},{},{}", gdp_name_to_string(topic_gdp_name),gdp_name_to_string(publisher_listening_gdp_name_clone), subscriber);
             info!("publisher listening for signaling url {}", publisher_url);
             
             add_entity_to_database_as_transaction(&redis_url, &publisher_topic, &publisher_url).expect("Cannot add publisher to database");
@@ -162,7 +162,7 @@ async fn create_new_remote_publisher(
                 let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
                 info!("get a list of subscribers from KVS {:?}", subscribers);
                 let subscriber = subscribers.first().unwrap(); //first or last?
-                let publisher_url = format!("{},{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
+                let publisher_url = format!("{},{},{}", gdp_name_to_string(topic_gdp_name), gdp_name_to_string(publisher_listening_gdp_name), subscriber);
                 info!("publisher listening for signaling url {}", publisher_url);
 
                 add_entity_to_database_as_transaction(&redis_url, &publisher_topic, &publisher_url).expect("Cannot add publisher to database");
@@ -269,15 +269,15 @@ async fn create_new_remote_subscriber(
         } else {
             info!("find publisher mailbox {} ends with subscriber {}", publisher, gdp_name_to_string(subscriber_listening_gdp_name_clone));
         }
-        let publisher = publisher.split(',').take(4).collect::<Vec<&str>>().join(",");
+        let publisher = publisher.split(',').skip(4).take(4).collect::<Vec<&str>>().join(",");
 
         tokio::spawn(async move {
             info!("publisher {}", publisher);
             // subscriber's address
             let my_signaling_url =
-                format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name_clone), publisher);
+                format!("{},{},{}", gdp_name_to_string(topic_gdp_name), gdp_name_to_string(subscriber_listening_gdp_name_clone), publisher);
             // publisher's address
-            let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
+            let peer_dialing_url = format!("{},{},{}", gdp_name_to_string(topic_gdp_name), publisher, gdp_name_to_string(subscriber_listening_gdp_name));
             // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
             info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
             // workaround to prevent subscriber from dialing before publisher is listening
@@ -319,12 +319,12 @@ async fn create_new_remote_subscriber(
                             warn!("find publisher mailbox {} doesn not end with subscriber {}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
                             continue;
                         }
-                        let publisher = publisher.split(',').take(4).collect::<Vec<&str>>().join(",");
+                        let publisher = publisher.split(',').skip(4).take(4).collect::<Vec<&str>>().join(",");
         
                         // subscriber's address
-                        let my_signaling_url = format!("{},{}", gdp_name_to_string(subscriber_listening_gdp_name), publisher);
+                        let my_signaling_url = format!("{},{},{}", gdp_name_to_string(topic_gdp_name),gdp_name_to_string(subscriber_listening_gdp_name), publisher);
                         // publisher's address
-                        let peer_dialing_url = format!("{},{}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
+                        let peer_dialing_url = format!("{},{},{}", gdp_name_to_string(topic_gdp_name),publisher, gdp_name_to_string(subscriber_listening_gdp_name));
                         // let subsc = format!("{}/{}", gdp_name_to_string(publisher_listening_gdp_name), subscriber);
                         info!("subscriber uses signaling url {} that peers to {}", my_signaling_url, peer_dialing_url);
                         tokio::time::sleep(Duration::from_millis(1000)).await;
