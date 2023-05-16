@@ -16,6 +16,7 @@ members = [
     "utils",
     "cli",
     "core",
+    "signaling",
 ]
 
 [features]

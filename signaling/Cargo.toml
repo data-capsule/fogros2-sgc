@@ -1,0 +1,15 @@
+[package]
+name = "libdatachannel_signaling_server_example"
+version = "0.2.0"
+authors = ["Paul-Louis Ageneau"]
+license = "MPL-2.0"
+edition = "2018"
+
+[dependencies]
+tokio = { version = "1.20.4", features = ["full"] }
+tungstenite = "0.17.2"
+tokio-tungstenite = "0.17.1"
+futures-util = "0.3.21"
+futures-channel = "0.3.21"
+json = "0.12.4"
+
