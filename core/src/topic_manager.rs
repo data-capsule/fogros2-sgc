@@ -277,7 +277,7 @@ async fn create_new_remote_subscriber(
             Some(message) = msgs.next() => {
                 match message {
                     Ok(message) => {
-                        let received_operation = String::from_resp(message.unwrap()).unwrap();
+                        let received_operation = String::from_resp(message).unwrap();
                         info!("KVS {}", received_operation);
                         if (received_operation != "lpush") {
                             info!("the operation is not lpush, ignore");
