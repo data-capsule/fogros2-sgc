@@ -120,7 +120,7 @@ async fn create_new_remote_publisher(
     info!("subscriber list {:?}", subscribers);
 
 
-    let tasks = subscribers.into_iter().map(|subscriber| {
+    let tasks = subscribers.clone().into_iter().map(|subscriber| {
         let topic_name_clone = topic_name.clone();
         let topic_type_clone = topic_type.clone();
         let certificate_clone = certificate.clone();
@@ -164,9 +164,13 @@ async fn create_new_remote_publisher(
                     info!("the operation is not lpush, ignore");
                     continue;
                 }
-                let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
-                info!("get a list of subscribers from KVS {:?}", subscribers);
-                let subscriber = subscribers.first().unwrap(); //first or last?
+                let updated_subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
+                info!("get a list of subscribers from KVS {:?}", updated_subscribers);
+                let subscriber = updated_subscribers.first().unwrap(); //first or last?
+                if subscribers.clone().contains(subscriber) {
+                    warn!("subscriber {} already in the list, ignore", subscriber);
+                    continue;
+                }
                 let publisher_url = format!("{},{},{}", gdp_name_to_string(topic_gdp_name), gdp_name_to_string(publisher_listening_gdp_name), subscriber);
                 info!("publisher listening for signaling url {}", publisher_url);
 
@@ -224,7 +228,7 @@ async fn create_new_remote_subscriber(
     let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get subscriber from database");
     info!("publisher list {:?}", publishers);
 
-    let tasks = publishers.into_iter().map(|publisher| {
+    let tasks = publishers.clone().into_iter().map(|publisher| {
 
         let topic_name_clone = topic_name.clone();
         let topic_type_clone = topic_type.clone();
@@ -284,10 +288,15 @@ async fn create_new_remote_subscriber(
                             continue;
                         }
 
-                        let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get publisher from database");
-                        info!("get a list of publishers from KVS {:?}", publishers);
-                        let publisher = publishers.first().unwrap(); //first or last?
+                        let updated_publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get publisher from database");
+                        info!("get a list of publishers from KVS {:?}", updated_publishers);
+                        let publisher = updated_publishers.first().unwrap(); //first or last?
         
+                        if publishers.contains(publisher) {
+                            warn!("publisher {} already exists", publisher);
+                            continue;
+                        }
+
                         if !publisher.ends_with(&gdp_name_to_string(subscriber_listening_gdp_name)) {
                             warn!("find publisher mailbox {} doesn not end with subscriber {}", publisher, gdp_name_to_string(subscriber_listening_gdp_name));
                             continue;
