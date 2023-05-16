@@ -33,11 +33,24 @@ type ClientsMap = Arc<Mutex<HashMap<Id, Tx>>>;
 fn remove_client_from_rib(client_id: &str){
     let client = redis::Client::open("redis://fogros2-sgc-lite-rib-1").expect("redis client open failed");
     let mut con = client.get_connection().unwrap();
-    // let (new_val,) : (isize,) = redis::transaction(&mut con, &[key], |con, pipe| {
-    //     pipe
-    //         .lrem(key, value)
-    //         .query(con)
-    // });
+    let topic_key_name = client_id.split(',').take(4).collect::<Vec<&str>>().join(",");
+    let publisher_topic = format!("{}-pub", topic_key_name.clone());
+    let subscriber_topic = format!("{}-sub", topic_key_name.clone());
+
+    println!("Removing client {} from RIB", client_id);
+    println!("client publisher name is {}", publisher_topic);
+    let result: Result<String, redis::RedisError> = redis::transaction(&mut con, &[publisher_topic.clone()], |con, pipe| {
+        pipe
+            .lrem(publisher_topic.clone(), 0, client_id)
+            .query(con)
+    });
+    let subscriber_name = client_id.split(',').skip(4).take(4).collect::<Vec<&str>>().join(",");
+    println!("client subscriber name is {} with subscriber name {}", subscriber_topic, subscriber_name);
+    let result: Result<String, redis::RedisError> = redis::transaction(&mut con, &[subscriber_topic.clone()], |con, pipe| {
+        pipe
+            .lrem(subscriber_topic.clone(), 0, subscriber_name.clone())
+            .query(con)
+    });
 }
 
 async fn handle(clients: ClientsMap, stream: TcpStream) {
