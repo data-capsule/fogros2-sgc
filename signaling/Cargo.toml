@@ -1,7 +1,7 @@
 [package]
-name = "libdatachannel_signaling_server_example"
+name = "sgc_signaling_server"
 version = "0.2.0"
-authors = ["Paul-Louis Ageneau"]
+authors = ["Paul-Louis Ageneau", "Kaiyuan Chen"]
 license = "MPL-2.0"
 edition = "2018"
 

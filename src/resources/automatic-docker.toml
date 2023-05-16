@@ -11,7 +11,7 @@ crypto_name="test_cert"
 signaling_server_address = "ws://signal:8000"
 # address of the RIB
 # internally it is 6379 in the cluster
-routing_information_base_address = "fogros2_sgc_lite-rib-1:6379"
+routing_information_base_address = "fogros2-sgc-lite-rib-1:6379"
 # automatic_topic_discovery = true | false
 # if true, FogROS2-SGC will try to discover all topics
 # if false, FogROS2-SGC will only discover topics defined in [[ros]] section
