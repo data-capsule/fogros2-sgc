@@ -158,7 +158,12 @@ async fn create_new_remote_publisher(
         let message = msgs.next().await;
         match message {
             Some(message) => {
-                info!("KVS {}", String::from_resp(message.unwrap()).unwrap());
+                let received_operation = String::from_resp(message.unwrap()).unwrap();
+                info!("KVS {}", received_operation);
+                if (received_operation != "lpush") {
+                    info!("the operation is not lpush, ignore");
+                    continue;
+                }
                 let subscribers = get_entity_from_database(&redis_url, &subscriber_topic).expect("Cannot get subscriber from database");
                 info!("get a list of subscribers from KVS {:?}", subscribers);
                 let subscriber = subscribers.first().unwrap(); //first or last?
@@ -272,7 +277,12 @@ async fn create_new_remote_subscriber(
             Some(message) = msgs.next() => {
                 match message {
                     Ok(message) => {
-                        info!("KVS {}", String::from_resp(message).unwrap());
+                        let received_operation = String::from_resp(message.unwrap()).unwrap();
+                        info!("KVS {}", received_operation);
+                        if (received_operation != "lpush") {
+                            info!("the operation is not lpush, ignore");
+                            continue;
+                        }
 
                         let publishers = get_entity_from_database(&redis_url, &publisher_topic).expect("Cannot get publisher from database");
                         info!("get a list of publishers from KVS {:?}", publishers);
