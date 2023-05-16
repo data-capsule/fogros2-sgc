@@ -295,7 +295,13 @@ pub async fn webrtc_reader_and_writer(
                 //insert the first null byte to separate the packet header
                 header_string.push(0u8 as char);
                 let header_string_payload = header_string.as_bytes();
-                stream.write_all(&header_string_payload[..header_string_payload.len()]).await.unwrap();
+                match stream.write_all(&header_string_payload[..header_string_payload.len()]).await {
+                    Ok(_) => {},
+                    Err(e) => {
+                        warn!("The connection is closed: {}", e);
+                        break;
+                    }
+                }
 
                 // stream.write_all(&packet.payload[..packet.payload.len()]).await.unwrap();
                 if let Some(payload) = pkt_to_forward.payload {
