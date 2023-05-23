@@ -1,4 +1,5 @@
 version: "3"
+name: fogros2-sgc-lite
 
 services:
     rib: 
