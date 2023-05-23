@@ -1,3 +1,7 @@
+extern crate futures_channel;
+extern crate futures_util;
+extern crate json;
+extern crate redis;
 /**
  * Rust signaling server example for libdatachannel
  * Copyright (c) 2020 Paul-Louis Ageneau
@@ -6,53 +10,62 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-
 extern crate tokio;
 extern crate tungstenite;
-extern crate futures_util;
-extern crate futures_channel;
-extern crate json;
-extern crate redis;
 
-use std::env;
 use std::collections::HashMap;
+use std::env;
 use std::sync::{Arc, Mutex};
 
 use tokio::net::{TcpListener, TcpStream};
-use tungstenite::protocol::Message;
 use tungstenite::handshake::server::{Request, Response};
+use tungstenite::protocol::Message;
 
-use futures_util::{future, pin_mut, StreamExt};
-use futures_util::stream::TryStreamExt;
 use futures_channel::mpsc;
+use futures_util::stream::TryStreamExt;
+use futures_util::{future, pin_mut, StreamExt};
 
 type Id = String;
 type Tx = mpsc::UnboundedSender<Message>;
 type ClientsMap = Arc<Mutex<HashMap<Id, Tx>>>;
 
-fn remove_client_from_rib(client_id: &str){
-    let client = redis::Client::open("redis://fogros2-sgc-lite-rib-1").expect("redis client open failed");
+fn remove_client_from_rib(client_id: &str) {
+    let client =
+        redis::Client::open("redis://fogros2-sgc-lite-rib-1").expect("redis client open failed");
     let mut con = client.get_connection().unwrap();
-    let topic_key_name = client_id.split(',').take(4).collect::<Vec<&str>>().join(",");
+    let topic_key_name = client_id
+        .split(',')
+        .take(4)
+        .collect::<Vec<&str>>()
+        .join(",");
     let publisher_topic = format!("{}-pub", topic_key_name.clone());
     let subscriber_topic = format!("{}-sub", topic_key_name.clone());
 
     println!("Removing client {} from RIB", client_id);
-    
-    let result: Result<String, redis::RedisError> = redis::transaction(&mut con, &[publisher_topic.clone()], |con, pipe| {
-        pipe
-            .lrem(publisher_topic.clone(), 0, client_id)
-            .query(con)
-    });
-    println!("client publisher name is {} with result {:?}", publisher_topic, result);
-    let subscriber_name = client_id.split(',').skip(4).take(4).collect::<Vec<&str>>().join(",");
-    let result: Result<String, redis::RedisError> = redis::transaction(&mut con, &[subscriber_topic.clone()], |con, pipe| {
-        pipe
-            .lrem(subscriber_topic.clone(), 0, subscriber_name.clone())
-            .query(con)
-    });
-    println!("client subscriber name is {} with subscriber name {} with result {:?}", subscriber_topic, subscriber_name, result);
 
+    let result: Result<String, redis::RedisError> =
+        redis::transaction(&mut con, &[publisher_topic.clone()], |con, pipe| {
+            pipe.lrem(publisher_topic.clone(), 0, client_id).query(con)
+        });
+    println!(
+        "client publisher name is {} with result {:?}",
+        publisher_topic, result
+    );
+    let subscriber_name = client_id
+        .split(',')
+        .skip(4)
+        .take(4)
+        .collect::<Vec<&str>>()
+        .join(",");
+    let result: Result<String, redis::RedisError> =
+        redis::transaction(&mut con, &[subscriber_topic.clone()], |con, pipe| {
+            pipe.lrem(subscriber_topic.clone(), 0, subscriber_name.clone())
+                .query(con)
+        });
+    println!(
+        "client subscriber name is {} with subscriber name {} with result {:?}",
+        subscriber_topic, subscriber_name, result
+    );
 }
 
 async fn handle(clients: ClientsMap, stream: TcpStream) {
@@ -65,8 +78,9 @@ async fn handle(clients: ClientsMap, stream: TcpStream) {
     };
 
     let websocket = tokio_tungstenite::accept_hdr_async(stream, callback)
-        .await.expect("WebSocket handshake failed");
-	println!("Client {} connected", &client_id);
+        .await
+        .expect("WebSocket handshake failed");
+    println!("Client {} connected", &client_id);
 
     let (tx, rx) = mpsc::unbounded();
     clients.lock().unwrap().insert(client_id.clone(), tx);
@@ -92,7 +106,7 @@ async fn handle(clients: ClientsMap, stream: TcpStream) {
                     // Send to remote
                     println!("Client {} >> {}", &remote_id, &text);
                     remote.unbounded_send(Message::text(text)).unwrap();
-                },
+                }
                 _ => println!("Client {} not found", &remote_id),
             }
         }
@@ -110,12 +124,17 @@ async fn handle(clients: ClientsMap, stream: TcpStream) {
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let service = env::args().nth(1).unwrap_or("8000".to_string());
-    let endpoint = if service.contains(':') { service } else { format!("0.0.0.0:{}", service) };
+    let endpoint = if service.contains(':') {
+        service
+    } else {
+        format!("0.0.0.0:{}", service)
+    };
 
-	println!("Listening on {}", endpoint);
+    println!("Listening on {}", endpoint);
 
     let listener = TcpListener::bind(endpoint)
-    	.await.expect("Listener binding failed");
+        .await
+        .expect("Listener binding failed");
 
     let clients = ClientsMap::new(Mutex::new(HashMap::new()));
 
@@ -123,6 +142,5 @@ async fn main() -> Result<(), std::io::Error> {
         tokio::spawn(handle(clients.clone(), stream));
     }
 
-    return Ok(())
+    return Ok(());
 }
-

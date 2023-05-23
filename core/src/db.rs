@@ -1,6 +1,5 @@
-
 use crate::network::ros::{ros_publisher, ros_subscriber};
-use crate::network::webrtc::{register_webrtc_stream, webrtc_reader_and_writer, self};
+use crate::network::webrtc::{self, register_webrtc_stream, webrtc_reader_and_writer};
 
 use crate::structs::{
     gdp_name_to_string, generate_random_gdp_name, get_gdp_name_from_topic, GDPName,
@@ -8,20 +7,18 @@ use crate::structs::{
 
 use async_datachannel::DataStream;
 use serde::{Deserialize, Serialize};
-use tracing::subscriber;
 use std::collections::HashMap;
 use tokio::select;
+use tracing::subscriber;
 
+use futures::{future, StreamExt};
+use redis::{self, transaction, Client, Commands, PubSubCommands, RedisResult};
+use redis_async::{client, resp::FromResp};
 use tokio::process::Command;
 use tokio::sync::mpsc::{self};
-use tokio::time::{sleep, timeout};
 use tokio::time::Duration;
+use tokio::time::{sleep, timeout};
 use utils::app_config::AppConfig;
-use redis::{self, Client, Commands, PubSubCommands, RedisResult, transaction};
-use redis_async::{client, resp::FromResp};
-use futures::{StreamExt, future};
-
-
 
 pub fn get_redis_url() -> String {
     let config = AppConfig::fetch().expect("Failed to fetch config");
@@ -30,7 +27,7 @@ pub fn get_redis_url() -> String {
 
 pub fn get_redis_address_and_port() -> (String, u16) {
     let config = AppConfig::fetch().expect("Failed to fetch config");
-    let url = config.routing_information_base_address; 
+    let url = config.routing_information_base_address;
     let mut split = url.split(":");
     let address = split.next().unwrap().to_string();
     let port = split.next().unwrap().parse::<u16>().unwrap();
@@ -49,13 +46,13 @@ pub fn clear_topic_key(topic: &str) {
 }
 
 // add a publisher/subscriber to the database
-pub fn add_entity_to_database_as_transaction(redis_url: &str, key: &str, value: &str) -> RedisResult<()> {
+pub fn add_entity_to_database_as_transaction(
+    redis_url: &str, key: &str, value: &str,
+) -> RedisResult<()> {
     let client = Client::open(redis_url)?;
     let mut con = client.get_connection()?;
-    let (new_val,) : (isize,) = redis::transaction(&mut con, &[key], |con, pipe| {
-        pipe
-            .lpush(key, value)
-            .query(con)
+    let (new_val,): (isize,) = redis::transaction(&mut con, &[key], |con, pipe| {
+        pipe.lpush(key, value).query(con)
     })?;
     println!("The incremented number is: {}", new_val);
     Ok(())

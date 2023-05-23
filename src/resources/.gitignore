@@ -8,3 +8,5 @@
 !talker.toml
 !listener.toml
 !automatic-docker.toml
+!h264_encoder.toml
+!h264_decoder.toml
