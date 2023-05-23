@@ -32,7 +32,7 @@ pub struct AppConfig {
     pub log_level: LogLevel,
     pub crypto_name: String,
     pub signaling_server_address: String,
-    pub routing_information_base_address: String, 
+    pub routing_information_base_address: String,
     pub automatic_topic_discovery: bool,
     pub ros: Vec<ROS>,
 }
@@ -103,7 +103,9 @@ impl AppConfig {
 
     // Get a single value
     pub fn get<'de, T>(key: &'de str) -> Result<T>
-    where T: serde::Deserialize<'de> {
+    where
+        T: serde::Deserialize<'de>,
+    {
         Ok(CONFIG.read()?.get::<T>(key)?)
     }
 

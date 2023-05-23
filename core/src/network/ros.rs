@@ -3,9 +3,9 @@ use crate::structs::get_gdp_name_from_topic;
 use crate::structs::{GDPName, GDPPacket, GdpAction, Packet};
 use futures::stream::StreamExt;
 
-#[cfg(feature = "ros")] use r2r::QosProfile;
+#[cfg(feature = "ros")]
+use r2r::QosProfile;
 use serde_json;
-
 
 use std::str;
 use tokio::sync::mpsc::unbounded_channel;
@@ -41,7 +41,6 @@ pub async fn ros_publisher(
         node.spin_once(std::time::Duration::from_millis(10));
         // std::thread::sleep(std::time::Duration::from_millis(100));
     });
-
 
     loop {
         tokio::select! {
@@ -90,7 +89,6 @@ pub async fn ros_subscriber(
     let _handle = tokio::task::spawn_blocking(move || loop {
         node.spin_once(std::time::Duration::from_millis(100));
     });
-
 
     loop {
         tokio::select! {

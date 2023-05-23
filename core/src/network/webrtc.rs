@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use crate::pipeline::construct_gdp_forward_from_bytes;
 use crate::structs::GDPHeaderInTransit;
 use crate::structs::{generate_random_gdp_name, GDPName};
@@ -122,40 +121,40 @@ pub async fn register_webrtc_stream(my_id: &str, peer_to_dial: Option<String>) -
     };
     tokio::spawn(f_write);
     let f_read = async move {
-            while let Some(Ok(m)) = read.next().await {
-                info!("received {:?}", m);
-                if let Some(val) = match m {
-                    tungstenite::Message::Text(t) => {
-                        Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
-                    },
-                    tungstenite::Message::Binary(b) => Some(serde_json::from_slice(&b[..]).unwrap()),
-                    tungstenite::Message::Close(e) => {
-                        warn!("close message {:?}", e);
-                        continue;
-                    },
-                    _ => None,
-                } {
-                    let c: SignalingMessage = serde_json::from_value(val).unwrap();
-                    info!("msg {:?}", c);
-                    other_peer.lock().replace(c.id);
-                    if tx_sig_inbound.send(c.payload).await.is_err() {
-                        panic!()
-                    }
+        while let Some(Ok(m)) = read.next().await {
+            info!("received {:?}", m);
+            if let Some(val) = match m {
+                tungstenite::Message::Text(t) => {
+                    Some(serde_json::from_str::<serde_json::Value>(&t).unwrap())
+                }
+                tungstenite::Message::Binary(b) => Some(serde_json::from_slice(&b[..]).unwrap()),
+                tungstenite::Message::Close(e) => {
+                    warn!("close message {:?}", e);
+                    continue;
+                }
+                _ => None,
+            } {
+                let c: SignalingMessage = serde_json::from_value(val).unwrap();
+                info!("msg {:?}", c);
+                other_peer.lock().replace(c.id);
+                if tx_sig_inbound.send(c.payload).await.is_err() {
+                    panic!()
                 }
             }
-            // _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
-            //     // info!("timeout!!!!")
-            //     match other_peer.lock().as_ref() {
-            //         Some(_) => {
-            //             info!("timeout, returning");
-            //         }
-            //         None => {
-            //             warn!("timeout when waiting for peer to connect");
-            //             return anyhow::Result::<_, anyhow::Error>::Ok(());
-            //         }
-            //     }
-            // }
-        
+        }
+        // _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
+        //     // info!("timeout!!!!")
+        //     match other_peer.lock().as_ref() {
+        //         Some(_) => {
+        //             info!("timeout, returning");
+        //         }
+        //         None => {
+        //             warn!("timeout when waiting for peer to connect");
+        //             return anyhow::Result::<_, anyhow::Error>::Ok(());
+        //         }
+        //     }
+        // }
+
         anyhow::Result::<_, anyhow::Error>::Ok(())
     };
 
