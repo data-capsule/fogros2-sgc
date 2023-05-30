@@ -1,0 +1,31 @@
+# FogROS2-SGC configuration file
+# debug = true | false 
+# setting up debug to true will print out debug messages
+debug = true
+# log_level = "debug" | "info" | "warn" | "error" | "off"
+log_level = "info"
+# crypto_name = "test_cert" | ..." in /src/scripts/crypto
+crypto_name="test_cert"
+# address of the signaling server of webrtc 
+# the default parameter is provided by a berkeley server
+signaling_server_address = "ws://128.32.37.26:8000"
+# the default parameter is provided by a berkeley server
+routing_information_base_address = "128.32.37.26:8002"
+# automatic_topic_discovery = true | false
+# if true, FogROS2-SGC will try to discover all topics
+# if false, FogROS2-SGC will only discover topics defined in [[ros]] section
+automatic_topic_discovery = false
+# There can be multiple [[ros]] sections
+# each section defines a ROS node name and its topic
+[[ros]]
+action = "sub"
+# topic_name of fogros2-sgc node that will publish/subscribe to
+topic_name = "/image/h264"
+# topic type of fogros2-sgc node that will publish/subscribe to
+topic_type = "h264_msgs/msg/Packet"
+[[ros]]
+action = "pub"
+# topic_name of fogros2-sgc node that will publish/subscribe to
+topic_name = "/cmd_vel"
+# topic type of fogros2-sgc node that will publish/subscribe to
+topic_type = "geometry_msgs/msg/Twist"
