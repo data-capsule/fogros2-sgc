@@ -80,7 +80,6 @@ sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 
 On robot: 
 ```
-```
 cd scripts
 ./generate_crypto.sh
 ```
