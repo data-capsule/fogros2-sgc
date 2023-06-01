@@ -1,0 +1,13 @@
+launch:
+- node:
+    pkg: "apriltag_ros"
+    exec: "apriltag_node"
+    name: "apriltag"
+    namespace: "camera/color"
+    remap:
+    -
+        from: "/camera/color/image_rect"
+        to: "/camera/color/image_raw"
+    param:
+    -
+      from: "$(find-pkg-share apriltag_ros)/cfg/tags_36h11.yaml"
