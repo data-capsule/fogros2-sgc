@@ -1,8 +1,8 @@
-# FogROS2 SGC Lite
+# FogROS2 SGC 
 
 FogROS2-SGC is a cloud robotics platform for connecting disjoint ROS2 networks across different physical locations, networks, and Data Distribution Services. 
 
-\[[Website](https://sites.google.com/view/fogros2-sgc)\] \[[Video](https://youtu.be/hVVFVGLcK0c)\] \[[Arxiv](https://arxiv.org/abs/2210.11691)\] (TODO: arxiv link)
+\[[Website](https://sites.google.com/view/fogros2-sgc)\] \[[Video](https://youtu.be/hVVFVGLcK0c)\] \[[Arxiv](https://arxiv.org/abs/2306.17157)\]
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
