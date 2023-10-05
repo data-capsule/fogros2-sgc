@@ -162,6 +162,9 @@ Signaling server faciliates the communication by exchanging the address informat
 Berkeley's public servers are for experimental purposes and do not intend to be used for production system. We do not provide any guarantee on avaialbility. Please use your own signaling server for benchmarking and deployment.
 The security guarnatees of FogROS2-SGC prevents other users/Berkeley from learning sensitive information, such as your ROS2 topic name and type, and on the actual data payload. What is visible is a random 256 bit name are published and subscribed by other random 256 bit names. 
 
+#### Underdocumented Code
+We have some unpublished code [https://github.com/KeplerC/fogros2-ls] which has a ROS node that launches SGC. We will port the code soon!
+
 #### TODOs 
 1. expiration time for stale keys (this may happen if the subscriber suddenly drops off and does not connect to an existing publisher)
 2. in some rare cases, the IP address and port provided cannot connect, which blocks the publisher and subscriber. I noticed this only when running docker's talker on the edge and docker's listener on the cloud. (it works fine even if one of them is native) This happens periocially and sometime it just works. I don't know why. My hypothesis is some NAT issues with docker engine.
